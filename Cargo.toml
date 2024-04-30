@@ -6,6 +6,9 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[env]
+LEPTOS_SASS_VERSION="1.71.0"
+
 [dependencies]
 axum = { version = "0.7", optional = true }
 console_error_panic_hook = "0.1"
@@ -23,7 +26,8 @@ http = "1"
 stylers = "0.3.2"
 serde = "1.0.199"
 leptos-use = "0.10.9"
-leptonic = "0.5.0"
+leptonic = {git = "https://github.com/lpotthast/leptonic.git", features=["nightly"]}
+leptos_server_signal = "=0.6.0"
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
@@ -37,6 +41,9 @@ ssr = [
     "leptos_meta/ssr",
     "leptos_router/ssr",
     "dep:tracing",
+    "leptos-use/ssr",
+    "leptos_server_signal/ssr",
+    "leptos_server_signal/axum",
 ]
 
 # Defines a size-optimized profile for the WASM bundle in release mode
@@ -58,12 +65,7 @@ site-root = "target/site"
 # Defaults to pkg
 site-pkg-dir = "pkg"
 
-[package.metadata.leptonic]
-# REQUIRED: Leptonic's build-script will copy the Leptonic themes to this directory.
-style-dir = "style"
 
-# REQUIRED: Leptonic's build-script will copy static JS dependencies to this directory.
-js-dir = "public/js"
 
 
 # [Optional] The source CSS file. If it ends with .sass or .scss then it will be compiled by dart-sass into CSS. The CSS is optimized by Lightning CSS before being written to <site-root>/<site-pkg>/app.css
@@ -116,3 +118,10 @@ lib-default-features = false
 #
 # Optional. Defaults to "release".
 lib-profile-release = "wasm-release"
+
+[package.metadata.leptonic]
+# REQUIRED: Leptonic's build-script will copy the Leptonic themes to this directory.
+style-dir = "style"
+
+# REQUIRED: Leptonic's build-script will copy static JS dependencies to this directory.
+js-dir = "public/js"

@@ -10,5 +10,9 @@
         "serde",
         "stylesheet",
         "thiserror"
+    ],
+    "rust-analyzer.cargo.features":[
+        "ssr",
+        "hydrate"
     ]
 }

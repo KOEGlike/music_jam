@@ -59,6 +59,7 @@
     --box-color: var(--std-text-dark);
 
     // Button
+    --button-padding: 0.5em 0.75em;
     --button-border-size: 0.125em;
     --button-border-radius: 0.25em;
     --button-box-shadow-opacity: 0.3;
@@ -97,7 +98,7 @@
     --button-filled-secondary-background-color-hover: color-mix(in srgb, black var(--darker-2), var(--default-color));
     --button-filled-secondary-border-color: var(--default-color);
     --button-filled-secondary-border-color-hover: color-mix(in srgb, black var(--darker-2), var(--default-color));
-    --button-filled-secondary-box-shadow-color: var(--default-color);
+    --button-filled-secondary-box-shadow-color: color-mix(in srgb, black var(--darker-3), var(--default-color));
 
     --button-flat-success-text-color: var(--std-text-dark);
     --button-flat-success-text-color-hover: var(--std-text-dark);
@@ -174,6 +175,24 @@
     // Card
     --card-background-color: white;
     --card-box-shadow-color: #666666;
+
+    // Checkbox
+    --checkbox-size: 1.625em;
+    --checkbox-padding: 0;
+    --checkbox-border-radius: 0.2em;
+    --checkbox-border: 0.1em solid;
+    --checkbox-border-color: var(--grey-2);
+    --checkbox-color: white;
+    --checkbox-background-color: white;
+    --checkbox-hover-border-color: var(--brand-color);
+    --checkbox-hover-color: white;
+    --checkbox-hover-background-color: white;
+    --checkbox-checked-border-color: var(--brand-color);
+    --checkbox-checked-color: white;
+    --checkbox-checked-background-color: var(--brand-color);
+    --checkbox-checked-hover-border-color: var(--brand-color);
+    --checkbox-checked-hover-color: white;
+    --checkbox-checked-hover-background-color: var(--brand-color);
 
     // Chip
     --chip-font-size: 0.9em;
@@ -262,8 +281,7 @@
     --input-padding: 0.75em 2em 0.75em 0.75em;
     --input-color: var(--std-text-dark);
     --input-background-color: white;
-    --input-border: none;
-    --input-border-bottom: 0.125em solid rgba(0, 0, 0, 0.15);
+    --input-border: .1em solid #cccccc;
     --input-border-radius: 0.25em;
     --input-min-height: 2.75em;
     --input-focused-border-color: var(--brand-color);
@@ -281,6 +299,9 @@
     --leptonic-kbd-concatenate-padding: 0.3em;
     --leptonic-kbd-concatenate-border-radius: 0;
 
+    // Label
+    --label-color: #636363;
+
     // Link
     --link-color: var(--brand-color);
 
@@ -296,7 +317,10 @@
     --modal-box-shadow: 10px 10px 22px -10px rgba(0, 0, 0, 0.55);
 
     // Popover
-    --popover-content-background-color: rgba(187, 187, 187, 0.51);
+    --popover-padding: 0.3em 0.5em;
+    --popover-border-radius: 0.25em;
+    --popover-color: var(--std-text-dark);
+    --popover-background-color: rgba(187, 187, 187, 0.51);
 
     // Progress bar
     --progress-bar-height: 1.25em;
@@ -308,13 +332,24 @@
     --progress-bar-fill-transition: width 0.1s linear;
     --progress-bar-color: var(--std-text-dark);
 
+    // Radio
+    --radio-size: 1.625em;
+    --radio-fill-size: 60%;
+    --radio-border: 0.1em solid;
+    --radio-border-radius: 2em;
+    --radio-border-color: var(--grey-2);
+    --radio-hover-border-color: var(--brand-color);
+    --radio-checked-border-color: var(--grey-2);
+    --radio-background-color: white;
+    --radio-checked-fill-background-color: var(--brand-color);
+    --radio-disabled-filter: brightness(73%);
+
     // Select
     --select-padding: var(--input-padding);
     --select-min-height: var(--input-min-height);
     --select-selected-color: var(--input-color);
     --select-selected-background-color: var(--input-background-color);
     --select-selected-border: var(--input-border);
-    --select-selected-border-bottom: var(--input-border-bottom);
     --select-selected-border-radius: var(--input-border-radius);
     --select-selected-badge-color: var(--std-text-bright);
     --select-selected-badge-background-color: #12d4e7;
