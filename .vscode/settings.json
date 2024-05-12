@@ -6,7 +6,10 @@
         "cdylib",
         "codegen",
         "fileserv",
+        "nestify",
+        "oneshot",
         "rlib",
+        "rspotify",
         "serde",
         "stylesheet",
         "thiserror"

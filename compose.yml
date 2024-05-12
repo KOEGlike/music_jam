@@ -6,8 +6,10 @@ services:
   db:
     image: postgres:latest
     shm_size: 500mb
+    ports:
+      - 5432:5432
     volumes:
-      - db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
     environment:
       - POSTGRES_PASSWORD=mysecretpassword
       - POSTGRES_USER=jammer

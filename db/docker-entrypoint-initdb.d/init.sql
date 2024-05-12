@@ -5,18 +5,10 @@ CREATE TABLE "users" (
   "profile_picture" image
 );
 
-CREATE TYPE "access_token" (
-  "access_token" varchar UNIQUE PRIMARY KEY,
-  "token_type" varchar NOT NULL,
-  "scope" varchar NOT NULL,
-  "expires_in" int NOT NULL,
-  "refresh_token" varchar NOT NULL
-);
-
 CREATE TABLE "jams" (
   "id" integer UNIQUE PRIMARY KEY NOT NULL,
   "max_song_count" int NOT NULL,
-  "access_token" access_token UNIQUE NOT NULL
+  "access_token" varchar UNIQUE NOT NULL
 );
 
 CREATE TABLE "selected_songs" (
@@ -25,8 +17,16 @@ CREATE TABLE "selected_songs" (
   "album_cover" image NOT NULL
 );
 
-
+CREATE TABLE "access_tokens" (
+  "access_token" varchar UNIQUE PRIMARY KEY,
+  "token_type" varchar NOT NULL,
+  "scope" varchar NOT NULL,
+  "expires_in" int NOT NULL,
+  "refresh_token" varchar NOT NULL
+);
 
 ALTER TABLE "jams" ADD FOREIGN KEY ("id") REFERENCES "users" ("jam_id") ON DELETE CASCADE;
 
-ALTER TABLE "users" ADD FOREIGN KEY ("id") REFERENCES "selected_songs" ("user_id") ON DELETE CASCADE;g
+ALTER TABLE "users" ADD FOREIGN KEY ("id") REFERENCES "selected_songs" ("user_id") ON DELETE CASCADE;
+
+ALTER TABLE "jams" ADD FOREIGN KEY ("access_token") REFERENCES "access_tokens" ("access_token") ON DELETE CASCADE;
