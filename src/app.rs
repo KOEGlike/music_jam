@@ -2,11 +2,15 @@ use crate::error_template::{AppError, ErrorTemplate};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+pub mod pages;
+pub mod components;
+
+
 
 
 #[component]
 pub fn App() -> impl IntoView {
-    // Provides context that manages stylesheets, titles, meta tags, etc.
+// Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
     view! {
 
@@ -29,7 +33,7 @@ pub fn App() -> impl IntoView {
         }>
             <main>
                 <Routes>
-                    <Route path="" view=move||{view!{"hello"}}/>
+                    <Route path="" view=pages::HomePage/>
                 </Routes>
             </main>
         </Router>

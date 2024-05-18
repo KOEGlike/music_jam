@@ -3,14 +3,7 @@ services:
     build: .
     ports:
       - 8080:8080
-  db:
-    image: postgres:latest
-    shm_size: 500mb
-    ports:
-      - 5432:5432
-    volumes:
-      - ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
-    environment:
-      - POSTGRES_PASSWORD=mysecretpassword
-      - POSTGRES_USER=jammer
-      - POSTGRES_DB = jam_db
+  jam_db:
+    extends:
+      file: db/compose.yml
+      service: jam_db

@@ -1,9 +1,16 @@
 pub mod app;
 pub mod error_template;
-pub mod components;
+
 #[cfg(feature = "ssr")]
 pub mod fileserv;
+#[cfg(feature="ssr")]
+pub mod startup;
 
+#[cfg(feature = "ssr")]
+#[derive(Clone)]
+pub struct AppState{
+    pub db_pool:sqlx::PgPool,
+}
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]

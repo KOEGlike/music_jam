@@ -31,8 +31,11 @@ rspotify = "0.13"
 web-sys = "0.3"
 js-sys = "0.3"
 nestify = "0.3.3"
-rust_spotify_web_playback_sdk={path = "C:/Users/lenovo/hacker_man/projects/rust_spotify_web_playback_sdk"}
+rust_spotify_web_playback_sdk={path = "C:/Users/lenovo/documents/hacker_man/projects/rust_spotify_web_playback_sdk"}
 gloo = "=0.2.1"
+cuid2 = "0.1.2"
+sqlx ={version =  "0.7.4", features = ["runtime-tokio", "postgres"], optional = true}
+dotenvy={version = "0.15", optional = true}
 
 
 
@@ -49,6 +52,8 @@ ssr = [
     "leptos_router/ssr",
     "dep:tracing",
     "leptos-use/ssr",
+    "dep:sqlx",
+    "dep:dotenvy"
 ]
 
 # Defines a size-optimized profile for the WASM bundle in release mode

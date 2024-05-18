@@ -1,4 +1,57 @@
-body {
-	font-family: sans-serif;
-	text-align: center;
+$font-stack: 100%, "Josefin Sans", sans-serif;
+$border: 1px rgba($color, $alpha: 0.4);
+
+$border-radiuses: (
+  "small": 10px,
+  "medium": 25px,
+  "large": 40px,
+);
+
+$opacities: (
+  "bg": 0.2,
+  "border": 0.4,
+  "hover": 0.6,
+  "selected": 0.7,
+);
+
+$blur: blur(12px);
+
+$colors: (
+  "bg": #ffffff,
+  "ok": #00ff00,
+  "err": #ff2020,
+  "primary": #3187ff,
+  "secondary": #ff26f1,
+);
+
+@mixin glass($color: #ffffff) {
+	background-color: rgba($color, map-get);
+	border: 1px rgba($color, map-get($opacities, "border"));
+	backdrop-filter: $blur;
+	-webkit-backdrop-filter: $blur;
 }
+
+* {
+  margin: 0;
+  padding: 0;
+
+  --input-color: #ffffff;
+  --input-background-color: map-get($colors, "bg");
+  --input-border: $border;
+  --input-border-radius: map-get($border-radiuses, "medium");
+}
+
+.button {
+	@include glass(map-get($colors, "bg"));
+	border-radius: map-get($border-radiuses, "medium");
+}
+
+.standard_island {
+	display: flex;
+	flex-direction: column;
+	border-radius: map-get($border-radiuses, "large");
+	max-width: 350px;
+	height: 600px;
+}
+
+

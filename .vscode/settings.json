@@ -6,11 +6,13 @@
         "cdylib",
         "codegen",
         "fileserv",
+        "icondata",
         "nestify",
         "oneshot",
         "rlib",
         "rspotify",
         "serde",
+        "sqlx",
         "stylesheet",
         "thiserror"
     ],
