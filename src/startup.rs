@@ -16,12 +16,12 @@ pub async fn init () -> Result<(), Box<dyn std::error::Error>>{
     let leptos_options: LeptosOptions = conf.leptos_options;
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
-    /*let state = AppState {
+    let state = AppState {
         db_pool: PgPool::connect(
-            "postgres://localhost:5432?dbname=jam_db&user=jammer&password=password",
+            "postgresql://localhost:5432/jam_db?user=jammer",
         )
         .await?,
-    };*/
+    };
     
 
     // build our application with a route
@@ -30,7 +30,7 @@ pub async fn init () -> Result<(), Box<dyn std::error::Error>>{
             &leptos_options,
             routes,
             move || {
-                //provide_context(state.clone());
+                provide_context(state.clone());
             },
             App,
         )

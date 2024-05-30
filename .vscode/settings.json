@@ -5,6 +5,7 @@
         "browserquery",
         "cdylib",
         "codegen",
+        "cuid",
         "fileserv",
         "icondata",
         "nestify",

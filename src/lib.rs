@@ -6,11 +6,14 @@ pub mod fileserv;
 #[cfg(feature="ssr")]
 pub mod startup;
 
+
 #[cfg(feature = "ssr")]
 #[derive(Clone)]
-pub struct AppState{
+struct AppState{
     pub db_pool:sqlx::PgPool,
 }
+
+
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]

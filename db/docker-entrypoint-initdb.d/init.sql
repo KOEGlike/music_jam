@@ -1,4 +1,18 @@
-CREATE DOMAIN uid varchar(32) NOT NULL;
+CREATE DOMAIN uid varchar(24) NOT NULL;
+
+CREATE TYPE access_token_type AS (
+  id uid UNIQUE PRIMARY KEY,
+  access_token varchar UNIQUE,
+  token_type varchar NOT NULL,
+  scope varchar NOT NULL,
+  expires_in int NOT NULL,
+  refresh_token varchar NOT NULL
+);
+
+CREATE TABLE "state_table" (
+  "state" varchar UNIQUE NOT NULL,
+  "name" varchar(30) NOT NULL,
+);
 
 CREATE TABLE "users" (
   "id" uid UNIQUE PRIMARY KEY,
@@ -9,13 +23,14 @@ CREATE TABLE "users" (
 
 CREATE TABLE "hosts" (
   "id" uid UNIQUE PRIMARY KEY,
-  "access_token" uid UNIQUE
+  "access_token" access_token UNIQUE
 );
 
 CREATE TABLE "jams" (
-  "id" uid  UNIQUE PRIMARY KEY,
+  "id" varchar(6) NOT NULL UNIQUE PRIMARY KEY,
   "max_song_count" int NOT NULL,
-  "host_id" uid NOT NULL
+  "host_id" uid NOT NULL,
+  "name" varchar(30) NOT NULL,
 );
 
 CREATE TABLE "selected_songs" (
@@ -23,20 +38,14 @@ CREATE TABLE "selected_songs" (
   "id" uid UNIQUE PRIMARY KEY
 );
 
-CREATE TABLE "access_tokens" (
-  "id" uid UNIQUE PRIMARY KEY,
-  "access_token" varchar UNIQUE,
-  "token_type" varchar NOT NULL,
-  "scope" varchar NOT NULL,
-  "expires_in" int NOT NULL,
-  "refresh_token" varchar NOT NULL
-);
+
+
+
 
 ALTER TABLE "users" ADD FOREIGN KEY ("jam_id") REFERENCES "jams" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "selected_songs" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "hosts" ADD FOREIGN KEY ("access_token") REFERENCES "access_tokens" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "jams" ADD FOREIGN KEY ("host_id") REFERENCES "hosts" ("id") ON DELETE CASCADE;
 

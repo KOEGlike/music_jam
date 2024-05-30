@@ -4,12 +4,12 @@ services:
     image: postgres:latest
     shm_size: 500mb
     ports:
-      - 5433:5432
+      - 5432:5432
     volumes:
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
     env_file:
       - ../credentials.env
     environment:
-      #- POSTGRES_PASSWORD= ${POSTGRES_PASSWORD}
+      - POSTGRES_HOST_AUTH_METHOD=trust
       - POSTGRES_USER=jammer
-      - POSTGRES_DB = jam_db
+      - POSTGRES_DB=jam_db
