@@ -1,9 +1,6 @@
 
 use leptos::{logging::log, prelude::*, *};
-use cuid2::*;
-use sqlx::query;
-use crate::AppState;
-use rspotify::{AuthCodeSpotify, Credentials, OAuth, Token};
+
 
 #[component]
 pub fn JoinIsland() -> impl IntoView {
@@ -32,16 +29,24 @@ pub fn JoinIsland() -> impl IntoView {
 }
 
 #[server]
-async fn create_host() -> Result<(), ServerFnError> {
-    let idk=AuthCodeSpotify::from_token(Token{})
-    log!("Creating host"); 
+async fn get_oauth_code() -> Result<(), ServerFnError> {
+    use leptos_axum::redirect;
+    redirect(
+        format!(
+            "https://accounts.spotify.com/authorize?response_type=code+client_id={}+scope={}+redirect_uri={}+state{}"
+            ,std::env::var("SPOTIFY_ID")?
+            ,"user-read-playback-state user-modify-playback-state user-read-currently-playing"
+            ,"/"
+            ,cuid2::create_id()
+        ).as_str()
+    );
     Ok(())
 }
 
+
+
 #[server]
-async fn create_jam(jam_name: String) -> Result<(String), ServerFnError> {
-    let db_pool = expect_context::<AppState>().db_pool;
-    let query= sqlx::query!("INSERT INTO "hosts" ("id", "access_token") VALUES ('your_host_id', 'your_access_token');");
+async fn create_jam() -> Result<(), ServerFnError> {
     Ok(())
 }
 

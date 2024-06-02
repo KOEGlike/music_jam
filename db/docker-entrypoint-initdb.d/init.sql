@@ -1,17 +1,10 @@
 CREATE DOMAIN uid varchar(24) NOT NULL;
 
 CREATE TYPE access_token_type AS (
-  id uid UNIQUE PRIMARY KEY,
-  access_token varchar UNIQUE,
-  token_type varchar NOT NULL,
-  scope varchar NOT NULL,
-  expires_in int NOT NULL,
-  refresh_token varchar NOT NULL
-);
-
-CREATE TABLE "state_table" (
-  "state" varchar UNIQUE NOT NULL,
-  "name" varchar(30) NOT NULL,
+  access_token varchar,
+  expires_at BIGINT ,
+  scope varchar ,
+  refresh_token varchar,
 );
 
 CREATE TABLE "users" (
@@ -29,7 +22,7 @@ CREATE TABLE "hosts" (
 CREATE TABLE "jams" (
   "id" varchar(6) NOT NULL UNIQUE PRIMARY KEY,
   "max_song_count" int NOT NULL,
-  "host_id" uid NOT NULL,
+  "host_id" uid UNIQUE NOT NULL,
   "name" varchar(30) NOT NULL,
 );
 

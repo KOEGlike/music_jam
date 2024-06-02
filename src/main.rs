@@ -1,7 +1,13 @@
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-    music_jam::startup::init().await.unwrap();
+    let res=music_jam::startup::init().await;
+    match res {
+        Ok(_) => {},
+        Err(e) => {
+            eprintln!("Error: {}", e);
+        }
+    }
 }
 
 #[cfg(not(feature = "ssr"))]

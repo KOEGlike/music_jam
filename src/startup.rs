@@ -12,16 +12,13 @@ pub async fn init () -> Result<(), Box<dyn std::error::Error>>{
     // <https://github.com/leptos-rs/start-axum#executing-a-server-on-a-remote-machine-without-the-toolchain>
     // Alternately a file can be specified such as Some("Cargo.toml")
     // The file would need to be included with the executable when moved to deployment
+    dotenvy::dotenv()?;
+    
     let conf = get_configuration(None).await?;
     let leptos_options: LeptosOptions = conf.leptos_options;
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
-    let state = AppState {
-        db_pool: PgPool::connect(
-            "postgresql://localhost:5432/jam_db?user=jammer",
-        )
-        .await?,
-    };
+    let state = AppState::new(PgPool::connect(std::env::var("DB_URL")?.as_str()).await?);
     
 
     // build our application with a route
