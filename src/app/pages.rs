@@ -66,6 +66,7 @@ async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError>
 pub fn HomePage() -> impl IntoView {
     let queries = use_query_map();
     let code = move || queries.with(|queries| queries.get("code").cloned());
+    let state=move || queries.with(|queries| queries.get("state").cloned());
 
     view! {
         <div id="home-page">

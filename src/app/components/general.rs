@@ -1,6 +1,4 @@
-
 use leptos::{logging::log, prelude::*, *};
-
 
 #[component]
 pub fn JoinIsland() -> impl IntoView {
@@ -30,22 +28,27 @@ pub fn JoinIsland() -> impl IntoView {
 
 #[server]
 async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
-    use leptos_axum::redirect;
     use crate::AppState;
-    let spotify_id=expect_context::<AppState>().spotify_id;
+    use leptos_axum::redirect;
+    use sqlx::*;
+    let app_state = expect_context::<AppState>();
+
+    let host_id = cuid2::create_id();
+    let query =
+        query("INSERT INTO \"hosts\"(\"id\", \"access_token\") VALUES ($1, NULL)").bind(host_id.clone());
+    let pool = app_state.db_pool;
+    pool.acquire().await?.execute(query).await?;
     redirect(
         format!(
-            "https://accounts.spotify.com/authorize?response_type=code+client_id={}+scope={}+redirect_uri={}+state{}"
-            ,spotify_id
+            "https://accounts.spotify.com/authorize?response_type=code&client_id={}&scope={}&redirect_uri={}&state={}"
+            ,app_state.spotify_id
             ,"user-read-playback-state user-modify-playback-state user-read-currently-playing"
-            ,"/"
-            ,cuid2::create_id()
+            ,"http://localhost:3000/"
+            ,host_id
         ).as_str()
     );
     Ok(())
 }
-
-
 
 #[server]
 async fn create_jam() -> Result<(), ServerFnError> {
@@ -56,9 +59,12 @@ async fn create_jam() -> Result<(), ServerFnError> {
 pub fn CreateIsland() -> impl IntoView {
     let (name, set_name) = create_signal(String::new());
 
-    let on_click = move |_| {
-        log!("Creating island");
-    };
+    let redirect = create_action(|_| async {
+        match redirect_to_spotify_oauth().await {
+            Ok(_) => log!("Redirected to Spotify OAuth"),
+            Err(e) => log!("Error redirecting to Spotify OAuth: {}", e),
+        };
+    });
 
     view! {
         <div class="big-space-island" id="create-island">
@@ -74,8 +80,8 @@ pub fn CreateIsland() -> impl IntoView {
                     id="create-jam-name"
                 />
             </div>
-            
-            <button on:click=on_click class="button">"Create"</button>
+
+            <button on:click=move |_| redirect.dispatch(()) class="button">"Create"</button>
         </div>
     }
 }

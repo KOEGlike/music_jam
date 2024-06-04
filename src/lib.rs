@@ -23,7 +23,7 @@ impl AppState {
         let reqwest_client = reqwest::Client::new();
         let spotify_id = std::env::var("SPOTIFY_ID")?;
         let spotify_secret = std::env::var("SPOTIFY_SECRET")?;
-        let db_pool = sqlx::PgPool::connect(&std::env::var("DATABASE_URL").unwrap()).await?;
+        let db_pool = sqlx::PgPool::connect(&std::env::var("DB_URL")?).await?;
 
         Ok(Self {
             db_pool,
