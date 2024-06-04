@@ -29,12 +29,14 @@ pub fn JoinIsland() -> impl IntoView {
 }
 
 #[server]
-async fn get_oauth_code() -> Result<(), ServerFnError> {
+async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
     use leptos_axum::redirect;
+    use crate::AppState;
+    let spotify_id=expect_context::<AppState>().spotify_id;
     redirect(
         format!(
             "https://accounts.spotify.com/authorize?response_type=code+client_id={}+scope={}+redirect_uri={}+state{}"
-            ,std::env::var("SPOTIFY_ID")?
+            ,spotify_id
             ,"user-read-playback-state user-modify-playback-state user-read-currently-playing"
             ,"/"
             ,cuid2::create_id()

@@ -3,14 +3,13 @@ use crate::app::components::*;
 use leptos::*;
 use leptos_router::*;
 
-
 #[server]
 async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError> {
+    use crate::AppState;
     use serde::{Deserialize, Serialize};
     use sqlx::*;
-    use crate::AppState;
-    let app_state = expect_context::<AppState>();
 
+    let app_state = expect_context::<AppState>();
     let body = &[
         ("code", code.as_str()),
         ("redirect_uri", "/"),
@@ -65,13 +64,8 @@ async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError>
 
 #[component]
 pub fn HomePage() -> impl IntoView {
-
     let queries = use_query_map();
-    let code = move || {
-        queries.with(|queries| {
-            queries.get("code").cloned()
-        })
-    };
+    let code = move || queries.with(|queries| queries.get("code").cloned());
 
     view! {
         <div id="home-page">

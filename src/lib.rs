@@ -1,16 +1,16 @@
+use std::error::Error;
 pub mod app;
 pub mod error_template;
 
 #[cfg(feature = "ssr")]
 pub mod fileserv;
-#[cfg(feature="ssr")]
+#[cfg(feature = "ssr")]
 pub mod startup;
-
 
 #[cfg(feature = "ssr")]
 #[derive(Clone)]
-struct AppState{
-    pub db_pool:sqlx::PgPool,
+struct AppState {
+    pub db_pool: sqlx::PgPool,
     pub reqwest_client: reqwest::Client,
     pub spotify_id: String,
     pub spotify_secret: String,
@@ -18,21 +18,21 @@ struct AppState{
 
 #[cfg(feature = "ssr")]
 impl AppState {
-    pub fn new(db_pool: sqlx::PgPool) -> Self {
+    pub async fn new() -> Result<Self, Box<dyn Error>> {
         dotenvy::dotenv().unwrap();
         let reqwest_client = reqwest::Client::new();
-        let spotify_id = std::env::var("SPOTIFY_ID").unwrap();
-        let spotify_secret = std::env::var("SPOTIFY_SECRET").unwrap();
-        Self {
+        let spotify_id = std::env::var("SPOTIFY_ID")?;
+        let spotify_secret = std::env::var("SPOTIFY_SECRET")?;
+        let db_pool = sqlx::PgPool::connect(&std::env::var("DATABASE_URL").unwrap()).await?;
+
+        Ok(Self {
             db_pool,
             reqwest_client,
             spotify_id,
-            spotify_secret
-        }
+            spotify_secret,
+        })
     }
 }
-
-
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
