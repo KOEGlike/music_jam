@@ -46,44 +46,44 @@ $blur: blur(12px);
 	box-shadow: 0 8px 32px 0 map-get($colors, "shadow");
 }
 
-.glass_element {
+.glass-element {
 	@extend .glass;
 	transition: all 0.2s ease-in-out;
 }
 
-.glass_element:hover {
+.glass-element:hover {
 	background-color: rgba(map-get($colors, "white"), map-get($opacities, "hover"));
 }
 
-.glass_element:active {
+.glass-element:active {
 	background-color: rgba(map-get($colors, "white"), map-get($opacities, "selected"));
 }
 
-.glass_element_err {
-	@extend .glass_element;
+.glass-element_err {
+	@extend .glass-element;
 	border-color:rgba(map-get($colors, "err"), map-get($opacities, "border"));
 	background-color:rgba(map-get($colors, "err"), map-get($opacities, "bg")) ;
 }
 
-.glass_element_err:hover {
+.glass-element_err:hover {
 	background-color: rgba(map-get($colors, "err"), map-get($opacities, "hover"));
 }
 
-.glass_element_err:active {
+.glass-element_err:active {
 	background-color: rgba(map-get($colors, "err"), map-get($opacities, "selected"));
 }
 
-.glass_element_ok {
-	@extend .glass_element;
+.glass-element_ok {
+	@extend .glass-element;
 	border-color: rgba(map-get($colors, "ok"), map-get($opacities, "border"));
 	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "bg"));
 }
 
-.glass_element_ok:hover {
+.glass-element_ok:hover {
 	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "hover"));
 }
 
-.glass_element_ok:active {
+.glass-element_ok:active {
 	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "selected"));
 }
 
@@ -100,7 +100,7 @@ body {
 }
 
 .button {
-	@extend .glass_element;
+	@extend .glass-element;
 	border-radius: map-get($border-radiuses, "medium");
 	height: map-get($element-heights, "medium");
 	width: 100%;
@@ -108,7 +108,7 @@ body {
 }
 
 .text-input {
-	@extend .glass_element;
+	@extend .glass-element;
 	border-radius: map-get($border-radiuses, "medium");
 	width: 100%;
 	display: inline-block;

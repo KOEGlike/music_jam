@@ -1,0 +1,8 @@
+@use "defaults" as *;
+
+#create-host-island {
+    @extend .standard-island;
+    justify-content: center;
+    align-items: center;
+}
+

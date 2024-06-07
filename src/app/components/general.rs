@@ -1,3 +1,4 @@
+use cuid2::cuid;
 use leptos::{logging::log, prelude::*, *};
 
 #[component]
@@ -34,16 +35,16 @@ async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
     let app_state = expect_context::<AppState>();
 
     let host_id = cuid2::create_id();
-    let query =
-        query("INSERT INTO \"hosts\"(\"id\", \"access_token\") VALUES ($1, NULL)").bind(host_id.clone());
+    let query = query("INSERT INTO \"hosts\"(\"id\", \"access_token\") VALUES ($1, NULL)")
+        .bind(host_id.clone());
     let pool = app_state.db_pool;
     pool.acquire().await?.execute(query).await?;
     redirect(
         format!(
-            "https://accounts.spotify.com/authorize?response_type=code&client_id={}&scope={}&redirect_uri={}&state={}"
+            "https://accounts.spotify.com/authorize?response_type=code&client_id={}&scope={}&redirect_uri={}&state={}&show_dialog=true"
             ,app_state.spotify_id
             ,"user-read-playback-state user-modify-playback-state user-read-currently-playing"
-            ,"http://localhost:3000/"
+            ,"http://localhost:3000/create-host"
             ,host_id
         ).as_str()
     );
@@ -57,13 +58,41 @@ async fn create_jam() -> Result<(), ServerFnError> {
 
 #[component]
 pub fn CreateIsland() -> impl IntoView {
+    use gloo::storage::{errors::StorageError, LocalStorage, Storage};
+
     let (name, set_name) = create_signal(String::new());
 
-    let redirect = create_action(|_| async {
-        match redirect_to_spotify_oauth().await {
-            Ok(_) => log!("Redirected to Spotify OAuth"),
-            Err(e) => log!("Error redirecting to Spotify OAuth: {}", e),
+    let redirect_to_oauth = create_action(move |_| {
+        if !name().is_empty() {
+            if let Err(err) = LocalStorage::set("jam_name", name()) {
+                log!("Error setting jam name to local storage: {}", err);
+            }
+        }
+
+        async move {
+            match redirect_to_spotify_oauth().await {
+                Ok(_) => log!("Redirected to Spotify OAuth"),
+                Err(e) => log!("Error redirecting to Spotify OAuth: {}", e),
+            };
+        }
+    });
+
+    let create= move |_| {
+        match LocalStorage::get::<String>("host_id") {
+            Ok(host_id) => {
+                log!("Host ID: {}", host_id);
+                redirect_to_oauth.dispatch(());
+            }
+            Err(e) => log!("Error getting host ID from local storage: {}", e),
         };
+    };
+
+    create_effect(move |_| {
+        let name: Result<String, StorageError> = LocalStorage::get("jam_name");
+        match name {
+            Ok(name) => set_name(name),
+            Err(e) => log!("Error getting jam name from local storage: {}", e),
+        }
     });
 
     view! {
@@ -81,7 +110,7 @@ pub fn CreateIsland() -> impl IntoView {
                 />
             </div>
 
-            <button on:click=move |_| redirect.dispatch(()) class="button">"Create"</button>
+            <button on:click= create class="button">"Create"</button>
         </div>
     }
 }

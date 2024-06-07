@@ -25,22 +25,23 @@ wasm-bindgen = "=0.2"
 thiserror = "1"
 tracing = { version = "0.1", optional = true }
 http = "1"
-stylers = "0.3"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 leptos-use = "0.10"
 leptonic = {git = "https://github.com/lpotthast/leptonic.git", features=["nightly"]}
 rspotify = "0.13"
 web-sys = "0.3"
 js-sys = "0.3"
-nestify = "0.3.3"
+nestify = "0.3"
 rust_spotify_web_playback_sdk={path = "C:/Users/lenovo/documents/hacker_man/projects/rust_spotify_web_playback_sdk"}
-gloo = "0.2"
+gloo = {version = "0.11", features = ["storage"]}
 cuid2 = "0.1"
-sqlx ={version =  "0.7.4", features = ["runtime-tokio", "postgres"], optional = true}
+sqlx ={version =  "0.7", features = ["runtime-tokio", "postgres"], optional = true}
 dotenvy={version = "0.15", optional = true}
-serde_urlencoded = "0.7"
 reqwest={version = "0.12"}
 time = {version = "0.3", features = ["large-dates", "parsing", "formatting", "macros"]}
+uuid={version = "1", features = ["v4","fast-rng", ]}
+
 
 
 
