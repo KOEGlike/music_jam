@@ -1,10 +1,9 @@
-use crate::app::components::*;
 use leptos::{logging::*, *};
 use leptos_router::*;
 
 #[server]
 async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError> {
-    use crate::AppState;
+    use crate::general_types::AppState;
     use http::StatusCode;
     use serde::{Deserialize, Serialize};
     use sqlx::*;
@@ -16,8 +15,8 @@ async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError>
         body.insert("code", code.as_str());
         body.insert("redirect_uri", "http://localhost:3000/create-host");
         body.insert("grant_type", "authorization_code");
-        body.insert("client_id", &app_state.spotify_id);
-        body.insert("client_secret", &app_state.spotify_secret);
+        body.insert("client_id", &app_state.spotify_credentials.id);
+        body.insert("client_secret", &app_state.spotify_credentials.secret);
         body
     };
     let client = app_state.reqwest_client;
@@ -40,9 +39,9 @@ async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError>
         &StatusCode::OK | &StatusCode::CREATED => res.text().await?,
         _ => {
             log!("Error: {:?}", res);
-            query("DELETE FROM \"hosts\" WHERE \"id\" = $1")
+            query("DELETE FROM hosts WHERE id = $1")
                 .bind(host_id)
-                .execute(&app_state.db_pool)
+                .execute(&app_state.db.pool)
                 .await?;
             return Err(ServerFnError::new(format!(
                 "error while acquiring spotify token: {:#?}",
@@ -52,19 +51,18 @@ async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError>
     };
 
     let token: AccessToken = serde_json::from_str(res.as_str())?;
-    log!("Token: {:#?}", token);
 
-    let now = ::time::OffsetDateTime::now_utc().unix_timestamp();
+    let now = time::OffsetDateTime::now_utc().unix_timestamp();
     let expires_at = now + token.expires_in;
 
-    let query = query("UPDATE \"hosts\" SET \"access_token\" = ($1, $2, $3, $4) WHERE \"id\" = $5")
+    let query = query("UPDATE hosts SET access_token = ($1, $2, $3, $4) WHERE id = $5")
         .bind(token.access_token)
         .bind(expires_at)
         .bind(token.scope)
         .bind(token.refresh_token)
         .bind(host_id);
 
-    query.execute(&app_state.db_pool).await?;
+    query.execute(&app_state.db.pool).await?;
 
     Ok(())
 }
@@ -76,12 +74,12 @@ pub fn CreateHostPage() -> impl IntoView {
     let host_id = move || queries.with(|queries| queries.get("state").cloned());
 
     let create_host_action = create_action(|input: &(String, String)| {
-        use gloo::storage::{errors::StorageError, LocalStorage, Storage};
+        use gloo::storage::{LocalStorage, Storage};
 
         let input = input.clone();
         async move { 
             let res=create_host(input.0.clone(), input.1.clone()).await;
-            if let Ok(e) =&res  {
+            if res.is_ok()  {
                 LocalStorage::set("host_id", input.1)?;
             }
             res

@@ -1,5 +1,5 @@
 use crate::fileserv::file_and_error_handler;
-use crate::{app::*, AppState};
+use crate::{app::*, general_types::AppState};
 use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 
@@ -17,20 +17,21 @@ pub async fn init() -> Result<(), Box<dyn std::error::Error>> {
     let leptos_options: LeptosOptions = conf.leptos_options;
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
-    let state = AppState::new().await?;
+    let state = AppState::new(leptos_options).await?;
 
     // build our application with a route
     let app = Router::new()
         .leptos_routes_with_context(
-            &leptos_options,
+            &state,
             routes,
-            move || {
-                provide_context(state.clone());
+             {
+                let state = state.clone();
+                move ||provide_context(state.clone())
             },
             App,
         )
         .fallback(file_and_error_handler)
-        .with_state(leptos_options);
+        .with_state(state.clone());
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     logging::log!("listening on http://{}", &addr);

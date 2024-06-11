@@ -61,8 +61,8 @@ $blur: blur(12px);
 
 .glass-element_err {
 	@extend .glass-element;
-	border-color:rgba(map-get($colors, "err"), map-get($opacities, "border"));
-	background-color:rgba(map-get($colors, "err"), map-get($opacities, "bg")) ;
+	border-color: rgba(map-get($colors, "err"), map-get($opacities, "border"));
+	background-color: rgba(map-get($colors, "err"), map-get($opacities, "bg"));
 }
 
 .glass-element_err:hover {
@@ -115,8 +115,8 @@ body {
 	$side-padding: map-get($border-radiuses, medium);
 	padding: 15px $side-padding 15px $side-padding;
 	resize: none;
-    font-size: 45px;
-	line-height: 55px; 
+	font-size: 45px;
+	line-height: 55px;
 	overflow: hidden;
 }
 
@@ -129,6 +129,7 @@ body {
 	display: flex;
 	flex-direction: column;
 	row-gap: 7px;
+
 	label {
 		font-size: 20px;
 		margin-left: calc(map-get($border-radiuses, "medium") / 3);
@@ -152,8 +153,20 @@ body {
 	padding: 50px;
 }
 
-leptonic-icon {
-	display: inline-flex;
-	align-items: center;
+#centerpoint {
+	top: 50%;
+	left: 50%;
+	position: absolute;
 }
 
+.dialog {
+	@extend .glass;
+	border-radius: map-get($border-radiuses, "medium");
+	width: 600px;
+	height: 350px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+
+}

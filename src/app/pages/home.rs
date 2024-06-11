@@ -1,6 +1,5 @@
 use crate::app::components::*;
-use leptos::{logging::*, *};
-use leptos_router::*;
+use leptos::*;
 
 #[component]
 pub fn HomePage() -> impl IntoView{
