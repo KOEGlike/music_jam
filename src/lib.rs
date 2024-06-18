@@ -1,11 +1,10 @@
 pub mod app;
-pub mod error_template;
 pub mod general_types;
 
 pub use crate::app::components;
 
 #[cfg(feature = "ssr")]
-pub mod fileserv;
+pub mod router;
 #[cfg(feature = "ssr")]
 pub mod startup;
 

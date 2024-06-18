@@ -140,7 +140,7 @@ pub fn CreateIsland() -> impl IntoView {
             </div>
         </div>
 
-            <button on:click=move |_| set_show_dialog(true) class="button">"Create"</button>
+            <button on:click=move |_| create.dispatch(()) class="button">"Create"</button>
         </div>
     }
 }

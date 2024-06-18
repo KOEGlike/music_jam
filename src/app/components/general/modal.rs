@@ -6,10 +6,10 @@ pub fn Modal(
     children: Children
 ) -> impl IntoView {
     view! {
-       <div id="centerpoint">
-            <dialog class="dialog" prop:open=visible>
+        <dialog class="modal" prop:open=visible>
+            <div class="modal-content">
                 {children()}
-            </dialog>
-        </div>
+            </div>
+        </dialog>
     }
 }

@@ -1,5 +1,8 @@
+use std::result;
+
 use crate::general_types::*;
-use leptos::*;
+use gloo::{history::query, utils::format};
+use leptos::{logging::log, prelude::*, *};
 #[cfg(feature="ssr")]
 use axum::{
     extract::{ws::*, State, Query},
@@ -8,16 +11,17 @@ use axum::{
 #[cfg(feature="ssr")]
 use futures_util::{
     sink::SinkExt,
-    stream::{SplitSink, SplitStream, StreamExt},
+    stream::{SplitSink, StreamExt},
 };
 
 #[derive(Debug, serde::Deserialize)]
-pub struct JamId(pub String);
-
+pub struct JamId{
+    pub id:String
+}
 
 #[cfg(feature="ssr")]
 pub async fn get_users_handler(ws: WebSocketUpgrade, Query(jam_id):Query<JamId>, State(state):State<AppState>) -> Response {
-    ws.on_upgrade(|socket| handle_socket(socket, state, jam_id.0))
+    ws.on_upgrade(|socket| handle_socket(socket, state, jam_id.id))
 }
 
 #[cfg(feature="ssr")]
@@ -62,7 +66,7 @@ async fn write(mut sender: SplitSink<WebSocket, Message>, jam_id: String, app_st
         println!("Received notification: {:#?}", notification);
 
         let result=match sqlx::query_as!{User, "SELECT * FROM users WHERE jam_id=$1", jam_id.clone()}
-            .fetch_all(& pool).await {
+            .fetch_all(&pool).await {
                 Ok(result)=>result,
                 Err(e)=>{
                     eprintln!("Error fetching users: {:?}", e);
@@ -89,10 +93,35 @@ async fn write(mut sender: SplitSink<WebSocket, Message>, jam_id: String, app_st
     }
 }
 
+#[server]
+pub async fn kick_user(user_id:String, host_id:String) -> Result<(), ServerFnError> {
+    let app_state=expect_context::<AppState>();
+    let pool=app_state.db.pool;
+    let notify_query=sqlx::query!("SELECT pg_notify( (SELECT id FROM jams WHERE host_id=$1) || 'users','')", host_id);
+    let delete_query=sqlx::query!("DELETE FROM users WHERE id=$1 AND jam_id IN (SELECT id FROM jams WHERE host_id=$2); ", user_id, host_id);
+    delete_query.execute(&pool).await?;
+    notify_query.execute(&pool).await?;
+    Ok(())
+}
+
 #[component]
 pub fn UsersBar(
     jam_id: MaybeSignal<String>,
     #[prop(optional_no_strip)] host_id: Option<MaybeSignal<String>>,
 ) -> impl IntoView {
-    view! {}
+    use leptos_use::{use_websocket, UseWebsocketReturn};
+    let UseWebsocketReturn {
+        ready_state,
+        message,
+        open,
+        close,
+        ..
+    } = use_websocket(format!("ws://localhost:3e000/jam/users?jam_id={}", jam_id.get()).as_str());
+    view! {
+        <button on:click=move |_| close()>"Close"</button>
+        <button on:click=move |_| open()>"Open"</button>
+        "message:"{message}
+        <br></br>
+        "ready state:"{ready_state().to_string()}
+    }
 }

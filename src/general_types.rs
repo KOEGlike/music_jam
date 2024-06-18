@@ -1,16 +1,17 @@
+#[cfg(feature = "ssr")]
+use axum::extract::FromRef;
+use nestify::nest;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-#[cfg(feature ="ssr")]
-use axum::extract::FromRef;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpotifyCredentials {
     pub id: String,
-    pub secret: String
+    pub secret: String,
 }
 
-#[cfg(feature ="ssr")]
-#[derive(FromRef,Clone, Debug)]
+#[cfg(feature = "ssr")]
+#[derive(FromRef, Clone, Debug)]
 pub struct AppState {
     pub db: Db,
     pub reqwest_client: reqwest::Client,
@@ -18,14 +19,14 @@ pub struct AppState {
     pub leptos_options: leptos::LeptosOptions,
 }
 
-#[cfg(feature ="ssr")]
+#[cfg(feature = "ssr")]
 #[derive(Clone, Debug)]
-pub struct Db{
+pub struct Db {
     pub pool: sqlx::PgPool,
-    pub url: String
+    pub url: String,
 }
 
-#[cfg(feature ="ssr")]
+#[cfg(feature = "ssr")]
 impl AppState {
     pub async fn new(leptos_options: leptos::LeptosOptions) -> Result<Self, Box<dyn Error>> {
         dotenvy::dotenv().unwrap();
@@ -35,19 +36,19 @@ impl AppState {
         let db_url = std::env::var("DATABASE_URL")?;
         let db_pool = sqlx::PgPool::connect(&db_url).await?;
 
-        let spotify_credentials=SpotifyCredentials{
-            id:spotify_id,
-            secret:spotify_secret
+        let spotify_credentials = SpotifyCredentials {
+            id: spotify_id,
+            secret: spotify_secret,
         };
 
         Ok(Self {
-            db:Db{
-                pool:db_pool,
-                url:db_url
+            db: Db {
+                pool: db_pool,
+                url: db_url,
             },
             reqwest_client,
             spotify_credentials,
-            leptos_options
+            leptos_options,
         })
     }
 }
@@ -76,6 +77,23 @@ pub struct Song {
     pub name: String,
     pub artist: String,
     pub album: String,
-    pub duration: i32
+    pub duration: i32,
 }
 
+pub mod real_time {
+    use super::*;
+
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    pub enum RealTimeUpdate {
+        Users(Vec<User>),
+        Songs(Vec<Song>),
+    }
+
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    pub enum RealTimeRequest {
+        AddUser { user: User },
+        RemoveUser { user_id: String, host_id: String },
+        AddSong { song_id: String, user_id: String },
+        RemoveSong { song_id: String, host_id: String },
+    }
+}

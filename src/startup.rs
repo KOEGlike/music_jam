@@ -1,9 +1,7 @@
-use crate::fileserv::file_and_error_handler;
+use crate::router;
 use crate::{app::*, general_types::AppState};
 use leptos::*;
-use leptos_axum::{generate_route_list, LeptosRoutes};
-
-use axum::Router;
+use leptos_axum::generate_route_list;
 
 pub async fn init() -> Result<(), Box<dyn std::error::Error>> {
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
@@ -20,18 +18,7 @@ pub async fn init() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState::new(leptos_options).await?;
 
     // build our application with a route
-    let app = Router::new()
-        .leptos_routes_with_context(
-            &state,
-            routes,
-             {
-                let state = state.clone();
-                move ||provide_context(state.clone())
-            },
-            App,
-        )
-        .fallback(file_and_error_handler)
-        .with_state(state.clone());
+    let app = router::new(routes, state);
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     logging::log!("listening on http://{}", &addr);
