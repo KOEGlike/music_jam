@@ -162,8 +162,14 @@ async fn read(mut receiver: SplitStream<WebSocket>, id: IdType, app_state: AppSt
     while let Some(message) = receiver.next().await {
         match message {
             Ok(message) => {
-                println!("Received message: {:?}", message);
-            }
+               let message: real_time::RealTimeRequest = match  rmp_serde::from_slice(message.into_data().as_slice()) {
+                     Ok(message) => message,
+                     Err(e) => {
+                          eprintln!("Error deserializing message: {:?}", e);
+                          continue;
+                     }
+                };
+               }
             Err(e) => {
                 eprintln!("Error receiving message: {:?}", e);
                 break;
