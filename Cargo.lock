@@ -2297,6 +2297,7 @@ dependencies = [
  "rspotify",
  "rust_spotify_web_playback_sdk",
  "serde",
+ "serde_json",
  "sqlx",
  "thiserror",
  "time",

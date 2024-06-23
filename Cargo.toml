@@ -27,6 +27,7 @@ tracing = { version = "0.1", optional = true }
 http = "1"
 serde = { version = "1", features = ["derive"] }
 rmp-serde = "1"
+serde_json = {version = "1", optional = true}
 leptos-use = "0.10"
 rspotify = "0.13"
 web-sys = "0.3"
@@ -37,7 +38,7 @@ gloo = {version = "0.11", features = ["storage"]}
 cuid2 = "0.1"
 sqlx ={version =  "0.7", features = ["runtime-tokio", "postgres"], optional = true}
 dotenvy={version = "0.15", optional = true}
-reqwest={version = "0.12"}
+reqwest={version = "0.12", optional = true}
 time = {version = "0.3", features = ["large-dates", "parsing", "formatting", "macros"]}
 icondata = "0.3"
 futures-util = "0.3"
@@ -60,6 +61,8 @@ ssr = [
     "leptos-use/ssr",
     "dep:sqlx",
     "dep:dotenvy",
+    "dep:reqwest",
+    "dep:serde_json",
 ]
 
 # Defines a size-optimized profile for the WASM bundle in release mode

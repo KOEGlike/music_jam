@@ -21,7 +21,7 @@ pub fn new(leptos_routes:Vec<RouteListing>, app_state:AppState) -> Router {
             },
             App,
         )
-        .route("/jam/users", get(crate::app::components::general::users_bar::get_users_handler))
+        .route("/socket", get(crate::app::socket::socket))
         .fallback(file_and_error_handler)
         .with_state(app_state.clone())
 }

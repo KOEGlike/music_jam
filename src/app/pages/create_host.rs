@@ -39,8 +39,7 @@ async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError>
         &StatusCode::OK | &StatusCode::CREATED => res.text().await?,
         _ => {
             log!("Error: {:?}", res);
-            query("DELETE FROM hosts WHERE id = $1")
-                .bind(host_id)
+            query!("DELETE FROM hosts WHERE id = $1", host_id)
                 .execute(&app_state.db.pool)
                 .await?;
             return Err(ServerFnError::new(format!(
