@@ -87,6 +87,7 @@ pub mod real_time {
     pub enum RealTimeUpdate {
         Users(Vec<User>),
         Songs(Vec<Song>),
+        Error(Error),
     }
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -94,6 +95,16 @@ pub mod real_time {
         AddUser { user: User },
         RemoveUser { user_id: String, host_id: String },
         AddSong { song_id: String, user_id: String },
-        RemoveSong { song_id: String, host_id: String },
+        RemoveSong { song_id: String, id: String },
     }
+
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    pub enum Error {
+        Sqlx(String),
+        RmpSerdeDecode(String),
+        RmpSerdeEncode(String),
+        WebSocket(String),
+    }
+
+
 }
