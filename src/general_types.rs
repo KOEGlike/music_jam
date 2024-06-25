@@ -84,27 +84,26 @@ pub mod real_time {
     use super::*;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
-    pub enum RealTimeUpdate {
+    pub enum Update {
         Users(Vec<User>),
         Songs(Vec<Song>),
         Error(Error),
     }
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
-    pub enum RealTimeRequest {
-        AddUser { user: User },
-        RemoveUser { user_id: String, host_id: String },
-        AddSong { song_id: String, user_id: String },
-        RemoveSong { song_id: String, id: String },
+    pub enum Request {
+        RemoveUser { user_id: String },
+        AddSong { song_id: String },
+        RemoveSong { song_id: String },
+        AddVote { song_id: String },
+        RemoveVote { song_id: String },
     }
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub enum Error {
         Sqlx(String),
-        RmpSerdeDecode(String),
-        RmpSerdeEncode(String),
+        Decode(String),
+        Encode(String),
         WebSocket(String),
     }
-
-
 }

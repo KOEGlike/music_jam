@@ -93,13 +93,24 @@ async fn send(
     mut receiver: mpsc::Receiver<ws::Message>,
     mut sender: SplitSink<WebSocket, ws::Message>,
 ) {
-    while let Some(message) = receiver.recv().await {
-        match sender.send(message).await {
+    
+    while let Some(msg) = receiver.recv().await {
+        let close_connection = if let ws::Message::Close(_) = msg {
+            true
+        } else {
+            false
+        };
+
+        match sender.send(msg).await {
             Ok(_) => (),
             Err(e) => {
                 eprintln!("Error sending message: {:?}", e);
                 break;
             }
+        }
+
+        if close_connection {
+            break;
         }
     }
 }
@@ -116,12 +127,16 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
         }
     };
 
-    tokio::spawn(send(mpsc_receiver, sender));
-    tokio::spawn(write(mpsc_sender.clone(), id.clone(), app_state.clone()));
-    tokio::spawn(read(
+    let bridge_task = tokio::spawn(send(mpsc_receiver, sender));
+    let send_task = tokio::spawn(write(mpsc_sender.clone(), id.clone(), app_state.clone()));
+    let recv_task = tokio::spawn(read(
         receiver,
         mpsc_sender.clone(),
         id.clone(),
         app_state.clone(),
     ));
+
+    bridge_task.await.unwrap();
+    send_task.abort();
+    recv_task.abort();
 }
