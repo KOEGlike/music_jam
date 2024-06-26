@@ -37,20 +37,47 @@ pub async fn read(
 
         match message {
             real_time::Request::RemoveUser { user_id } => {
-                kick_user(user_id, host_id, &app_state.db.pool)
-                    .await
-                    .unwrap()
+                let (host_id, jam_id) = match &id {
+                    IdType::Host { id, jam_id } => (id, jam_id),
+                    IdType::User { .. } => {
+                        let error = real_time::Error::Forbidden(
+                            "Only the host can kick users, if you see this in prod this is a bug"
+                                .to_string(),
+                        );
+
+                        let close_frame = error.to_close_frame();
+                        sender
+                            .send(ws::Message::Close(Some(close_frame)))
+                            .await
+                            .unwrap();
+                        return;
+                    }
+                };
+
+                if let Err(e) = kick_user(&user_id, host_id, jam_id, &app_state.db.pool).await {
+                    let error = real_time::Error::Database(e.to_string());
+                    let bin = match rmp_serde::to_vec(&error) {
+                        Ok(bin) => bin,
+                        Err(e) => {
+                            eprintln!("error while serializing error: {:#?}", e);
+                            continue;
+                        }
+                    };
+                    sender.send(ws::Message::Binary(bin)).await.unwrap();
+                };
             }
-            real_time::Request::AddSong { song_id } => todo!(),
+            real_time::Request::AddSong { song_id } => {}
             real_time::Request::RemoveSong { song_id } => todo!(),
+            real_time::Request::AddVote { song_id } => todo!(),
+            real_time::Request::RemoveVote { song_id } => todo!(),
         }
     }
 }
 
 async fn kick_user(
-    user_id: String,
-    host_id: String,
-    jam_id: String,
+    user_id: &String,
+    host_id: &String,
+    jam_id: &String,
     pool: &sqlx::Pool<Postgres>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
@@ -71,9 +98,9 @@ async fn kick_user(
 }
 
 async fn add_song(
-    song_id: String,
-    user_id: String,
-    jam_id: String,
+    song_id: &String,
+    user_id: &String,
+    jam_id: &String,
     pool: &sqlx::Pool<Postgres>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
@@ -81,8 +108,8 @@ async fn add_song(
         song_id,
         user_id,
     )
-        .execute(pool)
-        .await?;
+    .execute(pool)
+    .await?;
 
     sqlx::query!("SELECT pg_notify($1 || 'songs','')", jam_id)
         .execute(pool)
@@ -91,8 +118,8 @@ async fn add_song(
 }
 
 async fn remove_song(
-    song_id: String,
-    jam_id: String,
+    song_id: &String,
+    jam_id: &String,
     pool: &sqlx::Pool<Postgres>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!("DELETE FROM songs WHERE id=$1;", song_id)
@@ -104,3 +131,4 @@ async fn remove_song(
         .await?;
     Ok(())
 }
+

@@ -81,6 +81,7 @@ pub struct Song {
 }
 
 pub mod real_time {
+
     use super::*;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -88,6 +89,7 @@ pub mod real_time {
         Users(Vec<User>),
         Songs(Vec<Song>),
         Error(Error),
+        Vote { song_id: String, vote_nr: u16 },
     }
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -101,9 +103,50 @@ pub mod real_time {
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub enum Error {
-        Sqlx(String),
+        Database(String),
         Decode(String),
         Encode(String),
         WebSocket(String),
+        Forbidden(String),
+    }
+
+    impl Error {
+        pub fn to_code(&self) -> u16 {
+            match *self {
+                Error::Database(_) => 4500,
+                Error::Decode(_) => 4500,
+                Error::Encode(_) => 4500,
+                Error::WebSocket(_) => 4500,
+                Error::Forbidden(_) => 4403,
+            }
+        }
+    }
+
+    impl From<Error> for String {
+        fn from(val: Error) -> Self {
+            match val {
+                Error::Database(s) => s,
+                Error::Decode(s) => s,
+                Error::Encode(s) => s,
+                Error::WebSocket(s) => s,
+                Error::Forbidden(s) => s,
+            }
+        }
+    }
+
+    #[cfg(feature = "ssr")]
+    use axum::extract::ws::CloseFrame;
+    #[cfg(feature = "ssr")]
+    impl Error {
+        pub fn to_close_frame(self) -> CloseFrame<'static> {
+            use std::borrow::Cow;
+
+            let code = self.to_code();
+            let message: String = self.into();
+            CloseFrame {
+                code,
+                reason: Cow::Owned(message),
+            }
+        }
     }
 }
