@@ -47,7 +47,7 @@ pub async fn read(
                     }
                 };
 
-                if let Err(error) = kick_user(&user_id, host_id, jam_id, &app_state.db.pool).await {
+                if let Err(error) = kick_user(&user_id, host_id, &app_state.db.pool).await {
                     handle_error(error, false, &sender).await;
                 };
             }

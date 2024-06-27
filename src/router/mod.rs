@@ -25,3 +25,11 @@ pub fn new(leptos_routes:Vec<RouteListing>, app_state:AppState) -> Router {
         .fallback(file_and_error_handler)
         .with_state(app_state.clone())
 }
+
+#[component]
+fn TestSocketRead() -> impl IntoView{
+    use leptos_use::{use_websocket,UseWebNotificationReturn,UseWebSocketOptions};
+    view! {
+
+    }
+}
