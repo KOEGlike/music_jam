@@ -160,9 +160,24 @@ async fn notify(
 async fn kick_user(
     user_id: &str,
     host_id: &str,
-    jam_id: &str,
     pool: &sqlx::Pool<Postgres>,
 ) -> Result<(), real_time::Error> {
+    //check if the jam that the user is in is owned by the host
+    struct JamId{
+        id: String
+    }
+    
+    let res = sqlx::query_as!(JamId,"SELECT id FROM jams WHERE host_id=$1;", host_id)
+        .fetch_one(pool)
+        .await;
+
+    let jam_id=match res{
+        Ok(id) => id.id,
+        Err(e) => {
+            return Err(real_time::Error::Database(e.to_string()));
+        }
+    };
+    
     let res = sqlx::query!(
         "DELETE FROM users WHERE id=$1 AND jam_id=$2; ",
         user_id,
@@ -174,7 +189,7 @@ async fn kick_user(
         return Err(real_time::Error::Database(e.to_string()));
     }
 
-    notify("users", jam_id, pool).await?;
+    notify("users", &jam_id, pool).await?;
     Ok(())
 }
 
