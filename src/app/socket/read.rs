@@ -56,18 +56,58 @@ pub async fn read(
 
                 if let Err(e) = kick_user(&user_id, host_id, jam_id, &app_state.db.pool).await {
                     let error = real_time::Error::Database(e.to_string());
-                    let bin = match rmp_serde::to_vec(&error) {
-                        Ok(bin) => bin,
-                        Err(e) => {
-                            eprintln!("error while serializing error: {:#?}", e);
-                            continue;
-                        }
-                    };
+                    let bin = rmp_serde::to_vec(&error).unwrap();
                     sender.send(ws::Message::Binary(bin)).await.unwrap();
                 };
             }
-            real_time::Request::AddSong { song_id } => {}
-            real_time::Request::RemoveSong { song_id } => todo!(),
+            real_time::Request::AddSong { song_id } => {
+                let (user_id, jam_id) = match &id {
+                    IdType::User { id, jam_id } => (id, jam_id),
+                    IdType::Host { .. } => {
+                        let error = real_time::Error::Forbidden(
+                            "Only users can add songs, if you see this in prod this is a bug"
+                                .to_string(),
+                        );
+
+                        let close_frame = error.to_close_frame();
+                        sender
+                            .send(ws::Message::Close(Some(close_frame)))
+                            .await
+                            .unwrap();
+                        return;
+                    }
+                };
+
+                if let Err(e) = add_song(&song_id, user_id, jam_id, &app_state.db.pool).await {
+                    let error = real_time::Error::Database(e.to_string());
+                    let bin = rmp_serde::to_vec(&error).unwrap();
+                    sender.send(ws::Message::Binary(bin)).await.unwrap();
+                };
+            }
+            real_time::Request::RemoveSong { song_id } => {
+                let jam_id = match &id {
+                    IdType::Host { jam_id, .. } => jam_id,
+                    IdType::User { .. } => {
+                        let error = real_time::Error::Forbidden(
+                            "Only the host can remove songs, if you see this in prod this is a bug"
+                                .to_string(),
+                        );
+
+                        let close_frame = error.to_close_frame();
+                        sender
+                            .send(ws::Message::Close(Some(close_frame)))
+                            .await
+                            .unwrap();
+                        return;
+                    }
+                };
+
+                if let Err(e) = remove_song(&song_id, jam_id, &app_state.db.pool).await {
+                    let error = real_time::Error::Database(e.to_string());
+                    let bin = rmp_serde::to_vec(&error).unwrap();
+                    sender.send(ws::Message::Binary(bin)).await.unwrap();
+                };
+            }
             real_time::Request::AddVote { song_id } => todo!(),
             real_time::Request::RemoveVote { song_id } => todo!(),
         }
@@ -132,3 +172,42 @@ async fn remove_song(
     Ok(())
 }
 
+async fn add_vote(
+    song_id: &String,
+    user_id: &String,
+    jam_id: &String,
+    pool: &sqlx::Pool<Postgres>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "INSERT INTO votes (song_id, user_id) VALUES ($1, $2);",
+        song_id,
+        user_id,
+    )
+    .execute(pool)
+    .await?;
+
+    sqlx::query!("SELECT pg_notify($1 || 'votes','')", jam_id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+async fn remove_vote(
+    song_id: &String,
+    user_id: &String,
+    jam_id: &String,
+    pool: &sqlx::Pool<Postgres>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "DELETE FROM votes WHERE song_id=$1 AND user_id=$2;",
+        song_id,
+        user_id,
+    )
+    .execute(pool)
+    .await?;
+
+    sqlx::query!("SELECT pg_notify($1 || 'votes','')", jam_id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
