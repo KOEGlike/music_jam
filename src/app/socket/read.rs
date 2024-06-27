@@ -1,7 +1,7 @@
 use super::IdType;
 use crate::general_types::*;
 use axum::extract::ws::{self, WebSocket};
-use futures_util::{stream::SplitStream, StreamExt};
+use futures_util::{stream::SplitStream, StreamExt, TryFutureExt};
 use real_time::Update;
 use sqlx::Postgres;
 use tokio::sync::mpsc;
@@ -26,12 +26,9 @@ pub async fn read(
                 Ok(m) => m,
                 Err(e) => {
                     use real_time::Error;
-                    let error = Update::Error(Error::Decode(e.to_string()));
-                    let bin = rmp_serde::to_vec(&error).unwrap();
-                    if sender.send(ws::Message::Binary(bin)).await.is_err() {
-                        eprintln!("Error sending message: {:?}", e);
-                    }
-                    return;
+                    let error = Error::Decode(e.to_string());
+                    handle_error(error, true, &sender).await;
+                    break;
                 }
             };
 
@@ -45,19 +42,13 @@ pub async fn read(
                                 .to_string(),
                         );
 
-                        let close_frame = error.to_close_frame();
-                        sender
-                            .send(ws::Message::Close(Some(close_frame)))
-                            .await
-                            .unwrap();
-                        return;
+                        handle_error(error, true, &sender).await;
+                        break;
                     }
                 };
 
-                if let Err(e) = kick_user(&user_id, host_id, jam_id, &app_state.db.pool).await {
-                    let error = real_time::Error::Database(e.to_string());
-                    let bin = rmp_serde::to_vec(&error).unwrap();
-                    sender.send(ws::Message::Binary(bin)).await.unwrap();
+                if let Err(error) = kick_user(&user_id, host_id, jam_id, &app_state.db.pool).await {
+                    handle_error(error, false, &sender).await;
                 };
             }
             real_time::Request::AddSong { song_id } => {
@@ -69,19 +60,13 @@ pub async fn read(
                                 .to_string(),
                         );
 
-                        let close_frame = error.to_close_frame();
-                        sender
-                            .send(ws::Message::Close(Some(close_frame)))
-                            .await
-                            .unwrap();
-                        return;
+                        handle_error(error, true, &sender).await;
+                        break;
                     }
                 };
 
-                if let Err(e) = add_song(&song_id, user_id, jam_id, &app_state.db.pool).await {
-                    let error = real_time::Error::Database(e.to_string());
-                    let bin = rmp_serde::to_vec(&error).unwrap();
-                    sender.send(ws::Message::Binary(bin)).await.unwrap();
+                if let Err(error) = add_song(&song_id, user_id, jam_id, &app_state.db.pool).await {
+                    handle_error(error, false, &sender).await;
                 };
             }
             real_time::Request::RemoveSong { song_id } => {
@@ -93,121 +78,185 @@ pub async fn read(
                                 .to_string(),
                         );
 
-                        let close_frame = error.to_close_frame();
-                        sender
-                            .send(ws::Message::Close(Some(close_frame)))
-                            .await
-                            .unwrap();
-                        return;
+                        handle_error(error, true, &sender).await;
+                        break;
                     }
                 };
 
-                if let Err(e) = remove_song(&song_id, jam_id, &app_state.db.pool).await {
-                    let error = real_time::Error::Database(e.to_string());
-                    let bin = rmp_serde::to_vec(&error).unwrap();
-                    sender.send(ws::Message::Binary(bin)).await.unwrap();
+                if let Err(error) = remove_song(&song_id, jam_id, &app_state.db.pool).await {
+                    handle_error(error, false, &sender);
                 };
             }
-            real_time::Request::AddVote { song_id } => todo!(),
-            real_time::Request::RemoveVote { song_id } => todo!(),
+            real_time::Request::AddVote { song_id } => {
+                let (user_id, jam_id) = match &id {
+                    IdType::User { id, jam_id } => (id, jam_id),
+                    IdType::Host { .. } => {
+                        let error = real_time::Error::Forbidden(
+                            "Only users can vote, if you see this in prod this is a bug"
+                                .to_string(),
+                        );
+
+                        handle_error(error, true, &sender).await;
+                        break;
+                    }
+                };
+
+                if let Err(error) = add_vote(&song_id, user_id, jam_id, &app_state.db.pool).await {
+                    handle_error(error, false, &sender).await;
+                };
+            }
+            real_time::Request::RemoveVote { song_id } => {
+                let (user_id, jam_id) = match &id {
+                    IdType::User { id, jam_id } => (id, jam_id),
+                    IdType::Host { .. } => {
+                        let error = real_time::Error::Forbidden(
+                            "Only users can vote, if you see this in prod this is a bug"
+                                .to_string(),
+                        );
+                        handle_error(error, true, &sender).await;
+                        break;
+                    }
+                };
+
+                if let Err(error) = remove_vote(&song_id, user_id, jam_id, &app_state.db.pool).await
+                {
+                    handle_error(error, false, &sender).await;
+                };
+            }
         }
     }
 }
 
-async fn kick_user(
-    user_id: &String,
-    host_id: &String,
-    jam_id: &String,
+async fn handle_error(error: real_time::Error, close: bool, sender: &mpsc::Sender<ws::Message>) {
+    eprintln!("Error: {:?}", error);
+
+    if close {
+        let close_frame = error.to_close_frame();
+        sender
+            .send(ws::Message::Close(Some(close_frame)))
+            .await
+            .unwrap();
+    } else {
+        let update = Update::Error(error);
+        let bin = rmp_serde::to_vec(&update).unwrap();
+        sender.send(ws::Message::Binary(bin)).await.unwrap();
+    }
+}
+
+async fn notify(
+    chanel: &str,
+    jam_id: &str,
     pool: &sqlx::Pool<Postgres>,
-) -> Result<(), sqlx::Error> {
-    sqlx::query!(
+) -> Result<(), real_time::Error> {
+    let res = sqlx::query!("SELECT pg_notify($1 || $2,'')", jam_id, chanel)
+        .execute(pool)
+        .await;
+    if let Err(e) = res {
+        return Err(real_time::Error::Database(e.to_string()));
+    }
+    Ok(())
+}
+
+async fn kick_user(
+    user_id: &str,
+    host_id: &str,
+    jam_id: &str,
+    pool: &sqlx::Pool<Postgres>,
+) -> Result<(), real_time::Error> {
+    let res = sqlx::query!(
         "DELETE FROM users WHERE id=$1 AND jam_id=$2; ",
         user_id,
         jam_id
     )
     .execute(pool)
-    .await?;
+    .await;
+    if let Err(e) = res {
+        return Err(real_time::Error::Database(e.to_string()));
+    }
 
-    sqlx::query!(
-        "SELECT pg_notify( (SELECT id FROM jams WHERE host_id=$1) || 'users','')",
-        host_id
-    )
-    .execute(pool)
-    .await?;
+    notify("users", jam_id, pool).await?;
     Ok(())
 }
 
 async fn add_song(
-    song_id: &String,
-    user_id: &String,
-    jam_id: &String,
+    song_id: &str,
+    user_id: &str,
+    jam_id: &str,
     pool: &sqlx::Pool<Postgres>,
-) -> Result<(), sqlx::Error> {
-    sqlx::query!(
+) -> Result<(), real_time::Error> {
+    let res = sqlx::query!(
         "INSERT INTO songs (id, user_id) VALUES ($1, $2);",
         song_id,
         user_id,
     )
     .execute(pool)
-    .await?;
+    .await;
 
-    sqlx::query!("SELECT pg_notify($1 || 'songs','')", jam_id)
-        .execute(pool)
-        .await?;
+    if let Err(e) = res {
+        return Err(real_time::Error::Database(e.to_string()));
+    }
+
+    notify("songs", jam_id, pool).await?;
     Ok(())
 }
 
 async fn remove_song(
-    song_id: &String,
-    jam_id: &String,
+    song_id: &str,
+    jam_id: &str,
     pool: &sqlx::Pool<Postgres>,
-) -> Result<(), sqlx::Error> {
-    sqlx::query!("DELETE FROM songs WHERE id=$1;", song_id)
+) -> Result<(), real_time::Error> {
+    let res = sqlx::query!("DELETE FROM songs WHERE id=$1;", song_id)
         .execute(pool)
-        .await?;
+        .await;
 
-    sqlx::query!("SELECT pg_notify($1 || 'songs','')", jam_id)
-        .execute(pool)
-        .await?;
+    if let Err(e) = res {
+        return Err(real_time::Error::Database(e.to_string()));
+    }
+
+    notify("songs", jam_id, pool).await?;
     Ok(())
 }
 
 async fn add_vote(
-    song_id: &String,
-    user_id: &String,
-    jam_id: &String,
+    song_id: &str,
+    user_id: &str,
+    jam_id: &str,
     pool: &sqlx::Pool<Postgres>,
-) -> Result<(), sqlx::Error> {
-    sqlx::query!(
+) -> Result<(), real_time::Error> {
+    let res = sqlx::query!(
         "INSERT INTO votes (song_id, user_id) VALUES ($1, $2);",
         song_id,
         user_id,
     )
     .execute(pool)
-    .await?;
+    .await;
 
-    sqlx::query!("SELECT pg_notify($1 || 'votes','')", jam_id)
-        .execute(pool)
-        .await?;
+    if let Err(e) = res {
+        return Err(real_time::Error::Database(e.to_string()));
+    }
+
+    notify("votes", jam_id, pool).await?;
     Ok(())
 }
 
 async fn remove_vote(
-    song_id: &String,
-    user_id: &String,
-    jam_id: &String,
+    song_id: &str,
+    user_id: &str,
+    jam_id: &str,
     pool: &sqlx::Pool<Postgres>,
-) -> Result<(), sqlx::Error> {
-    sqlx::query!(
+) -> Result<(), real_time::Error> {
+    let res = sqlx::query!(
         "DELETE FROM votes WHERE song_id=$1 AND user_id=$2;",
         song_id,
         user_id,
     )
     .execute(pool)
-    .await?;
+    .await;
 
-    sqlx::query!("SELECT pg_notify($1 || 'votes','')", jam_id)
-        .execute(pool)
-        .await?;
+    if let Err(e) = res {
+        return Err(real_time::Error::Database(e.to_string()));
+    }
+
+    notify("votes", jam_id, pool).await?;
     Ok(())
 }
