@@ -19,7 +19,7 @@ CREATE TABLE jams (
 
 CREATE TABLE users (
   id char(24) UNIQUE PRIMARY KEY NOT NULL,
-  jam_id char(24) NOT NULL REFERENCES jams (id) ON DELETE CASCADE,
+  jam_id char(6) NOT NULL REFERENCES jams (id) ON DELETE CASCADE,
   name varchar(50) NOT NULL,
   pfp_id char(24) UNIQUE NOT NULL
 );

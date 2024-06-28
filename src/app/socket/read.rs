@@ -1,7 +1,7 @@
 use super::IdType;
 use crate::general_types::*;
 use axum::extract::ws::{self, WebSocket};
-use futures_util::{stream::SplitStream, StreamExt, TryFutureExt};
+use futures_util::{stream::SplitStream, StreamExt,};
 use real_time::Update;
 use sqlx::Postgres;
 use tokio::sync::mpsc;
@@ -84,7 +84,7 @@ pub async fn read(
                 };
 
                 if let Err(error) = remove_song(&song_id, jam_id, &app_state.db.pool).await {
-                    handle_error(error, false, &sender);
+                    handle_error(error, false, &sender).await;
                 };
             }
             real_time::Request::AddVote { song_id } => {

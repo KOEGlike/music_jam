@@ -1,7 +1,7 @@
-use leptos::{logging::log, prelude::*, *};
-use leptos_router::*;
 use crate::components::Modal;
 use crate::general_types::*;
+use leptos::{logging::log, prelude::*, *};
+use leptos_router::*;
 
 #[server]
 async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
@@ -11,10 +11,12 @@ async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
     let app_state = expect_context::<AppState>();
 
     let host_id = cuid2::create_id();
-    let query = query("INSERT INTO hosts(id, access_token) VALUES ($1, NULL)")
-        .bind(host_id.clone());
+    let query = query!(
+        "INSERT INTO hosts(id, access_token) VALUES ($1, NULL)",
+        &host_id
+    );
     let pool = app_state.db.pool;
-    pool.acquire().await?.execute(query).await?;
+    query.execute(&pool).await?;
     redirect(
         format!(
             "https://accounts.spotify.com/authorize?response_type=code&client_id={}&scope={}&redirect_uri={}&state={}&show_dialog=true"
@@ -27,27 +29,34 @@ async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
     Ok(())
 }
 
-
-
 #[server]
 async fn create_jam(
     name: String,
     host_id: String,
-    max_song_count: i8,
+    max_song_count: i16,
 ) -> Result<JamId, ServerFnError> {
     use crate::general_types::AppState;
     use sqlx::*;
-    let app_state=expect_context::<AppState>();
+    let app_state = expect_context::<AppState>();
 
     let jam_id = cuid2::CuidConstructor::new().with_length(6).create_id();
 
-    let query = query("INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)")
-        .bind(jam_id.clone())
-        .bind(max_song_count as i16)
-        .bind(host_id)
-        .bind(name);
+    let query = query!(
+        "INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)",
+        &jam_id,
+        &max_song_count,
+        &host_id,
+        &name
+    );
     let pool = app_state.db.pool;
-    query.execute(&pool).await?;
+    let result = query.execute(&pool).await;
+
+    if let Err(e) = result {
+        let query = query!("DELETE FROM hosts WHERE id = $1", &host_id);
+        query.execute(&pool).await?;
+        return Err(ServerFnError::from(e));
+    }
+
     Ok(jam_id)
 }
 
@@ -56,10 +65,10 @@ pub fn CreateIsland() -> impl IntoView {
     use gloo::storage::{errors::StorageError, LocalStorage, Storage};
 
     let (name, set_name) = create_signal(String::new());
-    let (max_song_count, set_max_song_count) = create_signal::<i8>(1);
-    let (error_message, set_error_message) = create_signal(String::from("there is no error lol, this is a bug"));
+    let (max_song_count, set_max_song_count) = create_signal::<i16>(1);
+    let (error_message, set_error_message) =
+        create_signal(String::from("there is no error lol, this is a bug"));
     let (show_dialog, set_show_dialog) = create_signal(false);
-
 
     let redirect_to_oauth = create_action(move |_| {
         if let Err(err) = LocalStorage::set("jam_name", name()) {
@@ -74,7 +83,7 @@ pub fn CreateIsland() -> impl IntoView {
         }
     });
 
-    let create = create_action(move |_:&()| {
+    let create = create_action(move |_: &()| {
         let name = name();
         let navigate = use_navigate();
         let max_song_count = max_song_count();
@@ -103,7 +112,6 @@ pub fn CreateIsland() -> impl IntoView {
             Err(e) => log!("Error getting jam name from local storage: {}", e),
         }
     });
-
 
     view! {
         <Modal visible=show_dialog>

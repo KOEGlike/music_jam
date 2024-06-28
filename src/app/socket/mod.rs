@@ -95,11 +95,7 @@ async fn send(
 ) {
     
     while let Some(msg) = receiver.recv().await {
-        let close_connection = if let ws::Message::Close(_) = msg {
-            true
-        } else {
-            false
-        };
+        let close_connection = matches!(msg, ws::Message::Close(_));
 
         match sender.send(msg).await {
             Ok(_) => (),
