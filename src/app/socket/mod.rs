@@ -31,14 +31,6 @@ enum IdType {
     User { id: String, jam_id: String },
 }
 
-pub async fn socket(
-    ws: WebSocketUpgrade,
-    Query(id): Query<Id>,
-    State(state): State<AppState>,
-) -> Response {
-    ws.on_upgrade(|socket| handle_socket(socket, state, id.id))
-}
-
 impl IdType {
     fn jam_id(&self) -> &str {
         match self {
@@ -93,7 +85,6 @@ async fn send(
     mut receiver: mpsc::Receiver<ws::Message>,
     mut sender: SplitSink<WebSocket, ws::Message>,
 ) {
-    
     while let Some(msg) = receiver.recv().await {
         let close_connection = matches!(msg, ws::Message::Close(_));
 
@@ -109,6 +100,15 @@ async fn send(
             break;
         }
     }
+}
+
+pub async fn socket(
+    ws: WebSocketUpgrade,
+    Query(id): Query<Id>,
+    State(state): State<AppState>,
+) -> Response {
+    leptos::logging::log!("ws: {:?}", id);
+    ws.on_upgrade(|socket| handle_socket(socket, state, id.id))
 }
 
 async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {

@@ -55,7 +55,7 @@ fn TestSocketRead() -> impl IntoView {
         open,
         message,
         ..
-    } = use_websocket(&format!("wss://localhost:3000/socket?id={}", id));
+    } = use_websocket(&format!("ws://localhost:3000/socket?id={}", id));
 
     let update = move || match message_bytes() {
         Some(m) => rmp_serde::from_slice::<real_time::Update>(&m).unwrap(),
