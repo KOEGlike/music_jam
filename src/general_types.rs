@@ -78,6 +78,8 @@ pub struct Song {
     pub artist: String,
     pub album: String,
     pub duration: i32,
+    pub album_url: String,
+    pub votes: i32,
 }
 
 pub mod real_time {

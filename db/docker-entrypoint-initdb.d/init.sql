@@ -1,13 +1,14 @@
-CREATE TYPE access_token AS (
-  access_token varchar,
-  expires_at BIGINT,
-  scope varchar,
-  refresh_token varchar
+CREATE TABLE access_tokens  (
+  id char(24) UNIQUE PRIMARY KEY NOT NULL,
+  access_token varchar NOT NULL UNIQUE,
+  expires_at BIGINT NOT NULL,
+  scope varchar NOT NULL,
+  refresh_token varchar NOT NULL
 );
 
 CREATE TABLE hosts (
   id char(24) NOT NULL UNIQUE PRIMARY KEY,
-  access_token access_token UNIQUE
+  access_token char(24) UNIQUE REFERENCES access_tokens (id) ON DELETE CASCADE
 );
 
 CREATE TABLE jams (
@@ -26,7 +27,12 @@ CREATE TABLE users (
 
 CREATE TABLE songs (
   user_id char(24) NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  id varchar(22) UNIQUE PRIMARY KEY NOT NULL
+  id varchar(22) UNIQUE PRIMARY KEY NOT NULL,
+  name varchar(50) NOT NULL,
+  artist varchar(50) NOT NULL,
+  album varchar(50) NOT NULL,
+  duration int NOT NULL,
+  album_url varchar(255) NOT NULL
 );
 
 CREATE TABLE votes (

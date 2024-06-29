@@ -186,7 +186,7 @@ async fn add_song(
     pool: &sqlx::Pool<Postgres>,
 ) -> Result<(), real_time::Error> {
     let res = sqlx::query!(
-        "INSERT INTO songs (id, user_id) VALUES ($1, $2);",
+        "INSERT INTO songs (id, user_id) VALUES ($1, $2)",
         song_id,
         user_id,
     )

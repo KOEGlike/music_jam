@@ -2,6 +2,7 @@ use super::{handle_error, IdType};
 use crate::general_types::*;
 use axum::extract::ws;
 use futures_util::future::ok;
+use leptos::html::Optgroup;
 use sqlx::postgres::PgListener;
 use tokio::sync::mpsc;
 
@@ -24,7 +25,7 @@ async fn listen_songs(
         pub user_id: String,
         pub id: String,
     }
-    
+
     let mut listener = create_listener(&pool, &jam_id, "songs").await?;
 
     while let Ok(m) = listener.try_recv().await {
@@ -33,8 +34,6 @@ async fn listen_songs(
             handle_error(error, false, &sender).await;
             continue;
         }
-
-        
 
         let songs = sqlx::query_as!(
             SongDb,
@@ -53,32 +52,33 @@ async fn listen_songs(
             }
         };
 
-        let bin= rmp_serde::to_vec(&real_time::Update::Songs(songs)).unwrap();
+        let bin = rmp_serde::to_vec(&real_time::Update::Songs(songs)).unwrap();
     }
 
     Ok(())
 }
 
-async fn get_access_token(pool: &sqlx::PgPool, jam_id: &str) -> Result<rspotify::Token, real_time::Error> {
-    struct AccessTokenDb{
-        pub refresh_token:String,
-        pub access_token:String,
-        pub expires_at:i64,
-        pub scope:String,
+async fn get_access_token(
+    pool: &sqlx::PgPool,
+    jam_id: &str,
+) -> Result<rspotify::Token, real_time::Error> {
+    struct AccessTokenDb {
+        pub refresh_token: String,
+        pub access_token: String,
+        pub expires_at: i64,
+        pub scope: String,
+        pub id: String,
     }
-    
-    let jam = sqlx::query_as!(AccessTokenDb,"SELECT access_token FROM hosts WHERE id=(SELECT host_id FROM jams WHERE id=$1)", jam_id)
-        .fetch_one(pool)
-        .await;
 
-    let jam = match jam {
-        Ok(jam) => jam,
-        Err(e) => {
-            return Err(real_time::Error::Database(e.to_string()));
-        }
-    };
+    let token = sqlx::query_as!(
+        AccessTokenDb,
+        "SELECT * FROM access_tokens WHERE id=(SELECT access_token FROM hosts WHERE id=(SELECT host_id FROM jams WHERE id=$1))",
+        jam_id
+    )
+    .fetch_one(pool)
+    .await;
 
-    Ok(rspotify::Token{
+    Ok(rspotify::Token {
         access_token: todo!(),
         expires_in: todo!(),
         expires_at: todo!(),
