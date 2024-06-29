@@ -32,7 +32,7 @@ CREATE TABLE songs (
   artist varchar(50) NOT NULL,
   album varchar(50) NOT NULL,
   duration int NOT NULL,
-  album_url varchar(255) NOT NULL
+  image_url varchar(255) NOT NULL
 );
 
 CREATE TABLE votes (

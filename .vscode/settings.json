@@ -4,6 +4,7 @@
         "browserlist",
         "browserquery",
         "cdylib",
+        "chrono",
         "codegen",
         "cuid",
         "dotenv",

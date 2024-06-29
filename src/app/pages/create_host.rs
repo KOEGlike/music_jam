@@ -51,17 +51,27 @@ async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError>
 
     let token: AccessToken = serde_json::from_str(res.as_str())?;
 
-    let now = time::OffsetDateTime::now_utc().unix_timestamp();
+    let now = chrono::Utc::now().timestamp();
     let expires_at = now + token.expires_in;
+    let pool = &app_state.db.pool;
 
-    let query = query("UPDATE hosts SET access_token = ($1, $2, $3, $4) WHERE id = $5")
-        .bind(token.access_token)
-        .bind(expires_at)
-        .bind(token.scope)
-        .bind(token.refresh_token)
-        .bind(host_id);
+    let access_token_id = cuid2::create_id();
+    query!(
+        "INSERT INTO access_tokens (access_token, expires_at, scope, refresh_token,id) VALUES ($1, $2, $3, $4,$5)",
+        token.access_token,
+        expires_at,
+        token.scope,
+        token.refresh_token,
+        access_token_id
+    ).execute(pool).await?;
 
-    query.execute(&app_state.db.pool).await?;
+    query!(
+        "UPDATE hosts SET access_token = $1 WHERE id = $2",
+        access_token_id,
+        host_id
+    )
+    .execute(&app_state.db.pool)
+    .await?;
 
     Ok(())
 }
@@ -76,9 +86,9 @@ pub fn CreateHostPage() -> impl IntoView {
         use gloo::storage::{LocalStorage, Storage};
 
         let input = input.clone();
-        async move { 
-            let res=create_host(input.0.clone(), input.1.clone()).await;
-            if res.is_ok()  {
+        async move {
+            let res = create_host(input.0.clone(), input.1.clone()).await;
+            if res.is_ok() {
                 LocalStorage::set("host_id", input.1)?;
             }
             res

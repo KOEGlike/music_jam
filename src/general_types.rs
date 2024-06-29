@@ -78,7 +78,7 @@ pub struct Song {
     pub artist: String,
     pub album: String,
     pub duration: i32,
-    pub album_url: String,
+    pub image_url: String,
     pub votes: i32,
 }
 
@@ -149,6 +149,13 @@ pub mod real_time {
                 code,
                 reason: Cow::Owned(message),
             }
+        }
+    }
+
+    #[cfg(feature = "ssr")]
+    impl From<sqlx::Error> for Error {
+        fn from(e: sqlx::Error) -> Self {
+            Error::Database(e.to_string())
         }
     }
 }

@@ -2278,6 +2278,7 @@ name = "music_jam"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "chrono",
  "console_error_panic_hook",
  "cuid2",
  "dotenvy",
@@ -2300,7 +2301,6 @@ dependencies = [
  "serde_json",
  "sqlx",
  "thiserror",
- "time",
  "tokio",
  "tower",
  "tower-http",
@@ -3776,7 +3776,6 @@ checksum = "5dfd88e563464686c916c7e46e623e520ddc6d79fa6641390f2e3fa86e83e885"
 dependencies = [
  "deranged",
  "itoa",
- "js-sys",
  "num-conv",
  "powerfmt",
  "serde",

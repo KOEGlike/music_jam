@@ -1,8 +1,6 @@
 use super::{handle_error, IdType};
 use crate::general_types::*;
 use axum::extract::ws;
-use futures_util::future::ok;
-use leptos::html::Optgroup;
 use sqlx::postgres::PgListener;
 use tokio::sync::mpsc;
 
@@ -21,11 +19,6 @@ async fn listen_songs(
     jam_id: String,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), real_time::Error> {
-    struct SongDb {
-        pub user_id: String,
-        pub id: String,
-    }
-
     let mut listener = create_listener(&pool, &jam_id, "songs").await?;
 
     while let Ok(m) = listener.try_recv().await {
@@ -36,8 +29,13 @@ async fn listen_songs(
         }
 
         let songs = sqlx::query_as!(
-            SongDb,
-            "SELECT * FROM songs WHERE user_id IN (SELECT user_id FROM jams WHERE id=$1)",
+            Song,
+            "SELECT s.*, COUNT(v.id) AS votes
+FROM songs s
+JOIN users u ON s.user_id = u.id
+LEFT JOIN votes v ON s.id = v.song_id
+WHERE u.jam_id = $1
+GROUP BY s.id",
             jam_id
         )
         .fetch_all(&pool)
@@ -76,14 +74,19 @@ async fn get_access_token(
         jam_id
     )
     .fetch_one(pool)
-    .await;
+    .await?;
+
+    let expires_at = chrono::DateTime::from_timestamp(token.expires_at, 0).unwrap();
+    let expires_at = Some(expires_at);
+    let expires_in = token.expires_at - chrono::Utc::now().timestamp();
+    let expires_in = chrono::TimeDelta::new(expires_in, 0).unwrap();
 
     Ok(rspotify::Token {
-        access_token: todo!(),
-        expires_in: todo!(),
-        expires_at: todo!(),
-        refresh_token: todo!(),
-        scopes: todo!(),
+        access_token: token.access_token,
+        expires_in,
+        expires_at,
+        refresh_token: Some(token.refresh_token),
+        scopes: rspotify::scopes!(token.scope),
     })
 }
 
