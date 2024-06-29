@@ -4,9 +4,11 @@ use leptos_router::*;
 pub mod components;
 pub mod pages;
 #[cfg(feature = "ssr")]
+pub mod general_functions;
+#[cfg(feature = "ssr")]
 pub mod socket;
 
-use components::{create, error_template::*};
+use components::error_template::*;
 
 #[component]
 pub fn App() -> impl IntoView {

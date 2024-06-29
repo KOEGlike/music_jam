@@ -1,4 +1,5 @@
 use super::{handle_error, IdType};
+use crate::app::general_functions::*;
 use crate::general_types::*;
 use axum::extract::ws;
 use sqlx::postgres::PgListener;
@@ -19,7 +20,30 @@ async fn listen_songs(
     jam_id: String,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), real_time::Error> {
-    let mut listener = create_listener(&pool, &jam_id, "songs").await?;
+    let f = |pool: &sqlx::PgPool, jam_id: &str| -> real_time::Update {
+        let songs = match get_songs(pool, jam_id).await {
+            Ok(songs) => songs,
+            Err(e) => {
+                return real_time::Update::Error(real_time::Error::Database(e.to_string()));
+            }
+        };
+
+        real_time::Update::Songs(songs)
+    };
+    listen(&pool, &jam_id, sender, "songs", f)
+}
+
+async fn listen<T>(
+    pool: &sqlx::PgPool,
+    jam_id: &str,
+    sender: mpsc::Sender<ws::Message>,
+    channel_name: &str,
+    f: T,
+) -> Result<(), real_time::Error>
+where
+    T: Fn(&sqlx::PgPool, &str) -> real_time::Update,
+{
+    let mut listener = create_listener(&pool, &jam_id, channel_name).await?;
 
     while let Ok(m) = listener.try_recv().await {
         if m.is_none() {
@@ -28,66 +52,13 @@ async fn listen_songs(
             continue;
         }
 
-        let songs = sqlx::query_as!(
-            Song,
-            "SELECT s.*, COUNT(v.id) AS votes
-FROM songs s
-JOIN users u ON s.user_id = u.id
-LEFT JOIN votes v ON s.id = v.song_id
-WHERE u.jam_id = $1
-GROUP BY s.id",
-            jam_id
-        )
-        .fetch_all(&pool)
-        .await;
-
-        let songs = match songs {
-            Ok(songs) => songs,
-            Err(e) => {
-                let error = real_time::Error::Database(e.to_string());
-                handle_error(error, false, &sender).await;
-                continue;
-            }
-        };
-
-        let bin = rmp_serde::to_vec(&real_time::Update::Songs(songs)).unwrap();
+        let update = f(&pool, &jam_id);
+        let bin = rmp_serde::to_vec(&update).unwrap();
+        let message = ws::Message::Binary(bin);
+        sender.send(message).await.unwrap();
     }
 
     Ok(())
-}
-
-async fn get_access_token(
-    pool: &sqlx::PgPool,
-    jam_id: &str,
-) -> Result<rspotify::Token, real_time::Error> {
-    struct AccessTokenDb {
-        pub refresh_token: String,
-        pub access_token: String,
-        pub expires_at: i64,
-        pub scope: String,
-        pub id: String,
-    }
-
-    let token = sqlx::query_as!(
-        AccessTokenDb,
-        "SELECT * FROM access_tokens WHERE id=(SELECT access_token FROM hosts WHERE id=(SELECT host_id FROM jams WHERE id=$1))",
-        jam_id
-    )
-    .fetch_one(pool)
-    .await?;
-
-    let expires_at = chrono::DateTime::from_timestamp(token.expires_at, 0).unwrap();
-    let expires_at = Some(expires_at);
-    let expires_in = token.expires_at - chrono::Utc::now().timestamp();
-    let expires_in = chrono::TimeDelta::new(expires_in, 0).unwrap();
-
-    Ok(rspotify::Token {
-        access_token: token.access_token,
-        expires_in,
-        expires_at,
-        refresh_token: Some(token.refresh_token),
-        scopes: rspotify::scopes!(token.scope),
-    })
 }
 
 async fn create_listener(

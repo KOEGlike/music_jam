@@ -79,7 +79,7 @@ pub struct Song {
     pub album: String,
     pub duration: i32,
     pub image_url: String,
-    pub votes: i32,
+    pub votes: Option<i64>,
 }
 
 pub mod real_time {
@@ -101,6 +101,7 @@ pub mod real_time {
         RemoveSong { song_id: String },
         AddVote { song_id: String },
         RemoveVote { song_id: String },
+        Update
     }
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
