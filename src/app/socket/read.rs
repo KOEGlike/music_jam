@@ -1,8 +1,7 @@
-use super::IdType;
+use super::{IdType, handle_error};
 use crate::general_types::*;
 use axum::extract::ws::{self, WebSocket};
 use futures_util::{stream::SplitStream, StreamExt,};
-use real_time::Update;
 use sqlx::Postgres;
 use tokio::sync::mpsc;
 
@@ -34,8 +33,8 @@ pub async fn read(
 
         match message {
             real_time::Request::RemoveUser { user_id } => {
-                let (host_id, jam_id) = match &id {
-                    IdType::Host { id, jam_id } => (id, jam_id),
+                let host_id = match &id {
+                    IdType::Host { id, .. } => id,
                     IdType::User { .. } => {
                         let error = real_time::Error::Forbidden(
                             "Only the host can kick users, if you see this in prod this is a bug"
@@ -127,28 +126,15 @@ pub async fn read(
     }
 }
 
-async fn handle_error(error: real_time::Error, close: bool, sender: &mpsc::Sender<ws::Message>) {
-    eprintln!("Error: {:?}", error);
 
-    if close {
-        let close_frame = error.to_close_frame();
-        sender
-            .send(ws::Message::Close(Some(close_frame)))
-            .await
-            .unwrap();
-    } else {
-        let update = Update::Error(error);
-        let bin = rmp_serde::to_vec(&update).unwrap();
-        sender.send(ws::Message::Binary(bin)).await.unwrap();
-    }
-}
 
 async fn notify(
     chanel: &str,
     jam_id: &str,
     pool: &sqlx::Pool<Postgres>,
 ) -> Result<(), real_time::Error> {
-    let res = sqlx::query!("SELECT pg_notify($1 || $2,'')", jam_id, chanel)
+    let chanel=format!("{}_{}",jam_id,chanel);
+    let res = sqlx::query!("SELECT pg_notify($1,'notified')",chanel)
         .execute(pool)
         .await;
     if let Err(e) = res {

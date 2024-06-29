@@ -15,9 +15,8 @@ use std::result::Result;
 use tokio::sync::mpsc;
 
 mod read;
-mod write;
-
 use read::read;
+mod write;
 use write::write;
 
 #[derive(Debug, serde::Deserialize)]
@@ -43,6 +42,57 @@ impl IdType {
             IdType::Host { id, .. } => id,
             IdType::User { id, .. } => id,
         }
+    }
+}
+
+pub async fn socket(
+    ws: WebSocketUpgrade,
+    Query(id): Query<Id>,
+    State(state): State<AppState>,
+) -> Response {
+    leptos::logging::log!("ws: {:?}", id);
+    ws.on_upgrade(|socket| handle_socket(socket, state, id.id))
+}
+
+async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
+    let (sender, receiver) = socket.split();
+    let (mpsc_sender, mpsc_receiver) = mpsc::channel(3);
+
+    let id = match check_id_type(&id, &app_state.db.pool).await {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("Error checking id type: {:?}", e);
+            return;
+        }
+    };
+
+    let bridge_task = tokio::spawn(send(mpsc_receiver, sender));
+    let send_task = tokio::spawn(write(mpsc_sender.clone(), id.clone(), app_state.clone()));
+    let recv_task = tokio::spawn(read(
+        receiver,
+        mpsc_sender.clone(),
+        id.clone(),
+        app_state.clone(),
+    ));
+
+    bridge_task.await.unwrap();
+    send_task.abort();
+    recv_task.abort();
+}
+
+async fn handle_error(error: real_time::Error, close: bool, sender: &mpsc::Sender<ws::Message>) {
+    eprintln!("Error: {:?}", error);
+
+    if close {
+        let close_frame = error.to_close_frame();
+        sender
+            .send(ws::Message::Close(Some(close_frame)))
+            .await
+            .unwrap();
+    } else {
+        let update = real_time::Update::Error(error);
+        let bin = rmp_serde::to_vec(&update).unwrap();
+        sender.send(ws::Message::Binary(bin)).await.unwrap();
     }
 }
 
@@ -100,39 +150,4 @@ async fn send(
             break;
         }
     }
-}
-
-pub async fn socket(
-    ws: WebSocketUpgrade,
-    Query(id): Query<Id>,
-    State(state): State<AppState>,
-) -> Response {
-    leptos::logging::log!("ws: {:?}", id);
-    ws.on_upgrade(|socket| handle_socket(socket, state, id.id))
-}
-
-async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
-    let (sender, receiver) = socket.split();
-    let (mpsc_sender, mpsc_receiver) = mpsc::channel(3);
-
-    let id = match check_id_type(&id, &app_state.db.pool).await {
-        Ok(id) => id,
-        Err(e) => {
-            eprintln!("Error checking id type: {:?}", e);
-            return;
-        }
-    };
-
-    let bridge_task = tokio::spawn(send(mpsc_receiver, sender));
-    let send_task = tokio::spawn(write(mpsc_sender.clone(), id.clone(), app_state.clone()));
-    let recv_task = tokio::spawn(read(
-        receiver,
-        mpsc_sender.clone(),
-        id.clone(),
-        app_state.clone(),
-    ));
-
-    bridge_task.await.unwrap();
-    send_task.abort();
-    recv_task.abort();
 }

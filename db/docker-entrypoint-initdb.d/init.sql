@@ -26,7 +26,7 @@ CREATE TABLE users (
 
 CREATE TABLE songs (
   user_id char(24) NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  id varchar(22) UNIQUE PRIMARY KEY
+  id varchar(22) UNIQUE PRIMARY KEY NOT NULL
 );
 
 CREATE TABLE votes (
