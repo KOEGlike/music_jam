@@ -18,6 +18,7 @@ pub async fn get_access_token(
     pool: &sqlx::PgPool,
     jam_id: &str,
 ) -> Result<rspotify::Token, sqlx::Error> {
+    #[allow(dead_code)]
     struct AccessTokenDb {
         pub refresh_token: String,
         pub access_token: String,

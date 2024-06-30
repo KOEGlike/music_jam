@@ -88,7 +88,6 @@ pub struct Votes {
 }
 
 pub mod real_time {
-
     use super::*;
 
     pub enum Channels {

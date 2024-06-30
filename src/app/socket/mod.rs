@@ -10,14 +10,20 @@ use futures_util::{
     sink::SinkExt,
     stream::{SplitSink, StreamExt},
 };
-use sqlx::Postgres;
 use std::result::Result;
 use tokio::sync::mpsc;
 
 mod read;
-use read::read;
 mod write;
-use write::write;
+
+pub async fn socket(
+    ws: WebSocketUpgrade,
+    Query(id): Query<QueryId>,
+    State(state): State<AppState>,
+) -> Response {
+    leptos::logging::log!("ws: {:?}", id);
+    ws.on_upgrade(|socket| handle_socket(socket, state, id.id))
+}
 
 #[derive(Debug, serde::Deserialize)]
 pub struct QueryId {
@@ -36,6 +42,7 @@ enum IdType {
     User(Id),
 }
 
+#[allow(dead_code)]
 impl IdType {
     pub fn is_host(&self) -> bool {
         matches!(self, IdType::Host { .. })
@@ -57,15 +64,6 @@ impl IdType {
     }
 }
 
-pub async fn socket(
-    ws: WebSocketUpgrade,
-    Query(id): Query<QueryId>,
-    State(state): State<AppState>,
-) -> Response {
-    leptos::logging::log!("ws: {:?}", id);
-    ws.on_upgrade(|socket| handle_socket(socket, state, id.id))
-}
-
 async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
     let (sender, receiver) = socket.split();
     let (mpsc_sender, mpsc_receiver) = mpsc::channel(3);
@@ -79,8 +77,8 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
     };
 
     let bridge_task = tokio::spawn(send(mpsc_receiver, sender));
-    let send_task = tokio::spawn(write(mpsc_sender.clone(), id.clone(), app_state.clone()));
-    let recv_task = tokio::spawn(read(
+    let send_task = tokio::spawn(write::write(mpsc_sender.clone(), id.clone(), app_state.clone()));
+    let recv_task = tokio::spawn(read::read(
         receiver,
         mpsc_sender.clone(),
         id.clone(),
@@ -108,7 +106,7 @@ async fn handle_error(error: real_time::Error, close: bool, sender: &mpsc::Sende
     }
 }
 
-async fn check_id_type(id: &str, pool: &sqlx::Pool<Postgres>) -> Result<IdType, sqlx::Error> {
+async fn check_id_type(id: &str, pool: &sqlx::PgPool) -> Result<IdType, sqlx::Error> {
     // Check if the ID exists in the hosts table
     let host_check = sqlx::query!("SELECT EXISTS(SELECT 1 FROM hosts WHERE id = $1)", id)
         .fetch_one(pool)
@@ -119,12 +117,10 @@ async fn check_id_type(id: &str, pool: &sqlx::Pool<Postgres>) -> Result<IdType, 
             .fetch_one(pool)
             .await?
             .id;
-        return Ok(IdType::Host (
-            Id {
-                id: id.to_string(),
-                jam_id,
-            }
-        ));
+        return Ok(IdType::Host(Id {
+            id: id.to_string(),
+            jam_id,
+        }));
     }
 
     let user_check = sqlx::query!("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", id)
@@ -136,12 +132,10 @@ async fn check_id_type(id: &str, pool: &sqlx::Pool<Postgres>) -> Result<IdType, 
             .fetch_one(pool)
             .await?
             .jam_id;
-        return Ok(IdType::User (
-            Id {
-                id: id.to_string(),
-                jam_id,
-            }
-        ));
+        return Ok(IdType::User(Id {
+            id: id.to_string(),
+            jam_id,
+        }));
     }
 
     Err(sqlx::Error::RowNotFound)
