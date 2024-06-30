@@ -94,6 +94,30 @@ pub mod real_time {
         Vote { song_id: String, vote_nr: u16 },
     }
 
+    impl From<Vec<Song>> for Update {
+        fn from(songs: Vec<Song>) -> Self {
+            Update::Songs(songs)
+        }
+    }
+    impl From<Vec<User>> for Update {
+        fn from(users: Vec<User>) -> Self {
+            Update::Users(users)
+        }
+    }
+    impl From<Error> for Update {
+        fn from(e: Error) -> Self {
+            Update::Error(e)
+        }
+    }
+    impl<T:Into<Update>> From<Result<T,sqlx::Error>> for Update{
+        fn from(res:Result<T,sqlx::Error>)->Self{
+            match res{
+                Ok(val)=>val.into(),
+                Err(e)=>Update::Error(Error::Database(e.to_string()))
+            }
+        }
+    }
+
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub enum Request {
         RemoveUser { user_id: String },

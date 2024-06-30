@@ -3,6 +3,7 @@ use crate::app::general_functions::*;
 use crate::general_types::*;
 use axum::extract::ws;
 use sqlx::postgres::PgListener;
+use std::future::Future;
 use tokio::sync::mpsc;
 
 pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: AppState) {
@@ -20,28 +21,21 @@ async fn listen_songs(
     jam_id: String,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), real_time::Error> {
-    let f = |pool: &sqlx::PgPool, jam_id: &str| -> real_time::Update {
-        let songs = match get_songs(pool, jam_id).await {
-            Ok(songs) => songs,
-            Err(e) => {
-                return real_time::Update::Error(real_time::Error::Database(e.to_string()));
-            }
-        };
-
-        real_time::Update::Songs(songs)
-    };
-    listen(&pool, &jam_id, sender, "songs", f)
+    listen(&pool, &jam_id, sender, "songs", get_songs).await
 }
 
-async fn listen<T>(
+
+
+async fn listen<T,Fu>(
     pool: &sqlx::PgPool,
     jam_id: &str,
     sender: mpsc::Sender<ws::Message>,
     channel_name: &str,
-    f: T,
+    f: fn(&sqlx::PgPool, &str) -> Fu,
 ) -> Result<(), real_time::Error>
 where
-    T: Fn(&sqlx::PgPool, &str) -> real_time::Update,
+    T: Into<real_time::Update>,
+    Fu: Future<Output = T>+'static,
 {
     let mut listener = create_listener(&pool, &jam_id, channel_name).await?;
 
@@ -52,7 +46,7 @@ where
             continue;
         }
 
-        let update = f(&pool, &jam_id);
+        let update:real_time::Update = f(&pool, &jam_id).await.into();
         let bin = rmp_serde::to_vec(&update).unwrap();
         let message = ws::Message::Binary(bin);
         sender.send(message).await.unwrap();
