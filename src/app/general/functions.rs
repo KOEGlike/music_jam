@@ -1,44 +1,17 @@
-use crate::general_types::*;
+use crate::app::general::*;
 use sqlx::Postgres;
 
-pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, sqlx::Error> {
-    sqlx::query_as!(
-        Song,
-        "SELECT s.*, COUNT(v.id) AS votes
-        FROM songs s
-        JOIN users u ON s.user_id = u.id
-        LEFT JOIN votes v ON s.id = v.song_id
-        WHERE u.jam_id = $1
-        GROUP BY s.id
-        ORDER BY votes DESC, s.id DESC;",
-        jam_id
-    )
-    .fetch_all(pool)
-    .await
-}
-
-pub async fn get_votes(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Votes>, sqlx::Error> {
-    sqlx::query_as!(
-        Votes,
-        "SELECT 
-            s.id AS song_id, 
-            COUNT(v.id) AS votes_nr
-        FROM songs s
-        JOIN users u ON s.user_id = u.id
-        LEFT JOIN votes v ON s.id = v.song_id
-        WHERE u.jam_id = $1
-        GROUP BY s.id
-        ORDER BY votes_nr DESC",
-        jam_id
-    )
-    .fetch_all(pool)
-    .await
-}
-
-pub async fn get_users(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<User>, sqlx::Error> {
-    sqlx::query_as!(User, "SELECT * FROM users WHERE jam_id=$1", jam_id)
-        .fetch_all(pool)
-        .await
+pub async fn notify(
+    channel: real_time::Channels,
+    jam_id: &str,
+    pool: &sqlx::Pool<Postgres>,
+) -> Result<(), sqlx::Error> {
+    let channel: String = channel.into();
+    let channel = format!("{}_{}", jam_id, channel);
+    sqlx::query!("SELECT pg_notify($1,'notified')", channel)
+        .execute(pool)
+        .await?;
+    Ok(())
 }
 
 pub async fn get_access_token(
@@ -75,6 +48,44 @@ pub async fn get_access_token(
     })
 }
 
+pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, sqlx::Error> {
+    sqlx::query_as!(
+        Song,
+        "SELECT s.*, COUNT(v.id) AS votes
+        FROM songs s
+        JOIN users u ON s.user_id = u.id
+        LEFT JOIN votes v ON s.id = v.song_id
+        WHERE u.jam_id = $1
+        GROUP BY s.id
+        ORDER BY votes DESC, s.id DESC;",
+        jam_id
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_votes(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Votes>, sqlx::Error> {
+    sqlx::query_as!(
+        Votes,
+        "SELECT s.id AS song_id, COUNT(v.id) AS votes_nr
+        FROM songs s
+        JOIN users u ON s.user_id = u.id
+        LEFT JOIN votes v ON s.id = v.song_id
+        WHERE u.jam_id = $1
+        GROUP BY s.id
+        ORDER BY votes_nr DESC",
+        jam_id
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_users(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<User>, sqlx::Error> {
+    sqlx::query_as!(User, "SELECT * FROM users WHERE jam_id=$1", jam_id)
+        .fetch_all(pool)
+        .await
+}
+
 pub async fn add_song(
     song_id: &str,
     user_id: &str,
@@ -89,7 +100,7 @@ pub async fn add_song(
     .execute(pool)
     .await?;
 
-    notify("songs", jam_id, pool).await?;
+    notify(real_time::Channels::Songs, jam_id, pool).await?;
     Ok(())
 }
 
@@ -102,7 +113,7 @@ pub async fn remove_song(
         .execute(pool)
         .await?;
 
-    notify("songs", jam_id, pool).await?;
+    notify(real_time::Channels::Songs, jam_id, pool).await?;
     Ok(())
 }
 
@@ -120,7 +131,7 @@ pub async fn add_vote(
     .execute(pool)
     .await?;
 
-    notify("votes", jam_id, pool).await?;
+    notify(real_time::Channels::Votes, jam_id, pool).await?;
     Ok(())
 }
 
@@ -138,19 +149,7 @@ pub async fn remove_vote(
     .execute(pool)
     .await?;
 
-    notify("votes", jam_id, pool).await?;
-    Ok(())
-}
-
-pub async fn notify(
-    chanel: &str,
-    jam_id: &str,
-    pool: &sqlx::Pool<Postgres>,
-) -> Result<(), sqlx::Error> {
-    let chanel = format!("{}_{}", jam_id, chanel);
-    sqlx::query!("SELECT pg_notify($1,'notified')", chanel)
-        .execute(pool)
-        .await?;
+    notify(real_time::Channels::Votes, jam_id, pool).await?;
     Ok(())
 }
 
@@ -177,6 +176,6 @@ pub async fn kick_user(
     .execute(pool)
     .await?;
 
-    notify("users", &jam_id, pool).await?;
+    notify(real_time::Channels::Users, &jam_id, pool).await?;
     Ok(())
 }

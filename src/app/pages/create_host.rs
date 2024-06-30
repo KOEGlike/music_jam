@@ -3,7 +3,7 @@ use leptos_router::*;
 
 #[server]
 async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError> {
-    use crate::general_types::AppState;
+    use crate::app::general::AppState;
     use http::StatusCode;
     use serde::{Deserialize, Serialize};
     use sqlx::*;

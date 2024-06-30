@@ -1,5 +1,4 @@
 pub mod app;
-pub mod general_types;
 
 pub use crate::app::components;
 

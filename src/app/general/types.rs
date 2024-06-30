@@ -91,6 +91,22 @@ pub mod real_time {
 
     use super::*;
 
+    pub enum Channels {
+        Users,
+        Songs,
+        Votes,
+    }
+
+    impl From<Channels> for String {
+        fn from(val: Channels) -> Self {
+            match val {
+                Channels::Users => "users".to_string(),
+                Channels::Songs => "songs".to_string(),
+                Channels::Votes => "votes".to_string(),
+            }
+        }
+    }
+
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub enum Update {
         Users(Vec<User>),
@@ -130,7 +146,7 @@ pub mod real_time {
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub enum Request {
-        RemoveUser { user_id: String },
+        KickUser { user_id: String },
         AddSong { song_id: String },
         RemoveSong { song_id: String },
         AddVote { song_id: String },

@@ -3,8 +3,9 @@ use leptos_meta::*;
 use leptos_router::*;
 pub mod components;
 pub mod pages;
-#[cfg(feature = "ssr")]
-pub mod general_functions;
+pub mod general;
+
+
 #[cfg(feature = "ssr")]
 pub mod socket;
 
@@ -46,7 +47,7 @@ pub fn App() -> impl IntoView {
 
 #[component]
 fn TestSocketRead() -> impl IntoView {
-    use crate::general_types::*;
+    use crate::app::general::*;
     use leptos_use::{core::ConnectionReadyState, use_websocket, UseWebsocketReturn};
     let id = "123456789012345678901234";
 

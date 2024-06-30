@@ -1,4 +1,4 @@
-use crate::general_types::*;
+use crate::app::general::*;
 use axum::{
     extract::{
         ws::{self, WebSocket, WebSocketUpgrade},

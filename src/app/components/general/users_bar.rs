@@ -1,6 +1,6 @@
 use std::result;
 
-use crate::general_types::*;
+use crate::app::general::*;
 use gloo::{history::query, utils::format};
 use leptos::{logging::log, prelude::*, *};
 

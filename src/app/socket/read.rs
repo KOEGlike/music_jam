@@ -1,6 +1,5 @@
 use super::{handle_error, IdType};
-use crate::general_types::*;
-use crate::app::general_functions::*;
+use crate::app::general::*;
 use axum::extract::ws::{self, WebSocket};
 use futures_util::{stream::SplitStream, StreamExt};
 use tokio::sync::mpsc;
@@ -32,8 +31,8 @@ pub async fn read(
             };
 
         match message {
-            real_time::Request::RemoveUser { user_id } => {
-                let host_id = match only_host(&id, &sender).await {
+            real_time::Request::KickUser { user_id } => {
+                let host_id = match only_host(&id, "Only hosts can kick users, this is a bug, terminating socket connection",&sender).await {
                     Ok(id) => &id.id,
                     Err(_) => break,
                 };
@@ -43,7 +42,7 @@ pub async fn read(
                 };
             }
             real_time::Request::AddSong { song_id } => {
-                let id = match only_user(&id, &sender).await {
+                let id = match only_user(&id,"Only users can add songs, this is a bug, terminating socket connection", &sender).await {
                     Ok(id) => id,
                     Err(_) => break,
                 };
@@ -54,17 +53,13 @@ pub async fn read(
                 };
             }
             real_time::Request::RemoveSong { song_id } => {
-                let jam_id = match only_host(&id, &sender).await {
-                    Ok(id) => &id.jam_id,
-                    Err(_) => break,
-                };
-
+                let jam_id = id.jam_id();
                 if let Err(error) = remove_song(&song_id, jam_id, &app_state.db.pool).await {
                     handle_error(error.into(), false, &sender).await;
                 };
             }
             real_time::Request::AddVote { song_id } => {
-                let id = match only_user(&id, &sender).await {
+                let id = match only_user(&id,"Only users can vote, this is a bug, terminating socket connection", &sender).await {
                     Ok(id) => id,
                     Err(_) => break,
                 };
@@ -75,7 +70,7 @@ pub async fn read(
                 };
             }
             real_time::Request::RemoveVote { song_id } => {
-                let id = match only_host(&id, &sender).await {
+                let id = match only_host(&id,"Only users can remove votes, this is a bug, terminating socket connection", &sender).await {
                     Ok(id) => id,
                     Err(_) => break,
                 };
@@ -95,31 +90,33 @@ pub async fn read(
 
 use super::Id;
 
-async fn only_host<'a>(id: &'a IdType, sender: &mpsc::Sender<ws::Message>) -> Result<&'a Id, ()> {
+async fn only_host<'a>(
+    id: &'a IdType,
+    message: &str,
+    sender: &mpsc::Sender<ws::Message>,
+) -> Result<&'a Id, ()> {
     match id {
         IdType::Host(id) => Ok(id),
         IdType::User { .. } => {
-            let error = real_time::Error::Forbidden(
-                "Only the host can do the requested action, if you see this in prod this is a bug"
-                    .to_string(),
-            );
+            let error = real_time::Error::Forbidden(message.to_string());
 
-            handle_error(error, true, &sender).await;
+            handle_error(error, true, sender).await;
             Err(())
         }
     }
 }
 
-async fn only_user<'a>(id: &'a IdType, sender: &mpsc::Sender<ws::Message>) -> Result<&'a Id, ()> {
+async fn only_user<'a>(
+    id: &'a IdType,
+    message: &str,
+    sender: &mpsc::Sender<ws::Message>,
+) -> Result<&'a Id, ()> {
     match id {
         IdType::User(id) => Ok(id),
         IdType::Host { .. } => {
-            let error = real_time::Error::Forbidden(
-                "Only users can do the requested action, if you see this in prod this is a bug"
-                    .to_string(),
-            );
+            let error = real_time::Error::Forbidden(message.to_string());
 
-            handle_error(error, true, &sender).await;
+            handle_error(error, true, sender).await;
             Err(())
         }
     }
