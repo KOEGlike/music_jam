@@ -20,34 +20,46 @@ mod write;
 use write::write;
 
 #[derive(Debug, serde::Deserialize)]
-pub struct Id {
+pub struct QueryId {
     pub id: String,
+}
+
+#[derive(Debug, Clone)]
+struct Id {
+    pub id: String,
+    pub jam_id: String,
 }
 
 #[derive(Clone, Debug)]
 enum IdType {
-    Host { id: String, jam_id: String },
-    User { id: String, jam_id: String },
+    Host(Id),
+    User(Id),
 }
 
 impl IdType {
-    fn jam_id(&self) -> &str {
+    pub fn is_host(&self) -> bool {
+        matches!(self, IdType::Host { .. })
+    }
+    pub fn is_user(&self) -> bool {
+        matches!(self, IdType::User { .. })
+    }
+    pub fn id(&self) -> &str {
         match self {
-            IdType::Host { jam_id, .. } => jam_id,
-            IdType::User { jam_id, .. } => jam_id,
+            IdType::Host(id) => &id.id,
+            IdType::User(id) => &id.id,
         }
     }
-    fn id(&self) -> &str {
+    pub fn jam_id(&self) -> &str {
         match self {
-            IdType::Host { id, .. } => id,
-            IdType::User { id, .. } => id,
+            IdType::Host(id) => &id.jam_id,
+            IdType::User(id) => &id.jam_id,
         }
     }
 }
 
 pub async fn socket(
     ws: WebSocketUpgrade,
-    Query(id): Query<Id>,
+    Query(id): Query<QueryId>,
     State(state): State<AppState>,
 ) -> Response {
     leptos::logging::log!("ws: {:?}", id);
@@ -107,10 +119,12 @@ async fn check_id_type(id: &str, pool: &sqlx::Pool<Postgres>) -> Result<IdType, 
             .fetch_one(pool)
             .await?
             .id;
-        return Ok(IdType::Host {
-            id: id.to_string(),
-            jam_id,
-        });
+        return Ok(IdType::Host (
+            Id {
+                id: id.to_string(),
+                jam_id,
+            }
+        ));
     }
 
     let user_check = sqlx::query!("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", id)
@@ -122,10 +136,12 @@ async fn check_id_type(id: &str, pool: &sqlx::Pool<Postgres>) -> Result<IdType, 
             .fetch_one(pool)
             .await?
             .jam_id;
-        return Ok(IdType::User {
-            id: id.to_string(),
-            jam_id,
-        });
+        return Ok(IdType::User (
+            Id {
+                id: id.to_string(),
+                jam_id,
+            }
+        ));
     }
 
     Err(sqlx::Error::RowNotFound)

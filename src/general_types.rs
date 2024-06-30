@@ -1,6 +1,5 @@
 #[cfg(feature = "ssr")]
 use axum::extract::FromRef;
-use nestify::nest;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
@@ -82,6 +81,12 @@ pub struct Song {
     pub votes: Option<i64>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Votes {
+    pub song_id: String,
+    pub votes_nr: Option<i64>,
+}
+
 pub mod real_time {
 
     use super::*;
@@ -91,9 +96,14 @@ pub mod real_time {
         Users(Vec<User>),
         Songs(Vec<Song>),
         Error(Error),
-        Vote { song_id: String, vote_nr: u16 },
+        Votes(Vec<Votes>),
     }
 
+    impl From<Vec<Votes>> for Update {
+        fn from(votes: Vec<Votes>) -> Self {
+            Update::Votes(votes)
+        }
+    }
     impl From<Vec<Song>> for Update {
         fn from(songs: Vec<Song>) -> Self {
             Update::Songs(songs)
@@ -109,11 +119,11 @@ pub mod real_time {
             Update::Error(e)
         }
     }
-    impl<T:Into<Update>> From<Result<T,sqlx::Error>> for Update{
-        fn from(res:Result<T,sqlx::Error>)->Self{
-            match res{
-                Ok(val)=>val.into(),
-                Err(e)=>Update::Error(Error::Database(e.to_string()))
+    impl<T: Into<Update>> From<Result<T, sqlx::Error>> for Update {
+        fn from(res: Result<T, sqlx::Error>) -> Self {
+            match res {
+                Ok(val) => val.into(),
+                Err(e) => Update::Error(Error::Database(e.to_string())),
             }
         }
     }
@@ -125,7 +135,7 @@ pub mod real_time {
         RemoveSong { song_id: String },
         AddVote { song_id: String },
         RemoveVote { song_id: String },
-        Update
+        Update,
     }
 
     #[derive(Serialize, Deserialize, Debug, Clone)]

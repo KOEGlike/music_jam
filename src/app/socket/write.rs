@@ -24,9 +24,7 @@ async fn listen_songs(
     listen(&pool, &jam_id, sender, "songs", get_songs).await
 }
 
-
-
-async fn listen<T,Fu>(
+async fn listen<T, Fu>(
     pool: &sqlx::PgPool,
     jam_id: &str,
     sender: mpsc::Sender<ws::Message>,
@@ -35,7 +33,7 @@ async fn listen<T,Fu>(
 ) -> Result<(), real_time::Error>
 where
     T: Into<real_time::Update>,
-    Fu: Future<Output = T>+'static,
+    Fu: Future<Output = T> + 'static,
 {
     let mut listener = create_listener(&pool, &jam_id, channel_name).await?;
 
@@ -46,7 +44,7 @@ where
             continue;
         }
 
-        let update:real_time::Update = f(&pool, &jam_id).await.into();
+        let update: real_time::Update = f(&pool, &jam_id).await.into();
         let bin = rmp_serde::to_vec(&update).unwrap();
         let message = ws::Message::Binary(bin);
         sender.send(message).await.unwrap();

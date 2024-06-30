@@ -3,17 +3,42 @@ use sqlx::Postgres;
 
 pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, sqlx::Error> {
     sqlx::query_as!(
-      Song,
-      "SELECT s.*, COUNT(v.id) AS votes
-      FROM songs s
-      JOIN users u ON s.user_id = u.id
-      LEFT JOIN votes v ON s.id = v.song_id
-      WHERE u.jam_id = $1
-      GROUP BY s.id",
-      jam_id
-  )
-  .fetch_all(pool)
-  .await
+        Song,
+        "SELECT s.*, COUNT(v.id) AS votes
+        FROM songs s
+        JOIN users u ON s.user_id = u.id
+        LEFT JOIN votes v ON s.id = v.song_id
+        WHERE u.jam_id = $1
+        GROUP BY s.id
+        ORDER BY votes DESC, s.id DESC;",
+        jam_id
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_votes(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Votes>, sqlx::Error> {
+    sqlx::query_as!(
+        Votes,
+        "SELECT 
+            s.id AS song_id, 
+            COUNT(v.id) AS votes_nr
+        FROM songs s
+        JOIN users u ON s.user_id = u.id
+        LEFT JOIN votes v ON s.id = v.song_id
+        WHERE u.jam_id = $1
+        GROUP BY s.id
+        ORDER BY votes_nr DESC",
+        jam_id
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_users(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<User>, sqlx::Error> {
+    sqlx::query_as!(User, "SELECT * FROM users WHERE jam_id=$1", jam_id)
+        .fetch_all(pool)
+        .await
 }
 
 pub async fn get_access_token(
@@ -117,14 +142,13 @@ pub async fn remove_vote(
     Ok(())
 }
 
-
 pub async fn notify(
     chanel: &str,
     jam_id: &str,
     pool: &sqlx::Pool<Postgres>,
 ) -> Result<(), sqlx::Error> {
-    let chanel=format!("{}_{}",jam_id,chanel);
-     sqlx::query!("SELECT pg_notify($1,'notified')",chanel)
+    let chanel = format!("{}_{}", jam_id, chanel);
+    sqlx::query!("SELECT pg_notify($1,'notified')", chanel)
         .execute(pool)
         .await?;
     Ok(())
@@ -136,15 +160,15 @@ pub async fn kick_user(
     pool: &sqlx::Pool<Postgres>,
 ) -> Result<(), sqlx::Error> {
     //check if the jam that the user is in is owned by the host
-    struct JamId{
-        id: String
+    struct JamId {
+        id: String,
     }
-    
-    let jam_id = sqlx::query_as!(JamId,"SELECT id FROM jams WHERE host_id=$1;", host_id)
+
+    let jam_id = sqlx::query_as!(JamId, "SELECT id FROM jams WHERE host_id=$1;", host_id)
         .fetch_one(pool)
         .await?;
-    let jam_id=jam_id.id;
-    
+    let jam_id = jam_id.id;
+
     sqlx::query!(
         "DELETE FROM users WHERE id=$1 AND jam_id=$2; ",
         user_id,
