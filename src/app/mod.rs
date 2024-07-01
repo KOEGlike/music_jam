@@ -38,10 +38,18 @@ pub fn App() -> impl IntoView {
                 <Routes>
                     <Route path="/" view=pages::HomePage/>
                     <Route path="/create-host" view=pages::CreateHostPage/>
-                    <Route path="/test" view=TestSocketRead/>
+                    <Route path="/test" view=Test/>
                 </Routes>
             </main>
         </Router>
+    }
+}
+
+#[component]
+fn Test () -> impl IntoView {
+    use components::Share;
+    view! {
+       <Share jam_id="123456"/>
     }
 }
 

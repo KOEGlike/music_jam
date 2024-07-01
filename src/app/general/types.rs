@@ -143,6 +143,7 @@ pub mod real_time {
             Update::Error(e)
         }
     }
+    #[cfg(feature = "ssr")]
     impl<T: Into<Update>> From<Result<T, sqlx::Error>> for Update {
         fn from(res: Result<T, sqlx::Error>) -> Self {
             match res {
