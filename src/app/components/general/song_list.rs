@@ -1,46 +1,98 @@
 use crate::app::general::*;
 use icondata::IoClose;
 use leptos::{logging::log, prelude::*, *};
-use std::rc::Rc;
+use std::{borrow::Borrow, rc::Rc};
 
-/// # panics
-///     if both vote and remove songs are provided
+#[derive(Clone, Debug)]
+pub enum SongAction<F>
+where
+    F: Fn(&str) + Clone + 'static,
+{
+    Vote(F),
+    Remove(F),
+}
+
 #[component]
 pub fn SongList(
     songs: ReadSignal<Vec<Song>>,
     votes: ReadSignal<Votes>,
     request_update: impl Fn() + 'static,
-    #[prop(optional)] vote: Option<impl Fn(&str) + 'static>,
-    #[prop(optional)] remove: Option<impl Fn(&str) + 'static>,
+    song_action: SongAction<impl Fn(&str) + Clone + 'static>,
 ) -> impl IntoView {
-    let local_songs:Vec<Song>;
-    
-    if vote.is_some() && remove.is_some() {
-        panic!("You can't provide both vote and remove songs");
-    }
-
-    create_effect(move |_|{
-        if songs().len() != votes().len() {
+    let songs = move || {
+        let songs = songs();
+        let votes = votes();
+        if songs.len() != votes.len() {
             request_update();
+            return songs;
         }
-    });
+        songs
+            .iter()
+            .map(|song| {
+                let votes = votes.get(&song.id).copied().unwrap_or(0);
+                Song {
+                    votes,
+                    ..song.clone()
+                }
+            })
+            .collect::<Vec<_>>()
+    };
 
-
-    let vote = Rc::new(vote);
-    let remove = Rc::new(remove);
+    let song_action = Rc::new(song_action);
 
     view! {
-        <div class="song-list">
-            <For
-                each=songs
-                key=|song| song.id.clone()
-                children=move |song| {
-                    let vote = Rc::clone(&vote);
-                    let remove = Rc::clone(&remove);
-                    view! {
-                        
-                    }
+    <div class="song-list">
+        <For
+            each=songs
+            key=|song| song.id.clone()
+            children=move |song| {
+                let song_action = Rc::clone(&song_action);
+                view! {
+                    <div 
+                        on:click={
+                            let song_action=song_action.clone();
+                            let song_id=song.id.clone();
+                            move |_| {
+                                match song_action.borrow() {
+                                    SongAction::Vote(vote) => {
+                                        let vote=vote.clone();
+                                        vote(&song_id)
+                                    },
+                                    SongAction::Remove(_) => {}
+                                }
+                            }
+                        }
+                    >
+                        {
+                            let song_action=song_action.clone();
+                            let song_id=song.id.clone();
+                            match song_action.borrow() {
+                            SongAction::Vote(_) => song.votes.into_view(),
+                            SongAction::Remove(remove_song) => {
+                                let remove_song = remove_song.clone();
+                                view! {
+                                    <button
+                                        class="remove-song"
+                                        on:click=move |_| {
+                                            remove_song(&song_id);
+                                        }>
+                                        <svg viewBox=IoClose.view_box inner_html=IoClose.data/>
+                                    </button>
+                                }
+                                .into_view()
+                            },
+                        }}
+                        <div>
+                            <img src=&song.image_url alt={format!("This is the album cover of {}", &song.name)}/>
+                            <div>
+                                {&song.name}
+                                <div>{&song.artist}"·"{song.duration%60}"."{song.duration/60}</div>
+                            </div>
+                        </div>
+                    </div>
+
                 }
-                />
-        </div>}
+            }
+            />
+    </div>}
 }

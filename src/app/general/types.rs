@@ -78,7 +78,7 @@ pub struct Song {
     pub album: String,
     pub duration: i32,
     pub image_url: String,
-    pub votes: Option<i64>,
+    pub votes: i64,
 }
 
 pub trait ToVotes {
@@ -88,16 +88,13 @@ pub trait ToVotes {
 impl ToVotes for Vec<Song> {
     fn to_votes(&self) -> Votes {
         self.iter()
-            .map(|song| (song.id.clone(), song.votes.unwrap_or(0)))
+            .map(|song| (song.id.clone(), song.votes))
             .collect()
     }
 }
 
-
 use std::collections::HashMap;
 pub type Votes = HashMap<String, i64>;
-
-
 
 pub mod real_time {
     use super::*;

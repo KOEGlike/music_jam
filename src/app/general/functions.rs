@@ -50,8 +50,18 @@ pub async fn get_access_token(
 }
 
 pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, sqlx::Error> {
-    sqlx::query_as!(
-        Song,
+    struct SongDb {
+        pub id: String,
+        pub user_id: String,
+        pub name: String,
+        pub artist: String,
+        pub album: String,
+        pub duration: i32,
+        pub image_url: String,
+        pub votes: Option<i64>,
+    }
+    let vec = sqlx::query_as!(
+        SongDb,
         "SELECT s.*, COUNT(v.id) AS votes
         FROM songs s
         JOIN users u ON s.user_id = u.id
@@ -62,7 +72,22 @@ pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, s
         jam_id
     )
     .fetch_all(pool)
-    .await
+    .await?;
+
+    let vec = vec
+        .into_iter()
+        .map(|s| Song {
+            id: s.id,
+            user_id: s.user_id,
+            name: s.name,
+            artist: s.artist,
+            album: s.album,
+            duration: s.duration,
+            image_url: s.image_url,
+            votes: s.votes.unwrap_or(0),
+        })
+        .collect();
+    Ok(vec)
 }
 
 pub async fn get_votes(pool: &sqlx::PgPool, jam_id: &str) -> Result<Votes, sqlx::Error> {
@@ -70,7 +95,7 @@ pub async fn get_votes(pool: &sqlx::PgPool, jam_id: &str) -> Result<Votes, sqlx:
         pub song_id: String,
         pub votes_nr: Option<i64>,
     }
-    let vec=sqlx::query_as!(
+    let vec = sqlx::query_as!(
         VotesDb,
         "SELECT s.id AS song_id, COUNT(v.id) AS votes_nr
         FROM songs s
@@ -83,7 +108,10 @@ pub async fn get_votes(pool: &sqlx::PgPool, jam_id: &str) -> Result<Votes, sqlx:
     )
     .fetch_all(pool)
     .await?;
-    let map=vec.into_iter().map(|v|(v.song_id,v.votes_nr.unwrap_or(0))).collect();
+    let map = vec
+        .into_iter()
+        .map(|v| (v.song_id, v.votes_nr.unwrap_or(0)))
+        .collect();
     Ok(map)
 }
 
