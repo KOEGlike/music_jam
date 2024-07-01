@@ -16,7 +16,7 @@ pub async fn notify(
 
 pub async fn get_access_token(
     pool: &sqlx::PgPool,
-    jam_id: &str,
+    host_id: &str,
 ) -> Result<rspotify::Token, sqlx::Error> {
     #[allow(dead_code)]
     struct AccessTokenDb {
@@ -29,8 +29,8 @@ pub async fn get_access_token(
 
     let token = sqlx::query_as!(
         AccessTokenDb,
-        "SELECT * FROM access_tokens WHERE id=(SELECT access_token FROM hosts WHERE id=(SELECT host_id FROM jams WHERE id=$1))",
-        jam_id
+        "SELECT * FROM access_tokens WHERE id=(SELECT access_token FROM hosts WHERE id=$1)",
+        host_id
     )
     .fetch_one(pool)
     .await?;
