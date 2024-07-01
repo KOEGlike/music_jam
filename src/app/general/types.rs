@@ -81,11 +81,23 @@ pub struct Song {
     pub votes: Option<i64>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Votes {
-    pub song_id: String,
-    pub votes_nr: Option<i64>,
+pub trait ToVotes {
+    fn to_votes(&self) -> Votes;
 }
+
+impl ToVotes for Vec<Song> {
+    fn to_votes(&self) -> Votes {
+        self.iter()
+            .map(|song| (song.id.clone(), song.votes.unwrap_or(0)))
+            .collect()
+    }
+}
+
+
+use std::collections::HashMap;
+pub type Votes = HashMap<String, i64>;
+
+
 
 pub mod real_time {
     use super::*;
@@ -111,11 +123,11 @@ pub mod real_time {
         Users(Vec<User>),
         Songs(Vec<Song>),
         Error(Error),
-        Votes(Vec<Votes>),
+        Votes(Votes),
     }
 
-    impl From<Vec<Votes>> for Update {
-        fn from(votes: Vec<Votes>) -> Self {
+    impl From<Votes> for Update {
+        fn from(votes: Votes) -> Self {
             Update::Votes(votes)
         }
     }

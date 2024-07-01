@@ -1,37 +1,36 @@
 use crate::app::general::*;
-use leptos::{logging::log, prelude::*, *};
 use icondata::IoClose;
+use leptos::{logging::log, prelude::*, *};
+use std::rc::Rc;
 
 #[component]
 pub fn UsersBar(
     users: ReadSignal<Vec<User>>,
-    #[prop(optional)]
-    mut kick_user: Option<impl FnMut(&str)+'static>,
+    #[prop(optional)] 
+    kick_user: Option<impl Fn(&str) + 'static>,
 ) -> impl IntoView {
-    let is_host=kick_user.is_some();
-    
+    let is_host = kick_user.is_some();
+    // Wrap the `kick_user` closure in an `Rc`
+    let kick_user = Rc::new(kick_user);
+
     view! {
         <For
             each=users
             key=|user| user.id.clone()
             children=move |user| {
-                let user_name = &user.name;
-                let user_pfp = &user.pfp_id;
-                let user_id = user.id.clone();
-                
-                let on_click = move |_| {
-                    if let Some(kick_user) = kick_user {
-                        kick_user(&user_id);
-                    }
-                };
+                let kick_user = Rc::clone(&kick_user);
                 view! {
-                    <div 
-                        title=user_name 
+                    <div
+                        title=&user.name
                         class:kick-user=is_host
-                        class="user-icon" 
-                        on:click=on_click
+                        class="user-icon"
+                        on:click=move |_| {
+                            if let Some(ref kick_user) = *kick_user {
+                                kick_user(&user.id);
+                            }
+                        }
                     >
-                        <img src=user_pfp alt={format!("This is the profile picture of {}", user_name)}/>
+                        <img src=&user.pfp_id alt={format!("This is the profile picture of {}", &user.name)}/>
                         <svg viewBox=IoClose.view_box inner_html=IoClose.data/>
                     </div>
                 }
