@@ -48,40 +48,38 @@ pub fn SongList(
             children=move |song| {
                 let song_action = Rc::clone(&song_action);
                 view! {
-                    <div 
+                    <div
                         on:click={
-                            let song_action=song_action.clone();
+                            let song_action=Rc::clone(&song_action);
                             let song_id=song.id.clone();
                             move |_| {
                                 match song_action.borrow() {
-                                    SongAction::Vote(vote) => {
-                                        let vote=vote.clone();
-                                        vote(&song_id)
-                                    },
+                                    SongAction::Vote(vote) =>vote(&song_id),
                                     SongAction::Remove(_) => {}
                                 }
                             }
                         }
                     >
                         {
-                            let song_action=song_action.clone();
+                            let song_action=Rc::clone(&song_action);
                             let song_id=song.id.clone();
                             match song_action.borrow() {
-                            SongAction::Vote(_) => song.votes.into_view(),
-                            SongAction::Remove(remove_song) => {
-                                let remove_song = remove_song.clone();
-                                view! {
-                                    <button
-                                        class="remove-song"
-                                        on:click=move |_| {
-                                            remove_song(&song_id);
-                                        }>
-                                        <svg viewBox=IoClose.view_box inner_html=IoClose.data/>
-                                    </button>
-                                }
-                                .into_view()
-                            },
-                        }}
+                                SongAction::Vote(_) => song.votes.into_view(),
+                                SongAction::Remove(remove_song) => {
+                                    let remove_song = remove_song.clone();
+                                    view! {
+                                        <button
+                                            class="remove-song"
+                                            on:click=move |_| {
+                                                remove_song(&song_id);
+                                            }>
+                                            <svg viewBox=IoClose.view_box inner_html=IoClose.data/>
+                                        </button>
+                                    }
+                                    .into_view()
+                                },
+                            }
+                        }
                         <div>
                             <img src=&song.image_url alt={format!("This is the album cover of {}", &song.name)}/>
                             <div>

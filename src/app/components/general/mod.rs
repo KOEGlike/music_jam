@@ -3,6 +3,7 @@ pub mod create;
 pub mod modal;
 pub mod users_bar;
 pub mod song_list;
+pub mod share;
 
 #[allow(unused_imports)]
 pub use join::*;
@@ -14,3 +15,5 @@ pub use modal::*;
 pub use users_bar::*;
 #[allow(unused_imports)]
 pub use song_list::*;
+#[allow(unused_imports)]
+pub use share::*;
