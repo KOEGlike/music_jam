@@ -93,6 +93,7 @@ impl ToVotes for Vec<Song> {
     }
 }
 
+
 use std::collections::HashMap;
 pub type Votes = HashMap<String, i64>;
 
@@ -166,6 +167,7 @@ pub mod real_time {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub enum Error {
         Database(String),
+        Spotify(String),
         Decode(String),
         Encode(String),
         WebSocket(String),
@@ -180,6 +182,8 @@ pub mod real_time {
                 Error::Encode(_) => 4500,
                 Error::WebSocket(_) => 4500,
                 Error::Forbidden(_) => 4403,
+                Error::Spotify(_) => 4500,
+                
             }
         }
     }
@@ -192,7 +196,23 @@ pub mod real_time {
                 Error::Encode(s) => s,
                 Error::WebSocket(s) => s,
                 Error::Forbidden(s) => s,
+                Error::Spotify(s) => s,
             }
+        }
+    }
+
+    use rspotify::model::idtypes::IdError;
+    use rspotify::ClientError;
+
+    impl From<ClientError> for Error {
+        fn from(e: ClientError) -> Self {
+            Error::Spotify(e.to_string())
+        }
+    }
+
+    impl From<IdError> for Error {
+        fn from(e: IdError) -> Self {
+            Error::Spotify(e.to_string())
         }
     }
 

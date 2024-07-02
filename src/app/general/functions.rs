@@ -1,4 +1,10 @@
+
+
+use std::result;
+
 use crate::app::general::*;
+use gloo::history::query;
+use rspotify::{clients::BaseClient, model::{SearchArtists, SearchResult, TrackId}};
 use sqlx::Postgres;
 
 pub async fn notify(
@@ -16,7 +22,7 @@ pub async fn notify(
 
 pub async fn get_access_token(
     pool: &sqlx::PgPool,
-    host_id: &str,
+    jam_id: &str,
 ) -> Result<rspotify::Token, sqlx::Error> {
     #[allow(dead_code)]
     struct AccessTokenDb {
@@ -29,8 +35,8 @@ pub async fn get_access_token(
 
     let token = sqlx::query_as!(
         AccessTokenDb,
-        "SELECT * FROM access_tokens WHERE id=(SELECT access_token FROM hosts WHERE id=$1)",
-        host_id
+        "SELECT * FROM access_tokens WHERE id=(SELECT access_token FROM hosts WHERE id=(SELECT host_id FROM jams WHERE id=$1))",
+        jam_id
     )
     .fetch_one(pool)
     .await?;
@@ -126,18 +132,53 @@ pub async fn add_song(
     user_id: &str,
     jam_id: &str,
     pool: &sqlx::Pool<Postgres>,
-) -> Result<(), sqlx::Error> {
-    sqlx::query!(
-        "INSERT INTO songs (id, user_id) VALUES ($1, $2)",
+) -> Result<(), real_time::Error> {
+    use rspotify::prelude::*;
+    use rspotify::AuthCodeSpotify;
+  
+    
+    let token=get_access_token(pool,jam_id).await?;
+    let client=AuthCodeSpotify::from_token(token);
+    let track_id=TrackId::from_id(song_id)?;
+    let song=client.track(track_id, None).await?;
+
+    sqlx::query!("INSERT INTO songs (id, user_id, name, artist, album, duration, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7);",
         song_id,
         user_id,
-    )
-    .execute(pool)
-    .await?;
+        song.name,
+        song.artists[0].name,
+        song.album.name,
+        song.duration.num_seconds() as i32,
+        song.album.images[0].url
+    ).execute(pool).await?;
 
     notify(real_time::Channels::Songs, jam_id, pool).await?;
     Ok(())
 }
+
+pub async fn search(
+    query: &str,
+    pool: &sqlx::Pool<Postgres>,
+    jam_id: &str,
+) -> Result<Vec<Song>, real_time::Error> {
+    use rspotify::prelude::*;
+    use rspotify::AuthCodeSpotify;
+    
+    
+    let token=get_access_token(pool,jam_id).await?;
+    let client=AuthCodeSpotify::from_token(token);
+    let result=client.search(query, rspotify::model::SearchType::Track, None, None, Some(30), Some(0)).await?;
+    let songs=if let SearchResult::Tracks(tracks) = result {
+        tracks
+    } else {
+        return Err(real_time::Error::Spotify("Error in search".to_string()));
+    };
+
+    let songs=songs.items.iter().map(|track| Song { id: track.id, user_id: (), name: (), artist: (), album: (), duration: (), image_url: (), votes: () }).collect::<Vec<Song>>();
+
+    Ok(vec!["lol".to_string()])
+}
+
 
 pub async fn remove_song(
     song_id: &str,
@@ -151,6 +192,7 @@ pub async fn remove_song(
     notify(real_time::Channels::Songs, jam_id, pool).await?;
     Ok(())
 }
+
 
 pub async fn add_vote(
     song_id: &str,

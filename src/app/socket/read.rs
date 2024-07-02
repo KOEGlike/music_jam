@@ -1,5 +1,5 @@
 use super::{handle_error, IdType};
-use crate::app::general::*;
+use crate::app::{self, general::*};
 use axum::extract::ws::{self, WebSocket};
 use futures_util::{stream::SplitStream, StreamExt};
 use tokio::{ sync::mpsc};
@@ -62,7 +62,7 @@ pub async fn read(
                 };
 
                 if let Err(error) = add_song(&song_id, &id.id, &id.jam_id, pool).await {
-                    handle_error(error.into(), false, &sender).await;
+                    handle_error(error, false, &sender).await;
                 };
             }
             real_time::Request::RemoveSong { song_id } => {
