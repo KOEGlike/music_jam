@@ -2,9 +2,10 @@ use std::result;
 
 use crate::app::general::*;
 use gloo::history::query;
+use qrcode::render::image;
 use rspotify::{
     clients::BaseClient,
-    model::{SearchArtists, SearchResult, TrackId},
+    model::{album, SearchArtists, SearchResult, TrackId},
 };
 use sqlx::Postgres;
 
@@ -63,13 +64,13 @@ pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, s
         pub name: String,
         pub album: String,
         pub duration: i32,
-        pub image_url: String,
+        pub image_id: String,
         pub votes: Option<i64>,
         pub artists: Option<Vec<String>>, // Add this line to include artists in the SongDb struct
     }
     let vec = sqlx::query_as!(
         SongDb,
-        "SELECT s.id, s.user_id, s.name, s.album, s.duration, s.image_url, COUNT(v.id) AS votes, ARRAY_AGG(a.name) AS artists
+        "SELECT s.id, s.user_id, s.name, s.album, s.duration, s.image_id, COUNT(v.id) AS votes, ARRAY_AGG(a.name) AS artists
         FROM songs s
         JOIN users u ON s.user_id = u.id
         LEFT JOIN votes v ON s.id = v.song_id
@@ -88,7 +89,9 @@ pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, s
             id: song.id,
             user_id: Some(song.user_id),
             name: song.name,
-            artists: song.artists.unwrap_or(vec!["no artist found in cache, this is a bug".to_string()]), // Directly use the artists vector from the query
+            artists: song
+                .artists
+                .unwrap_or(vec!["no artist found in cache, this is a bug".to_string()]), // Directly use the artists vector from the query
             album: song.album,
             duration: song.duration,
             image: song.image_url,
@@ -144,16 +147,30 @@ pub async fn add_song(
     let track_id = TrackId::from_id(song_id)?;
     let song = client.track(track_id, None).await?;
 
-    let mut transaction=pool.begin().await?;
-    let image_id=cuid2::create_id();
+    let mut transaction = pool.begin().await?;
+    let image_id = cuid2::create_id();
 
-    sqlx::query!("INSERT INTO images (id, url, width, height) VALUES ($1, $2, $3, $4);",
-        &image_id,
-        song.album.images[0].url,
-        song.album.images[0].width as Option<u32>,
-        song.album.images[0].height as Option<u32>
-    ).execute( &mut *transaction).await?;
-
+    if let Some(width) = song.album.images[0].width {
+        if let Some(height) = song.album.images[0].height {
+            sqlx::query!(
+                "INSERT INTO images (id, url, width, height) VALUES ($1, $2, $3, $4);",
+                &image_id,
+                &song.album.images[0].url,
+                width as i32,
+                height as i32
+            )
+            .execute(&mut *transaction)
+            .await?;
+        }
+    } else {
+        sqlx::query!(
+            "INSERT INTO images (id, url) VALUES ($1, $2);",
+            &image_id,
+            &song.album.images[0].url
+        )
+        .execute(&mut *transaction)
+        .await?;
+    }
 
     sqlx::query!("INSERT INTO songs (id, user_id, name, album, duration, image_id) VALUES ($1, $2, $3, $4, $5, $6);",
         song_id,
@@ -165,13 +182,16 @@ pub async fn add_song(
     ).execute( &mut *transaction).await?;
 
     for artist in song.artists {
-        sqlx::query!("INSERT INTO artists (song_id, name) VALUES ($1, $2);", song_id, artist.name)
-            .execute(&mut *transaction)
-            .await?;
+        sqlx::query!(
+            "INSERT INTO artists (song_id, name) VALUES ($1, $2);",
+            song_id,
+            artist.name
+        )
+        .execute(&mut *transaction)
+        .await?;
     }
 
     transaction.commit().await?;
-
 
     notify(real_time::Channels::Songs, jam_id, pool).await?;
     Ok(())
@@ -211,7 +231,7 @@ pub async fn search(
                 Some(id) => id.to_string(),
                 None => "lol this is not a local song, this is a bug".to_string(),
             };
-        
+
             Song {
                 id,
                 user_id: None,
