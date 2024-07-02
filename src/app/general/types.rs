@@ -77,7 +77,7 @@ pub struct Song {
     pub artists: Vec<String>,
     pub album: String,
     pub duration: i32,
-    pub image_url: String,
+    pub image: rspotify::model::image::Image,
     pub votes: i64,
 }
 

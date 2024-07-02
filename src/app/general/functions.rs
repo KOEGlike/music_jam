@@ -91,7 +91,7 @@ pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, s
             artists: song.artists.unwrap_or(vec!["no artist found in cache, this is a bug".to_string()]), // Directly use the artists vector from the query
             album: song.album,
             duration: song.duration,
-            image_url: song.image_url,
+            image: song.image_url,
             votes: song.votes.unwrap_or(0),
         })
         .collect::<Vec<Song>>();
@@ -145,14 +145,23 @@ pub async fn add_song(
     let song = client.track(track_id, None).await?;
 
     let mut transaction=pool.begin().await?;
+    let image_id=cuid2::create_id();
 
-    sqlx::query!("INSERT INTO songs (id, user_id, name, album, duration, image_url) VALUES ($1, $2, $3, $4, $5, $6);",
+    sqlx::query!("INSERT INTO images (id, url, width, height) VALUES ($1, $2, $3, $4);",
+        &image_id,
+        song.album.images[0].url,
+        song.album.images[0].width as Option<u32>,
+        song.album.images[0].height as Option<u32>
+    ).execute( &mut *transaction).await?;
+
+
+    sqlx::query!("INSERT INTO songs (id, user_id, name, album, duration, image_id) VALUES ($1, $2, $3, $4, $5, $6);",
         song_id,
         user_id,
         song.name,
         song.album.name,
         song.duration.num_seconds() as i32,
-        song.album.images[0].url
+        &image_id
     ).execute( &mut *transaction).await?;
 
     for artist in song.artists {
@@ -198,24 +207,25 @@ pub async fn search(
         .items
         .iter()
         .map(|track| {
-            let id = track
-                .id
-                .unwrap_or("lol this is not a local song, this is a bug")
-                .to_string();
+            let id = match track.id.clone() {
+                Some(id) => id.to_string(),
+                None => "lol this is not a local song, this is a bug".to_string(),
+            };
+        
             Song {
-                id: id,
+                id,
                 user_id: None,
-                name: track.name,
+                name: track.name.clone(),
                 artists: track.artists.iter().map(|a| a.name.clone()).collect(),
-                album: track.album.name,
+                album: track.album.name.clone(),
                 duration: track.duration.num_seconds() as i32,
-                image_url: track.album.images[0].url,
+                image: track.album.images[0].clone(),
                 votes: 0,
             }
         })
         .collect::<Vec<Song>>();
 
-    Ok(vec!["lol".to_string()])
+    Ok(songs)
 }
 
 pub async fn remove_song(
