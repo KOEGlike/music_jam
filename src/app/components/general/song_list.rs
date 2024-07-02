@@ -84,7 +84,7 @@ pub fn SongList(
                             <img src=&song.image_url alt={format!("This is the album cover of {}", &song.name)}/>
                             <div>
                                 {&song.name}
-                                <div>{&song.artist}"·"{song.duration%60}"."{song.duration/60}</div>
+                                <div>{&song.artists}"·"{song.duration%60}"."{song.duration/60}</div>
                             </div>
                         </div>
                     </div>

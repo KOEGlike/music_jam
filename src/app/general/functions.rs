@@ -1,10 +1,11 @@
-
-
 use std::result;
 
 use crate::app::general::*;
 use gloo::history::query;
-use rspotify::{clients::BaseClient, model::{SearchArtists, SearchResult, TrackId}};
+use rspotify::{
+    clients::BaseClient,
+    model::{SearchArtists, SearchResult, TrackId},
+};
 use sqlx::Postgres;
 
 pub async fn notify(
@@ -60,18 +61,19 @@ pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, s
         pub id: String,
         pub user_id: String,
         pub name: String,
-        pub artist: String,
         pub album: String,
         pub duration: i32,
         pub image_url: String,
         pub votes: Option<i64>,
+        pub artists: Option<Vec<String>>, // Add this line to include artists in the SongDb struct
     }
     let vec = sqlx::query_as!(
         SongDb,
-        "SELECT s.*, COUNT(v.id) AS votes
+        "SELECT s.id, s.user_id, s.name, s.album, s.duration, s.image_url, COUNT(v.id) AS votes, ARRAY_AGG(a.name) AS artists
         FROM songs s
         JOIN users u ON s.user_id = u.id
         LEFT JOIN votes v ON s.id = v.song_id
+        LEFT JOIN artists a ON s.id = a.song_id
         WHERE u.jam_id = $1
         GROUP BY s.id
         ORDER BY votes DESC, s.id DESC;",
@@ -80,20 +82,21 @@ pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, s
     .fetch_all(pool)
     .await?;
 
-    let vec = vec
+    let songs = vec
         .into_iter()
-        .map(|s| Song {
-            id: s.id,
-            user_id: s.user_id,
-            name: s.name,
-            artist: s.artist,
-            album: s.album,
-            duration: s.duration,
-            image_url: s.image_url,
-            votes: s.votes.unwrap_or(0),
+        .map(|song| Song {
+            id: song.id,
+            user_id: Some(song.user_id),
+            name: song.name,
+            artists: song.artists.unwrap_or(vec!["no artist found in cache, this is a bug".to_string()]), // Directly use the artists vector from the query
+            album: song.album,
+            duration: song.duration,
+            image_url: song.image_url,
+            votes: song.votes.unwrap_or(0),
         })
-        .collect();
-    Ok(vec)
+        .collect::<Vec<Song>>();
+
+    Ok(songs)
 }
 
 pub async fn get_votes(pool: &sqlx::PgPool, jam_id: &str) -> Result<Votes, sqlx::Error> {
@@ -135,22 +138,31 @@ pub async fn add_song(
 ) -> Result<(), real_time::Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
-  
-    
-    let token=get_access_token(pool,jam_id).await?;
-    let client=AuthCodeSpotify::from_token(token);
-    let track_id=TrackId::from_id(song_id)?;
-    let song=client.track(track_id, None).await?;
 
-    sqlx::query!("INSERT INTO songs (id, user_id, name, artist, album, duration, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7);",
+    let token = get_access_token(pool, jam_id).await?;
+    let client = AuthCodeSpotify::from_token(token);
+    let track_id = TrackId::from_id(song_id)?;
+    let song = client.track(track_id, None).await?;
+
+    let mut transaction=pool.begin().await?;
+
+    sqlx::query!("INSERT INTO songs (id, user_id, name, album, duration, image_url) VALUES ($1, $2, $3, $4, $5, $6);",
         song_id,
         user_id,
         song.name,
-        song.artists[0].name,
         song.album.name,
         song.duration.num_seconds() as i32,
         song.album.images[0].url
-    ).execute(pool).await?;
+    ).execute( &mut *transaction).await?;
+
+    for artist in song.artists {
+        sqlx::query!("INSERT INTO artists (song_id, name) VALUES ($1, $2);", song_id, artist.name)
+            .execute(&mut *transaction)
+            .await?;
+    }
+
+    transaction.commit().await?;
+
 
     notify(real_time::Channels::Songs, jam_id, pool).await?;
     Ok(())
@@ -163,22 +175,48 @@ pub async fn search(
 ) -> Result<Vec<Song>, real_time::Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
-    
-    
-    let token=get_access_token(pool,jam_id).await?;
-    let client=AuthCodeSpotify::from_token(token);
-    let result=client.search(query, rspotify::model::SearchType::Track, None, None, Some(30), Some(0)).await?;
-    let songs=if let SearchResult::Tracks(tracks) = result {
+
+    let token = get_access_token(pool, jam_id).await?;
+    let client = AuthCodeSpotify::from_token(token);
+    let result = client
+        .search(
+            query,
+            rspotify::model::SearchType::Track,
+            None,
+            None,
+            Some(30),
+            Some(0),
+        )
+        .await?;
+    let songs = if let SearchResult::Tracks(tracks) = result {
         tracks
     } else {
         return Err(real_time::Error::Spotify("Error in search".to_string()));
     };
 
-    let songs=songs.items.iter().map(|track| Song { id: track.id, user_id: (), name: (), artist: (), album: (), duration: (), image_url: (), votes: () }).collect::<Vec<Song>>();
+    let songs = songs
+        .items
+        .iter()
+        .map(|track| {
+            let id = track
+                .id
+                .unwrap_or("lol this is not a local song, this is a bug")
+                .to_string();
+            Song {
+                id: id,
+                user_id: None,
+                name: track.name,
+                artists: track.artists.iter().map(|a| a.name.clone()).collect(),
+                album: track.album.name,
+                duration: track.duration.num_seconds() as i32,
+                image_url: track.album.images[0].url,
+                votes: 0,
+            }
+        })
+        .collect::<Vec<Song>>();
 
     Ok(vec!["lol".to_string()])
 }
-
 
 pub async fn remove_song(
     song_id: &str,
@@ -192,7 +230,6 @@ pub async fn remove_song(
     notify(real_time::Channels::Songs, jam_id, pool).await?;
     Ok(())
 }
-
 
 pub async fn add_vote(
     song_id: &str,

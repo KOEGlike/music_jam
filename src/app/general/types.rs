@@ -72,9 +72,9 @@ pub struct Jam {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Song {
     pub id: String,
-    pub user_id: String,
+    pub user_id: Option<String>,
     pub name: String,
-    pub artist: String,
+    pub artists: Vec<String>,
     pub album: String,
     pub duration: i32,
     pub image_url: String,

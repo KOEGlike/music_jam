@@ -29,10 +29,15 @@ CREATE TABLE songs (
   user_id char(24) NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   id varchar(22) UNIQUE PRIMARY KEY NOT NULL,
   name varchar(50) NOT NULL,
-  artist varchar(50) NOT NULL,
   album varchar(50) NOT NULL,
   duration int NOT NULL,
   image_url varchar(255) NOT NULL
+);
+
+CREATE TABLE artists (
+  id varchar(22) UNIQUE PRIMARY KEY NOT NULL,
+  song_id varchar(22) NOT NULL REFERENCES songs (id) ON DELETE CASCADE,
+  name varchar(50) NOT NULL
 );
 
 CREATE TABLE votes (
