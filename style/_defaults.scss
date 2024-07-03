@@ -1,0 +1,175 @@
+$colors: (
+	"bg": #343434,
+	"shadow": #585858,
+	"white": #ffffff,
+	"spotify": #1DB954,
+	"ok": #00ff00,
+	"err": #ff2020,
+	"primary": #3187ff,
+	"secondary": #ff26f1,
+);
+
+$opacities: (
+	"bg": 0.2,
+	"border": 0.4,
+	"hover": 0.3,
+	"selected": 0.4,
+);
+
+$font-stack: Josefin Sans, sans-serif;
+
+$border: 1px solid rgba(map-get($colors, "white"), map-get($opacities, "border"));
+
+$border-radiuses: (
+	"small": 10px,
+	"medium": 25px,
+	"large": 40px,
+);
+
+$element-heights: (
+	"medium": 85px,
+);
+
+
+
+$blur: blur(12px);
+
+
+
+.glass {
+	box-sizing: border-box;
+	background-color: rgba(map-get($colors, "white"), map-get($opacities, "bg"));
+	border: $border;
+	backdrop-filter: $blur;
+	-webkit-backdrop-filter: $blur;
+	color: map-get($colors, "white");
+	box-shadow: 0 8px 32px 0 map-get($colors, "shadow");
+}
+
+.glass-element {
+	@extend .glass;
+	transition: all 0.2s ease-in-out;
+}
+
+.glass-element:hover {
+	background-color: rgba(map-get($colors, "white"), map-get($opacities, "hover"));
+}
+
+.glass-element:active {
+	background-color: rgba(map-get($colors, "white"), map-get($opacities, "selected"));
+}
+
+.glass-element_err {
+	@extend .glass-element;
+	border-color: rgba(map-get($colors, "err"), map-get($opacities, "border"));
+	background-color: rgba(map-get($colors, "err"), map-get($opacities, "bg"));
+}
+
+.glass-element_err:hover {
+	background-color: rgba(map-get($colors, "err"), map-get($opacities, "hover"));
+}
+
+.glass-element_err:active {
+	background-color: rgba(map-get($colors, "err"), map-get($opacities, "selected"));
+}
+
+.glass-element_ok {
+	@extend .glass-element;
+	border-color: rgba(map-get($colors, "ok"), map-get($opacities, "border"));
+	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "bg"));
+}
+
+.glass-element_ok:hover {
+	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "hover"));
+}
+
+.glass-element_ok:active {
+	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "selected"));
+}
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	font-family: $font-stack;
+}
+
+body {
+	background-color: map-get($colors, "bg");
+	color: map-get($colors, "white");
+}
+
+.button {
+	@extend .glass-element;
+	border-radius: map-get($border-radiuses, "medium");
+	height: map-get($element-heights, "medium");
+	width: 100%;
+	font-size: 40px;
+}
+
+.text-input {
+	@extend .glass-element;
+	border-radius: map-get($border-radiuses, "medium");
+	width: 100%;
+	display: inline-block;
+	$side-padding: map-get($border-radiuses, medium);
+	padding: 15px $side-padding 15px $side-padding;
+	resize: none;
+	font-size: 45px;
+	line-height: 55px;
+	overflow: hidden;
+}
+
+.text-input:focus {
+	outline: none;
+	background-color: rgba(map-get($colors, "white"), map-get($opacities, "selected"));
+}
+
+.input-with-label {
+	display: flex;
+	flex-direction: column;
+	row-gap: 7px;
+
+	label {
+		font-size: 20px;
+		margin-left: calc(map-get($border-radiuses, "medium") / 3);
+	}
+}
+
+
+.standard-island {
+	@extend .glass;
+	display: flex;
+	flex-direction: column;
+	justify-content: start;
+	border-radius: map-get($border-radiuses, "large");
+	width: 350px;
+	height: 600px;
+}
+
+.big-space-island {
+	@extend .standard-island;
+	row-gap: 50px;
+	padding: 50px;
+}
+
+
+.modal {
+	@extend .glass;
+	position: fixed;
+	z-index: 100;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	border-radius: map-get($border-radiuses, "medium");
+	width: 600px;
+	height: 350px;
+	div {
+		height: 100%;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+}

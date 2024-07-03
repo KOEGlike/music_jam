@@ -1,0 +1,16 @@
+
+services:
+  jam_db:
+    container_name: jam_db
+    image: postgres:latest
+    shm_size: 500mb
+    ports:
+      - 5432:5432
+    volumes:
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
+    env_file:
+      - ../.env
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_USER=jammer
+      - POSTGRES_DB=jam_db

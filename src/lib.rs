@@ -1,7 +1,13 @@
 pub mod app;
-pub mod error_template;
+
+pub use crate::app::components;
+
 #[cfg(feature = "ssr")]
-pub mod fileserv;
+pub mod router;
+#[cfg(feature = "ssr")]
+pub mod startup;
+
+
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
