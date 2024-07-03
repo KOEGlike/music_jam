@@ -76,7 +76,7 @@ pub struct Song {
     pub name: String,
     pub artists: Vec<String>,
     pub album: String,
-    pub duration: i32,
+    pub duration: u16,
     pub image: rspotify::model::image::Image,
     pub votes: i64,
 }
@@ -122,6 +122,7 @@ pub mod real_time {
         Songs(Vec<Song>),
         Error(Error),
         Votes(Votes),
+        Search(Vec<Song>),
     }
 
     impl From<Votes> for Update {
@@ -161,6 +162,7 @@ pub mod real_time {
         RemoveSong { song_id: String },
         AddVote { song_id: String },
         RemoveVote { song_id: String },
+        Search{ query: String },
         Update,
     }
 

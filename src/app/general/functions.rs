@@ -1,18 +1,10 @@
-use std::result;
-
-use crate::app::general::*;
-use gloo::history::query;
-use qrcode::render::image;
-use rspotify::{
-    clients::BaseClient,
-    model::{album, SearchArtists, SearchResult, TrackId},
-};
-use sqlx::Postgres;
+use crate::app::general::types::*;
+use rspotify::model::{Image, SearchResult, TrackId};
 
 pub async fn notify(
     channel: real_time::Channels,
     jam_id: &str,
-    pool: &sqlx::Pool<Postgres>,
+    pool: &sqlx::PgPool,
 ) -> Result<(), sqlx::Error> {
     let channel: String = channel.into();
     let channel = format!("{}_{}", jam_id, channel);
@@ -66,22 +58,29 @@ pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, s
         pub duration: i32,
         pub image_id: String,
         pub votes: Option<i64>,
-        pub artists: Option<Vec<String>>, // Add this line to include artists in the SongDb struct
+        pub artists: Option<Vec<String>>,
+        pub image_width: Option<i64>,
+        pub image_height: Option<i64>,
+        pub image_url: String,
     }
+
     let vec = sqlx::query_as!(
         SongDb,
-        "SELECT s.id, s.user_id, s.name, s.album, s.duration, s.image_id, COUNT(v.id) AS votes, ARRAY_AGG(a.name) AS artists
+        "SELECT s.id, s.user_id, s.name, s.album, s.duration, s.image_id, i.url AS image_url, i.width AS image_width, i.height AS image_height, COUNT(v.id) AS votes, ARRAY_AGG(a.name) AS artists
         FROM songs s
         JOIN users u ON s.user_id = u.id
         LEFT JOIN votes v ON s.id = v.song_id
         LEFT JOIN artists a ON s.id = a.song_id
+        LEFT JOIN images i ON s.image_id = i.id
         WHERE u.jam_id = $1
-        GROUP BY s.id
+        GROUP BY s.id, i.id
         ORDER BY votes DESC, s.id DESC;",
         jam_id
     )
     .fetch_all(pool)
     .await?;
+
+
 
     let songs = vec
         .into_iter()
@@ -91,13 +90,17 @@ pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, s
             name: song.name,
             artists: song
                 .artists
-                .unwrap_or(vec!["no artist found in cache, this is a bug".to_string()]), // Directly use the artists vector from the query
+                .unwrap_or(vec!["no artist found in cache, this is a bug".to_string()]),
             album: song.album,
-            duration: song.duration,
-            image: song.image_url,
+            duration: song.duration as u16,
+            image: Image {
+                url: song.image_url,
+                width: song.image_width.map(|width| width as u32),
+                height: song.image_height.map(|height| height as u32),
+            },
             votes: song.votes.unwrap_or(0),
         })
-        .collect::<Vec<Song>>();
+        .collect::<Vec<_>>();
 
     Ok(songs)
 }
@@ -137,7 +140,7 @@ pub async fn add_song(
     song_id: &str,
     user_id: &str,
     jam_id: &str,
-    pool: &sqlx::Pool<Postgres>,
+    pool: &sqlx::PgPool,
 ) -> Result<(), real_time::Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
@@ -199,7 +202,7 @@ pub async fn add_song(
 
 pub async fn search(
     query: &str,
-    pool: &sqlx::Pool<Postgres>,
+    pool: &sqlx::PgPool,
     jam_id: &str,
 ) -> Result<Vec<Song>, real_time::Error> {
     use rspotify::prelude::*;
@@ -238,7 +241,7 @@ pub async fn search(
                 name: track.name.clone(),
                 artists: track.artists.iter().map(|a| a.name.clone()).collect(),
                 album: track.album.name.clone(),
-                duration: track.duration.num_seconds() as i32,
+                duration: track.duration.num_seconds() as u16,
                 image: track.album.images[0].clone(),
                 votes: 0,
             }
@@ -251,7 +254,7 @@ pub async fn search(
 pub async fn remove_song(
     song_id: &str,
     jam_id: &str,
-    pool: &sqlx::Pool<Postgres>,
+    pool: &sqlx::PgPool,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!("DELETE FROM songs WHERE id=$1;", song_id)
         .execute(pool)
@@ -265,7 +268,7 @@ pub async fn add_vote(
     song_id: &str,
     user_id: &str,
     jam_id: &str,
-    pool: &sqlx::Pool<Postgres>,
+    pool: &sqlx::PgPool,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "INSERT INTO votes (song_id, user_id) VALUES ($1, $2);",
@@ -283,7 +286,7 @@ pub async fn remove_vote(
     song_id: &str,
     user_id: &str,
     jam_id: &str,
-    pool: &sqlx::Pool<Postgres>,
+    pool: &sqlx::PgPool,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "DELETE FROM votes WHERE song_id=$1 AND user_id=$2;",
@@ -300,7 +303,7 @@ pub async fn remove_vote(
 pub async fn kick_user(
     user_id: &str,
     host_id: &str,
-    pool: &sqlx::Pool<Postgres>,
+    pool: &sqlx::PgPool,
 ) -> Result<(), sqlx::Error> {
     //check if the jam that the user is in is owned by the host
     struct JamId {

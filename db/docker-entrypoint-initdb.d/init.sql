@@ -29,8 +29,8 @@ CREATE TABLE images (
   jam_id char(6) NOT NULL REFERENCES jams (id) ON DELETE CASCADE,
   id char(24) UNIQUE PRIMARY KEY NOT NULL,
   url varchar(255) NOT NULL,
-  width smallint,
-  height smallint
+  width bigint,
+  height bigint
 );
 
 CREATE TABLE songs (

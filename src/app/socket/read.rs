@@ -120,6 +120,24 @@ pub async fn read(
                     handle_error(e.into(), false, &sender).await;
                 }
             }
+            real_time::Request::Search { query } => {
+                let songs = match search(&query, pool, id.jam_id()).await {
+                    Ok(songs) => songs,
+                    Err(e) => {
+                        handle_error(e, false, &sender).await;
+                        continue;
+                    }
+                };
+
+                let update = real_time::Update::Search(songs);
+                let message = rmp_serde::to_vec(&update).unwrap();
+                let message = ws::Message::Binary(message);
+                if let Err(e) = sender.send(message).await {
+                    eprintln!("Error sending message: {:?}", e);
+                    break;
+                }
+            
+            }
         }
     }
 }
