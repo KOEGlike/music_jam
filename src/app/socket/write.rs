@@ -10,7 +10,7 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
 
     let listen_songs = tokio::spawn(listen_songs(
         pool.clone(),
-        id.jam_id().into(),
+        id.clone(),
         sender.clone(),
     ));
 
@@ -38,9 +38,13 @@ async fn listen_songs(
     id: IdType,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), real_time::Error> {
-    listen(&pool, &id.jam_id(), sender, real_time::Channels::Songs, || {
-        get_songs(&pool, &id)
-    })
+    listen(
+        &pool,
+        id.jam_id(),
+        sender,
+        real_time::Channels::Songs,
+        || get_songs(&pool, &id),
+    )
     .await
 }
 
@@ -49,23 +53,19 @@ async fn listen_users(
     jam_id: String,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), real_time::Error> {
-    listen(
-        &pool,
-        &jam_id,
-        sender,
-        real_time::Channels::Users,
-        get_users,
-    )
+    listen(&pool, &jam_id, sender, real_time::Channels::Users, || {
+        get_users(&pool, &jam_id)
+    })
     .await
 }
 
 async fn listen_votes(
     pool: sqlx::PgPool,
-    id: IdType,
+    jam_id: String,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), real_time::Error> {
     listen(&pool, &jam_id, sender, real_time::Channels::Votes, || {
-        get_votes(&pool, id)
+        get_votes(&pool, &jam_id)
     })
     .await
 }
@@ -91,7 +91,7 @@ where
             continue;
         }
 
-        let update: real_time::Update = f(pool, jam_id).await.into();
+        let update: real_time::Update = f().await.into();
         let bin = rmp_serde::to_vec(&update).unwrap();
         let message = ws::Message::Binary(bin);
         sender.send(message).await.unwrap();

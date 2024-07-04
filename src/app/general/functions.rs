@@ -1,6 +1,5 @@
 use crate::app::general::types::*;
 use rspotify::model::{Image, SearchResult, TrackId};
-use tracing::instrument::WithSubscriber;
 
 pub async fn notify(
     channel: real_time::Channels,

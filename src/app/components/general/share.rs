@@ -1,5 +1,4 @@
-use crate::app::general::*;
-use leptos::{logging::log, prelude::*, *};
+use leptos::{logging::log, *};
 use qrcode::render::svg;
 use qrcode::{EcLevel, QrCode, Version};
 
