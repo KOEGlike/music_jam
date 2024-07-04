@@ -30,8 +30,12 @@ pub fn UsersBar(
                             }
                         }
                     >
-                        <img src=&user.pfp_id alt={format!("This is the profile picture of {}", &user.name)}/>
-                        <svg viewBox=IoClose.view_box inner_html=IoClose.data/>
+
+                        <img
+                            src=&user.pfp_id
+                            alt=format!("This is the profile picture of {}", &user.name)
+                        />
+                        <svg viewBox=IoClose.view_box inner_html=IoClose.data></svg>
                     </div>
                 }
             }

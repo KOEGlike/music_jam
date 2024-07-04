@@ -126,7 +126,7 @@ pub fn CreateHostPage() -> impl IntoView {
 
     view! {
         <div id="create-host=page">
-           <div id="create-host-island">{feedback}</div>
+            <div id="create-host-island">{feedback}</div>
         </div>
     }
 }

@@ -48,9 +48,9 @@ pub fn Share(
 
     view! {
         <div class="share">
-            <svg viewBox="" inner_html=qr/>
+            <svg viewBox="" inner_html=qr></svg>
             {jam_id}
-            <button on:click=move|_|copy_to_clipboard.dispatch(url.clone())>"COPY"</button>
+            <button on:click=move |_| copy_to_clipboard.dispatch(url.clone())>"COPY"</button>
         </div>
     }
 }

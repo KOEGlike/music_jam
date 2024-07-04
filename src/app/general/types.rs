@@ -100,7 +100,7 @@ pub struct User {
 pub struct Jam {
     pub id: String,
     pub name: String,
-    pub max_song_count: i8,
+    pub max_song_count: u8,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -22,9 +22,12 @@ pub fn JoinIsland() -> impl IntoView {
                     on:input=move |ev| set_jam_code(event_target_value(&ev))
                     placeholder="ex. 786908"
                     class="text-input"
-                    id="join-text-input"/>
+                    id="join-text-input"
+                />
             </div>
-            <button on:click=on_click class="button">"Join"</button>
+            <button on:click=on_click class="button">
+                "Join"
+            </button>
         </div>
     }
 }

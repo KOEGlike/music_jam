@@ -16,10 +16,6 @@ pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
     view! {
-
-
-        // injects a stylesheet into the document <head>
-        // id=leptos means cargo-leptos will hot-reload this stylesheet
         <Stylesheet id="leptos" href="/pkg/music_jam.css"/>
 
         // sets the document title
@@ -29,10 +25,7 @@ pub fn App() -> impl IntoView {
         <Router fallback=|| {
             let mut outside_errors = Errors::default();
             outside_errors.insert_with_default_key(AppError::NotFound);
-            view! {
-                <ErrorTemplate outside_errors/>
-            }
-            .into_view()
+            view! { <ErrorTemplate outside_errors/> }.into_view()
         }>
             <main>
                 <Routes>
@@ -48,9 +41,7 @@ pub fn App() -> impl IntoView {
 #[component]
 fn Test () -> impl IntoView {
     use components::Share;
-    view! {
-       <Share jam_id="123456"/>
-    }
+    view! { <Share jam_id="123456"/> }
 }
 
 #[component]
@@ -102,9 +93,9 @@ fn TestSocketRead() -> impl IntoView {
     });
 
     view! {
-        <button on:click= move |_|open() >"Open"</button>
+        <button on:click=move |_| open()>"Open"</button>
         <br/>
-        <button on:click= move |_|send() >"Send"</button>
+        <button on:click=move |_| send()>"Send"</button>
         <br/>
         {move || match ready_state() {
             ConnectionReadyState::Connecting => "Connecting",
@@ -112,9 +103,8 @@ fn TestSocketRead() -> impl IntoView {
             ConnectionReadyState::Closing => "Closing",
             ConnectionReadyState::Closed => "Closed",
         }}
+
         <br/>
         {move || format!("{:#?}", update())}
-
-
     }
 }

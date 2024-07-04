@@ -115,40 +115,43 @@ pub fn CreateIsland() -> impl IntoView {
 
     view! {
         <Modal visible=show_dialog>
-            {error_message}
-            <button on:click=move |_| set_show_dialog(false) class="button">"Close"</button>
+            {error_message} <button on:click=move |_| set_show_dialog(false) class="button">
+                "Close"
+            </button>
         </Modal>
         <div class="big-space-island" id="create-island">
-            <div id="join-text">
-                "image goes here"
-            </div>
+            <div id="join-text">"image goes here"</div>
             <div class="input-with-label">
                 <div class="input-with-label">
-                <label for="create-jam-name">"Jam Name"</label>
-                <input
-                    type="text"
-                    prop:value=name
-                    on:input=move |ev| set_name(event_target_value(&ev))
-                    placeholder="ex. My Jam"
-                    class="text-input"
-                    id="create-jam-name"
-                />
+                    <label for="create-jam-name">"Jam Name"</label>
+                    <input
+                        type="text"
+                        prop:value=name
+                        on:input=move |ev| set_name(event_target_value(&ev))
+                        placeholder="ex. My Jam"
+                        class="text-input"
+                        id="create-jam-name"
+                    />
+                </div>
+                <div class="input-with-label">
+                    <label for="create-jam-max-songs">"Max Songs"</label>
+                    <input
+                        type="number"
+                        prop:value=max_song_count
+                        on:input=move |ev| set_max_song_count(
+                            event_target_value(&ev).parse().unwrap_or(0),
+                        )
+                        placeholder="ex. 10"
+                        class="text-input"
+                        id="create-jam-max-songs"
+                        min=1
+                    />
+                </div>
             </div>
-            <div class="input-with-label">
-                <label for="create-jam-max-songs">"Max Songs"</label>
-                <input
-                    type="number"
-                    prop:value=max_song_count
-                    on:input=move |ev| set_max_song_count(event_target_value(&ev).parse().unwrap_or(0))
-                    placeholder="ex. 10"
-                    class="text-input"
-                    id="create-jam-max-songs"
-                    min=1
-                />
-            </div>
-        </div>
 
-            <button on:click=move |_| create.dispatch(()) class="button">"Create"</button>
+            <button on:click=move |_| create.dispatch(()) class="button">
+                "Create"
+            </button>
         </div>
     }
 }

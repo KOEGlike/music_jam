@@ -7,9 +7,7 @@ pub fn Modal(
 ) -> impl IntoView {
     view! {
         <dialog class="modal" prop:open=visible>
-            <div class="modal-content">
-                {children()}
-            </div>
+            <div class="modal-content">{children()}</div>
         </dialog>
     }
 }
