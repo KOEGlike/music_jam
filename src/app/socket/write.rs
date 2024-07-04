@@ -35,16 +35,12 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
 
 async fn listen_songs(
     pool: sqlx::PgPool,
-    jam_id: String,
+    id: IdType,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), real_time::Error> {
-    listen(
-        &pool,
-        &jam_id,
-        sender,
-        real_time::Channels::Songs,
-        get_songs,
-    )
+    listen(&pool, &id.jam_id(), sender, real_time::Channels::Songs, || {
+        get_songs(&pool, &id)
+    })
     .await
 }
 
@@ -65,29 +61,26 @@ async fn listen_users(
 
 async fn listen_votes(
     pool: sqlx::PgPool,
-    jam_id: String,
+    id: IdType,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), real_time::Error> {
-    listen(
-        &pool,
-        &jam_id,
-        sender,
-        real_time::Channels::Votes,
-        get_votes,
-    )
+    listen(&pool, &jam_id, sender, real_time::Channels::Votes, || {
+        get_votes(&pool, id)
+    })
     .await
 }
 
-async fn listen<'a, T, Fu>(
+async fn listen<'a, T, Fu, F>(
     pool: &'a sqlx::PgPool,
     jam_id: &'a str,
     sender: mpsc::Sender<ws::Message>,
     channel: real_time::Channels,
-    f: fn(&'a sqlx::PgPool, &'a str) -> Fu,
+    f: F,
 ) -> Result<(), real_time::Error>
 where
     T: Into<real_time::Update>,
     Fu: Future<Output = T> + 'a,
+    F: Fn() -> Fu,
 {
     let mut listener = create_listener(pool, jam_id, channel).await?;
 

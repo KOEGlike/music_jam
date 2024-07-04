@@ -30,40 +30,6 @@ pub struct QueryId {
     pub id: String,
 }
 
-#[derive(Debug, Clone)]
-struct Id {
-    pub id: String,
-    pub jam_id: String,
-}
-
-#[derive(Clone, Debug)]
-enum IdType {
-    Host(Id),
-    User(Id),
-}
-
-#[allow(dead_code)]
-impl IdType {
-    pub fn is_host(&self) -> bool {
-        matches!(self, IdType::Host { .. })
-    }
-    pub fn is_user(&self) -> bool {
-        matches!(self, IdType::User { .. })
-    }
-    pub fn id(&self) -> &str {
-        match self {
-            IdType::Host(id) => &id.id,
-            IdType::User(id) => &id.id,
-        }
-    }
-    pub fn jam_id(&self) -> &str {
-        match self {
-            IdType::Host(id) => &id.jam_id,
-            IdType::User(id) => &id.jam_id,
-        }
-    }
-}
-
 async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
     let (sender, receiver) = socket.split();
     let (mpsc_sender, mpsc_receiver) = mpsc::channel(3);
@@ -77,7 +43,11 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
     };
 
     let bridge_task = tokio::spawn(send(mpsc_receiver, sender));
-    let send_task = tokio::spawn(write::write(mpsc_sender.clone(), id.clone(), app_state.clone()));
+    let send_task = tokio::spawn(write::write(
+        mpsc_sender.clone(),
+        id.clone(),
+        app_state.clone(),
+    ));
     let recv_task = tokio::spawn(read::read(
         receiver,
         mpsc_sender.clone(),

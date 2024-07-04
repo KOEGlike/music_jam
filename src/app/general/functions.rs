@@ -1,5 +1,6 @@
 use crate::app::general::types::*;
 use rspotify::model::{Image, SearchResult, TrackId};
+use tracing::instrument::WithSubscriber;
 
 pub async fn notify(
     channel: real_time::Channels,
@@ -40,23 +41,24 @@ pub async fn get_access_token(
     let expires_in = token.expires_at - chrono::Utc::now().timestamp();
     let expires_in = chrono::TimeDelta::new(expires_in, 0).unwrap();
 
-    Ok(rspotify::Token {
+    let token = rspotify::Token {
         access_token: token.access_token,
         expires_in,
         expires_at,
         refresh_token: Some(token.refresh_token),
         scopes: rspotify::scopes!(token.scope),
-    })
+    };
+
+    Ok(token)
 }
 
-pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, sqlx::Error> {
+pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sqlx::Error> {
     struct SongDb {
         pub id: String,
         pub user_id: String,
         pub name: String,
         pub album: String,
         pub duration: i32,
-        pub image_id: String,
         pub votes: Option<i64>,
         pub artists: Option<Vec<String>>,
         pub image_width: Option<i64>,
@@ -66,7 +68,7 @@ pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, s
 
     let vec = sqlx::query_as!(
         SongDb,
-        "SELECT s.id, s.user_id, s.name, s.album, s.duration, s.image_id, i.url AS image_url, i.width AS image_width, i.height AS image_height, COUNT(v.id) AS votes, ARRAY_AGG(a.name) AS artists
+        "SELECT s.id, s.user_id, s.name, s.album, s.duration, i.url AS image_url, i.width AS image_width, i.height AS image_height, COUNT(v.id) AS votes, ARRAY_AGG(a.name) AS artists
         FROM songs s
         JOIN users u ON s.user_id = u.id
         LEFT JOIN votes v ON s.id = v.song_id
@@ -75,18 +77,26 @@ pub async fn get_songs(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, s
         WHERE u.jam_id = $1
         GROUP BY s.id, i.id
         ORDER BY votes DESC, s.id DESC;",
-        jam_id
+        &id.jam_id()
     )
     .fetch_all(pool)
     .await?;
-
-
 
     let songs = vec
         .into_iter()
         .map(|song| Song {
             id: song.id,
-            user_id: Some(song.user_id),
+            user_id: {
+                if let IdType::User(ref id) = id {
+                    if id.id == song.user_id {
+                        Some(song.user_id)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            },
             name: song.name,
             artists: song
                 .artists
