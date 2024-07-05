@@ -61,7 +61,7 @@ fn TestSocketRead() -> impl IntoView {
 
     let update = move || match message_bytes() {
         Some(m) => rmp_serde::from_slice::<real_time::Update>(&m).unwrap(),
-        None => real_time::Update::Error(real_time::Error::Database(
+        None => real_time::Update::Error(Error::Database(
             "idk this is on the client side so it should never happen".to_string(),
         )),
     };

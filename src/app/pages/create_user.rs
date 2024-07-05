@@ -34,14 +34,16 @@ pub fn CreateUserPage() -> impl IntoView {
         })
     };
 
-    let (image_url, set_image_url) = create_signal(String::new());
+    let (image_url, set_image_url) = create_signal(String::from("data:"));
 
-    let lol = create_action(move |_: &()| camera(set_image_url));
-    lol.dispatch(());
+    if cfg!(any(target_arch = "wasm32", target_arch = "wasm64")) {
+        let lol = create_action(move |_: &()| camera(set_image_url));
+        lol.dispatch(());
+    }
 
     view! {
         <video id="video">"Video stream not available."</video>
-        <img id="photo" alt="The screen capture will appear in this box."/>
+        <img id="photo" src=image_url alt="The screen capture will appear in this box."/>
         <button id="start-button">"Take photo"</button>
     }
 }
@@ -53,7 +55,7 @@ async fn camera(image_url: WriteSignal<String>) {
     let window = web_sys::window().unwrap();
     let document = window.document().unwrap();
 
-    let canvas = document.get_element_by_id("canvas").unwrap();
+    let canvas = document.create_element("canvas").unwrap();
     let canvas = canvas
         .dyn_into::<web_sys::HtmlCanvasElement>()
         .map_err(|_| ())
@@ -90,13 +92,11 @@ async fn camera(image_url: WriteSignal<String>) {
         .map_err(|_| ())
         .unwrap();
 
-    let video = Box::new(video);
-    let camera = Box::new(camera);
+    
     video.set_src_object(Some(&camera));
     let promise = video.play().unwrap();
     JsFuture::from(promise).await.unwrap();
-    //Box::leak(video);
-    //Box::leak(camera);
+   
 
     let start_button = document.get_element_by_id("start-button").unwrap();
     let start_button = start_button
@@ -104,7 +104,6 @@ async fn camera(image_url: WriteSignal<String>) {
         .map_err(|_| ())
         .unwrap();
     let event_listener = EventListener::new(&start_button, "click", move |ev| {
-        log!("click");
         canvas.set_width(video.video_width());
         canvas.set_height(video.video_height());
         context
@@ -118,13 +117,6 @@ async fn camera(image_url: WriteSignal<String>) {
             .unwrap();
         let data_url = canvas.to_data_url_with_type("image/png").unwrap();
         image_url(data_url.clone());
-        log!("{}", &data_url);
-        let photo = document.get_element_by_id("photo").unwrap();
-        let photo = photo
-            .dyn_into::<web_sys::HtmlImageElement>()
-            .map_err(|_| ())
-            .unwrap();
-        photo.set_src(data_url.as_str());
         ev.prevent_default();
     });
     event_listener.forget();

@@ -65,6 +65,9 @@ chrono = { version = "0.4", optional = true }
 icondata = "0.3"
 futures-util = "0.3"
 qrcode = { version = "0.13" }
+data-url = {version = "0.3", optional = true}
+base64 = {version = "0.22", optional = true}
+image = {version = "0.25.1", optional = true}
 
 
 [features]
@@ -85,6 +88,9 @@ ssr = [
     "dep:reqwest",
     "dep:serde_json",
     "dep:chrono",
+    "dep:data-url",
+    "dep:base64",
+    "dep:image",
 ]
 
 

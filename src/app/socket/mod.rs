@@ -60,7 +60,7 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
     recv_task.abort();
 }
 
-async fn handle_error(error: real_time::Error, close: bool, sender: &mpsc::Sender<ws::Message>) {
+async fn handle_error(error: Error, close: bool, sender: &mpsc::Sender<ws::Message>) {
     eprintln!("Error: {:?}", error);
 
     if close {

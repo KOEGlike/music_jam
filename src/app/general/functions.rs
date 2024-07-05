@@ -1,4 +1,5 @@
 use crate::app::general::types::*;
+use chrono::format;
 use rspotify::model::{Image, SearchResult, TrackId};
 
 pub async fn notify(
@@ -49,6 +50,49 @@ pub async fn get_access_token(
     };
 
     Ok(token)
+}
+
+pub async fn create_user(
+    jam_id: &str,
+    image_url: &str,
+    name: &str,
+    pool: &sqlx::PgPool,
+) -> Result<String, Error> {
+    use data_url::DataUrl;
+
+    let data_url = match DataUrl::process(image_url) {
+        Ok(data_url) => data_url,
+        Err(_) => return Err(Error::Decode("invalid data url".to_string())),
+    };
+    let bytes = match data_url.decode_to_vec() {
+        Ok(bytes) => bytes.0,
+        Err(_) => return Err(Error::Decode("could not decode data url".to_string())),
+    };
+    if data_url.mime_type().type_ != "image" {
+        return Err(Error::Decode("not an image".to_string()));
+    }
+    let image_format = match data_url.mime_type().subtype.as_str() {
+        "image/jpeg" => image::ImageFormat::Jpeg,
+        "image/png" => image::ImageFormat::Png,
+        "image/gif" => image::ImageFormat::Gif,
+        "image/webp" => image::ImageFormat::WebP,
+        _ => return Err(Error::Decode("unsupported image format".to_string())),
+    };
+    let image = match image::load_from_memory_with_format(&bytes, image_format) {
+        Ok(image) => image,
+        Err(_) => return Err(Error::Decode("could not decode image".to_string())),
+    };
+
+    let image_id = cuid2::create_id();
+    let image_path = format!("./public/uploads/{}", image_id);
+    match tokio::fs::write(&image_path, image.as_bytes()).await {
+        Ok(_) => (),
+        Err(_) => return Err(Error::FileSystem("could not write image".to_string())),
+    }
+
+    sqlx::query!()
+
+    Ok("()".to_string())
 }
 
 pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sqlx::Error> {
@@ -150,7 +194,7 @@ pub async fn add_song(
     user_id: &str,
     jam_id: &str,
     pool: &sqlx::PgPool,
-) -> Result<(), real_time::Error> {
+) -> Result<(), Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
 
@@ -209,11 +253,7 @@ pub async fn add_song(
     Ok(())
 }
 
-pub async fn search(
-    query: &str,
-    pool: &sqlx::PgPool,
-    jam_id: &str,
-) -> Result<Vec<Song>, real_time::Error> {
+pub async fn search(query: &str, pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
 
@@ -232,7 +272,7 @@ pub async fn search(
     let songs = if let SearchResult::Tracks(tracks) = result {
         tracks
     } else {
-        return Err(real_time::Error::Spotify("Error in search".to_string()));
+        return Err(Error::Spotify("Error in search".to_string()));
     };
 
     let songs = songs
