@@ -3,6 +3,7 @@
         "bindgen",
         "browserlist",
         "browserquery",
+        "canplay",
         "cdylib",
         "chrono",
         "codegen",
