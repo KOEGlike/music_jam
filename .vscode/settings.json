@@ -13,6 +13,8 @@
         "fileserv",
         "icondata",
         "idtypes",
+        "imageops",
+        "Lanczos",
         "nestify",
         "oneshot",
         "qrcode",

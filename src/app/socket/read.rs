@@ -25,7 +25,7 @@ pub async fn read(
             match rmp_serde::from_slice(message.into_data().as_slice()) {
                 Ok(m) => m,
                 Err(e) => {
-                    use real_time::Error;
+                    use Error;
                     let error = Error::Decode(e.to_string());
                     handle_error(error, true, &sender).await;
                     break;
@@ -152,7 +152,7 @@ async fn only_host<'a>(
     match id {
         IdType::Host(id) => Ok(id),
         IdType::User { .. } => {
-            let error = real_time::Error::Forbidden(message.to_string());
+            let error = Error::Forbidden(message.to_string());
 
             handle_error(error, true, sender).await;
             Err(())
@@ -168,7 +168,7 @@ async fn only_user<'a>(
     match id {
         IdType::User(id) => Ok(id),
         IdType::Host { .. } => {
-            let error = real_time::Error::Forbidden(message.to_string());
+            let error = Error::Forbidden(message.to_string());
 
             handle_error(error, true, sender).await;
             Err(())

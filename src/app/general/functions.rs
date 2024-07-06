@@ -1,4 +1,4 @@
-use crate::app::general::types::*;
+use crate::app::{general::types::*, pages::user};
 use chrono::format;
 use rspotify::model::{Image, SearchResult, TrackId};
 
@@ -80,19 +80,28 @@ pub async fn create_user(
     };
     let image = match image::load_from_memory_with_format(&bytes, image_format) {
         Ok(image) => image,
-        Err(_) => return Err(Error::Decode("could not decode image".to_string())),
+        Err(e) => return Err(Error::Decode(format!("could not decode image, error: {}", e))),
     };
-
+    let image = image.resize(256, 256, image::imageops::FilterType::Lanczos3);
+    
     let image_id = cuid2::create_id();
-    let image_path = format!("./public/uploads/{}", image_id);
-    match tokio::fs::write(&image_path, image.as_bytes()).await {
+    let image_path = format!("./public/uploads/{}.webp", image_id);
+
+    match image.save(image_path) {
         Ok(_) => (),
-        Err(_) => return Err(Error::FileSystem("could not write image".to_string())),
-    }
+        Err(e) => return Err(Error::FileSystem(format!("could not save image, error: {}",e))),
+    };
+    
 
-    sqlx::query!()
+    let user_id= cuid2::create_id();
+    sqlx::query!("INSERT INTO users(id, jam_id, name, pfp_id) VALUES ($1, $2, $3, $4);",
+        user_id,
+        jam_id,
+        name,
+        image_id
+    ).execute(pool).await?;
 
-    Ok("()".to_string())
+    Ok(user_id)
 }
 
 pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sqlx::Error> {

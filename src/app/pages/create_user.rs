@@ -1,16 +1,29 @@
 use gloo::events::EventListener;
-use js_sys::Math::log;
 use leptos::{
     logging::{log, warn},
     prelude::*,
     *,
 };
 use leptos_router::*;
-use leptos_use::use_permission;
-use tracing::event;
-use web_sys::{DisplayMediaStreamConstraints, MediaDevices, MediaStream};
+use sqlx::pool;
+use web_sys::MediaStream;
 
 use crate::components::create;
+
+#[server]
+async fn create_user(
+    jam_id: String,
+    name: String,
+    pfp_url: String,
+) -> Result<String, ServerFnError> {
+    use crate::app::general::{functions::create_user, types::AppState};
+    let app_state = expect_context::<AppState>();
+    let pool = &app_state.db.pool;
+    match create_user(&jam_id, &pfp_url, &name, pool).await {
+        Ok(user_id) => Ok(user_id),
+        Err(e) => Err(ServerFnError::ServerError(e.into())),
+    }
+}
 
 #[component]
 pub fn CreateUserPage() -> impl IntoView {
@@ -36,19 +49,21 @@ pub fn CreateUserPage() -> impl IntoView {
 
     let (image_url, set_image_url) = create_signal(String::from("data:"));
 
-    if cfg!(any(target_arch = "wasm32", target_arch = "wasm64")) {
-        let lol = create_action(move |_: &()| camera(set_image_url));
-        lol.dispatch(());
-    }
+    let video_id = "video";
+    let capture_button_id = "capture-button";
+    create_local_resource(
+        || (),
+        move |_| async move { camera(set_image_url, video_id, capture_button_id).await },
+    );
 
     view! {
-        <video id="video">"Video stream not available."</video>
+        <video id=video_id>"Video stream not available."</video>
         <img id="photo" src=image_url alt="The screen capture will appear in this box."/>
-        <button id="start-button">"Take photo"</button>
+        <button id=capture_button_id>"Take photo"</button>
     }
 }
 
-async fn camera(image_url: WriteSignal<String>) {
+async fn camera(image_url: WriteSignal<String>, video_id: &str, capture_button_id: &str) {
     use wasm_bindgen::prelude::*;
     use wasm_bindgen_futures::JsFuture;
 
@@ -86,19 +101,17 @@ async fn camera(image_url: WriteSignal<String>) {
     };
     let camera = camera.dyn_into::<MediaStream>().unwrap();
 
-    let video = document.get_element_by_id("video").unwrap();
+    let video = document.get_element_by_id(video_id).unwrap();
     let video = video
         .dyn_into::<web_sys::HtmlVideoElement>()
         .map_err(|_| ())
         .unwrap();
 
-    
     video.set_src_object(Some(&camera));
     let promise = video.play().unwrap();
     JsFuture::from(promise).await.unwrap();
-   
 
-    let start_button = document.get_element_by_id("start-button").unwrap();
+    let start_button = document.get_element_by_id(capture_button_id).unwrap();
     let start_button = start_button
         .dyn_into::<web_sys::HtmlButtonElement>()
         .map_err(|_| ())

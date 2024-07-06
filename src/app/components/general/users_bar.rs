@@ -10,7 +10,6 @@ pub fn UsersBar(
     kick_user: Option<impl Fn(&str) + 'static>,
 ) -> impl IntoView {
     let is_host = kick_user.is_some();
-    // Wrap the `kick_user` closure in an `Rc`
     let kick_user = Rc::new(kick_user);
 
     view! {

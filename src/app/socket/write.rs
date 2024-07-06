@@ -37,7 +37,7 @@ async fn listen_songs(
     pool: sqlx::PgPool,
     id: IdType,
     sender: mpsc::Sender<ws::Message>,
-) -> Result<(), real_time::Error> {
+) -> Result<(), Error> {
     listen(
         &pool,
         id.jam_id(),
@@ -52,7 +52,7 @@ async fn listen_users(
     pool: sqlx::PgPool,
     jam_id: String,
     sender: mpsc::Sender<ws::Message>,
-) -> Result<(), real_time::Error> {
+) -> Result<(), Error> {
     listen(&pool, &jam_id, sender, real_time::Channels::Users, || {
         get_users(&pool, &jam_id)
     })
@@ -63,7 +63,7 @@ async fn listen_votes(
     pool: sqlx::PgPool,
     jam_id: String,
     sender: mpsc::Sender<ws::Message>,
-) -> Result<(), real_time::Error> {
+) -> Result<(), Error> {
     listen(&pool, &jam_id, sender, real_time::Channels::Votes, || {
         get_votes(&pool, &jam_id)
     })
@@ -76,7 +76,7 @@ async fn listen<'a, T, Fu, F>(
     sender: mpsc::Sender<ws::Message>,
     channel: real_time::Channels,
     f: F,
-) -> Result<(), real_time::Error>
+) -> Result<(), Error>
 where
     T: Into<real_time::Update>,
     Fu: Future<Output = T> + 'a,
@@ -86,7 +86,7 @@ where
 
     while let Ok(m) = listener.try_recv().await {
         if m.is_none() {
-            let error = real_time::Error::Database("pool disconnected reconnecting...".to_string());
+            let error = Error::Database("pool disconnected reconnecting...".to_string());
             handle_error(error, false, &sender).await;
             continue;
         }
@@ -104,11 +104,11 @@ async fn create_listener(
     pool: &sqlx::PgPool,
     jam_id: &str,
     channel: real_time::Channels,
-) -> Result<PgListener, real_time::Error> {
+) -> Result<PgListener, Error> {
     let mut listener = match PgListener::connect_with(pool).await {
         Ok(listener) => listener,
         Err(e) => {
-            return Err(real_time::Error::Database(e.to_string()));
+            return Err(Error::Database(e.to_string()));
         }
     };
 
@@ -116,6 +116,6 @@ async fn create_listener(
     let channel = format!("{}_{}", jam_id, channel);
     match listener.listen(&channel).await {
         Ok(_) => Ok(listener),
-        Err(e) => Err(real_time::Error::Database(e.to_string())),
+        Err(e) => Err(Error::Database(e.to_string())),
     }
 }
