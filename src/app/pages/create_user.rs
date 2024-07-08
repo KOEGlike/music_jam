@@ -1,11 +1,10 @@
 use gloo::events::EventListener;
 use leptos::{
-    logging::{log, warn},
+    logging::{log, warn, error},
     prelude::*,
     *,
 };
 use leptos_router::*;
-use sqlx::pool;
 use web_sys::MediaStream;
 
 use crate::components::create;
@@ -32,7 +31,6 @@ pub fn CreateUserPage() -> impl IntoView {
         id: String,
     }
     let jam_id = use_params::<JamId>();
-
     let jam_id = move || {
         jam_id.with(|jam_id| {
             jam_id
@@ -41,50 +39,64 @@ pub fn CreateUserPage() -> impl IntoView {
                 .unwrap_or_else(|_| {
                     let navigate = use_navigate();
                     navigate("/", NavigateOptions::default());
-                    warn!("No jam id provided, redirecting to home page");
+                    error!("No jam id provided, redirecting to home page");
                     "".to_string()
                 })
         })
     };
 
     let (image_url, set_image_url) = create_signal(String::from("data:"));
-
     let video_id = "video";
-    let take_picture = create_local_resource(
+    let (update_take_picture, take_picture) = create_signal(()); 
+    let camera=create_local_resource(
         || (),
-        move |_| async move { camera(set_image_url, video_id).await },
+        move |_| async move { camera(set_image_url, update_take_picture,video_id).await },
     );
-
-    match take_picture.get() {
-        Some(f) => f(),
-        None => warn!("Error taking picture: camera not initialized"),
     
-    };
+    let (name, set_name) = create_signal(String::new());
 
+    let create_user=create_action(move|_:&()| {
+        let name=name.get();
+        let pfp_url=image_url.get();
+        async move {
+            match create_user(jam_id(),name,pfp_url).await {
+                Ok(user_id) => {
+                   log!("User created: {}", user_id);
+                }
+                Err(e) => {
+                    error!("Error creating user: {}", e);
+                }
+            }
+        }
+    });
     view! {
         <video id=video_id>"Video stream not available."</video>
-        <img id="photo" src=image_url alt="The screen capture will appear in this box."/>
-        <button id="capture-button" on:click = move|_| {}>
-            {move || if take_picture.loading().get() { "Loading..." } else { "Take picture" }}
+        <img id="photo" prop:src=image_url alt="The screen capture will appear in this box."/>
+        <button id="capture-button" on:click = move|_| {take_picture(());}>
+            {move || if camera.loading().get() { "Loading..." } else { "Take picture" }}
         </button>
+        <button on:click>
+            "Create User"
+        </button>
+        <input type="text" placeholder="Name" on:input=move |ev|set_name(event_target_value(&ev))/>
     }
 }
 
-async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, video_id: &str) -> Result<Box<dyn Fn()>, String> {
+async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, video_id: &str) -> Result<(), String> {
     use wasm_bindgen::prelude::*;
     use wasm_bindgen_futures::JsFuture;
 
     let window = match web_sys::window() {
         Some(window) => window,
         None => {
-            warn!("Error getting window object");
+            error!("Error getting window object");
             return Err("Error getting window object".to_string());
         }
     };
     let document = match window.document() {
         Some(document) => document,
         None => {
-            warn!("Error getting document object");
+            error!("Error getting document object");
             return Err("Error getting document object".to_string());
         }
     };
@@ -92,7 +104,7 @@ async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, vid
     let canvas = match document.create_element("canvas") {
         Ok(canvas) => canvas,
         Err(e) => {
-            warn!("Error creating canvas element: {:?}", e);
+            error!("Error creating canvas element: {:?}", e);
             return Err(format!("Error creating canvas element: {:?}", e));
         }
     };
@@ -103,7 +115,7 @@ async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, vid
     {
         Ok(canvas) => canvas,
         Err(e) => {
-            warn!("Error mapping canvas element to canvas object: {:?}", e);
+            error!("Error mapping canvas element to canvas object: {:?}", e);
             return Err(format!(
                 "Error mapping canvas element to canvas object: {:?}",
                 e
@@ -114,18 +126,18 @@ async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, vid
     let context = match canvas.get_context("2d") {
         Ok(Some(context)) => context,
         Ok(None) => {
-            warn!("Error getting context: {:?}", "No context");
+            error!("Error getting context: {:?}", "No context");
             return Err("No context".to_string());
         }
         Err(e) => {
-            warn!("Error getting context: {:?}", e);
+            error!("Error getting context: {:?}", e);
             return Err(format!("Error getting context: {:?}", e));
         }
     };
     let context = match context.dyn_into::<web_sys::CanvasRenderingContext2d>() {
         Ok(context) => context,
         Err(e) => {
-            warn!("Error mapping context to object: {:?}", e);
+            error!("Error mapping context to object: {:?}", e);
             return Err(format!("Error mapping context to object: {:?}", e));
         }
     };
@@ -133,7 +145,7 @@ async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, vid
     let camera = match window.navigator().media_devices() {
         Ok(media_devices) => media_devices,
         Err(e) => {
-            warn!("Error getting media devices: {:?}", e);
+            error!("Error getting media devices: {:?}", e);
             return Err(format!("Error getting media devices: {:?}", e));
         }
     };
@@ -145,21 +157,21 @@ async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, vid
     ) {
         Ok(camera) => camera,
         Err(e) => {
-            warn!("Error getting camera promise: {:?}", e);
+            error!("Error getting camera promise: {:?}", e);
             return Err(format!("Error getting camera promise: {:?}", e));
         }
     };
     let camera = match JsFuture::from(camera).await {
         Ok(camera) => camera,
         Err(e) => {
-            warn!("Error resolving camera future: {:?}", e);
+            error!("Error resolving camera future: {:?}", e);
             return Err(format!("Error resolving camera future: {:?}", e));
         }
     };
     let camera = match camera.dyn_into::<MediaStream>() {
         Ok(camera) => camera,
         Err(e) => {
-            warn!("Error mapping camera to object: {:?}", e);
+            error!("Error mapping camera to object: {:?}", e);
             return Err(format!("Error mapping camera to object: {:?}", e));
         }
     };
@@ -174,14 +186,14 @@ async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, vid
     let promise = match video.play() {
         Ok(promise) => promise,
         Err(e) => {
-            warn!("Error playing video: {:?}", e);
+            error!("Error playing video: {:?}", e);
             return Err(format!("Error playing video: {:?}", e));
         }
     };
     match JsFuture::from(promise).await {
         Ok(_) => (),
         Err(e) => {
-            warn!("Error resolving play promise: {:?}", e);
+            error!("Error resolving play promise: {:?}", e);
             return Err(format!("Error resolving play promise: {:?}", e));
         }
     };
@@ -201,5 +213,11 @@ async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, vid
         let data_url = canvas.to_data_url_with_type("image/png").unwrap();
         image_url(data_url.clone());
     };
-    Ok(Box::new(f))
+
+    create_effect(move |_|{
+        take_picture();
+        f();
+    });
+
+    Ok(())
 }
