@@ -50,56 +50,119 @@ pub fn CreateUserPage() -> impl IntoView {
     let (image_url, set_image_url) = create_signal(String::from("data:"));
 
     let video_id = "video";
-    let capture_button_id = "capture-button";
-    create_local_resource(
+    let take_picture = create_local_resource(
         || (),
-        move |_| async move { camera(set_image_url, video_id, capture_button_id).await },
+        move |_| async move { camera(set_image_url, video_id).await },
     );
+
+    match take_picture.get() {
+        Some(f) => f(),
+        None => warn!("Error taking picture: camera not initialized"),
+    
+    };
 
     view! {
         <video id=video_id>"Video stream not available."</video>
         <img id="photo" src=image_url alt="The screen capture will appear in this box."/>
-        <button id=capture_button_id>"Take photo"</button>
+        <button id="capture-button" on:click = move|_| {}>
+            {move || if take_picture.loading().get() { "Loading..." } else { "Take picture" }}
+        </button>
     }
 }
 
-async fn camera(image_url: WriteSignal<String>, video_id: &str, capture_button_id: &str) {
+async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, video_id: &str) -> Result<Box<dyn Fn()>, String> {
     use wasm_bindgen::prelude::*;
     use wasm_bindgen_futures::JsFuture;
 
-    let window = web_sys::window().unwrap();
-    let document = window.document().unwrap();
+    let window = match web_sys::window() {
+        Some(window) => window,
+        None => {
+            warn!("Error getting window object");
+            return Err("Error getting window object".to_string());
+        }
+    };
+    let document = match window.document() {
+        Some(document) => document,
+        None => {
+            warn!("Error getting document object");
+            return Err("Error getting document object".to_string());
+        }
+    };
 
-    let canvas = document.create_element("canvas").unwrap();
-    let canvas = canvas
+    let canvas = match document.create_element("canvas") {
+        Ok(canvas) => canvas,
+        Err(e) => {
+            warn!("Error creating canvas element: {:?}", e);
+            return Err(format!("Error creating canvas element: {:?}", e));
+        }
+    };
+
+    let canvas = match canvas
         .dyn_into::<web_sys::HtmlCanvasElement>()
         .map_err(|_| ())
-        .unwrap();
-    let context = canvas
-        .get_context("2d")
-        .unwrap()
-        .unwrap()
-        .dyn_into::<web_sys::CanvasRenderingContext2d>()
-        .unwrap();
+    {
+        Ok(canvas) => canvas,
+        Err(e) => {
+            warn!("Error mapping canvas element to canvas object: {:?}", e);
+            return Err(format!(
+                "Error mapping canvas element to canvas object: {:?}",
+                e
+            ));
+        }
+    };
 
-    let camera = window
-        .navigator()
-        .media_devices()
-        .unwrap()
-        .get_user_media_with_constraints(
-            web_sys::MediaStreamConstraints::new()
-                .video(&JsValue::from(true))
-                .audio(&JsValue::from(false)),
-        )
-        .unwrap();
+    let context = match canvas.get_context("2d") {
+        Ok(Some(context)) => context,
+        Ok(None) => {
+            warn!("Error getting context: {:?}", "No context");
+            return Err("No context".to_string());
+        }
+        Err(e) => {
+            warn!("Error getting context: {:?}", e);
+            return Err(format!("Error getting context: {:?}", e));
+        }
+    };
+    let context = match context.dyn_into::<web_sys::CanvasRenderingContext2d>() {
+        Ok(context) => context,
+        Err(e) => {
+            warn!("Error mapping context to object: {:?}", e);
+            return Err(format!("Error mapping context to object: {:?}", e));
+        }
+    };
+
+    let camera = match window.navigator().media_devices() {
+        Ok(media_devices) => media_devices,
+        Err(e) => {
+            warn!("Error getting media devices: {:?}", e);
+            return Err(format!("Error getting media devices: {:?}", e));
+        }
+    };
+
+    let camera = match camera.get_user_media_with_constraints(
+        web_sys::MediaStreamConstraints::new()
+            .video(&JsValue::from(true))
+            .audio(&JsValue::from(false)),
+    ) {
+        Ok(camera) => camera,
+        Err(e) => {
+            warn!("Error getting camera promise: {:?}", e);
+            return Err(format!("Error getting camera promise: {:?}", e));
+        }
+    };
     let camera = match JsFuture::from(camera).await {
         Ok(camera) => camera,
         Err(e) => {
-            warn!("Error getting camera: {:?}", e);
-            return;
+            warn!("Error resolving camera future: {:?}", e);
+            return Err(format!("Error resolving camera future: {:?}", e));
         }
     };
-    let camera = camera.dyn_into::<MediaStream>().unwrap();
+    let camera = match camera.dyn_into::<MediaStream>() {
+        Ok(camera) => camera,
+        Err(e) => {
+            warn!("Error mapping camera to object: {:?}", e);
+            return Err(format!("Error mapping camera to object: {:?}", e));
+        }
+    };
 
     let video = document.get_element_by_id(video_id).unwrap();
     let video = video
@@ -108,15 +171,22 @@ async fn camera(image_url: WriteSignal<String>, video_id: &str, capture_button_i
         .unwrap();
 
     video.set_src_object(Some(&camera));
-    let promise = video.play().unwrap();
-    JsFuture::from(promise).await.unwrap();
+    let promise = match video.play() {
+        Ok(promise) => promise,
+        Err(e) => {
+            warn!("Error playing video: {:?}", e);
+            return Err(format!("Error playing video: {:?}", e));
+        }
+    };
+    match JsFuture::from(promise).await {
+        Ok(_) => (),
+        Err(e) => {
+            warn!("Error resolving play promise: {:?}", e);
+            return Err(format!("Error resolving play promise: {:?}", e));
+        }
+    };
 
-    let start_button = document.get_element_by_id(capture_button_id).unwrap();
-    let start_button = start_button
-        .dyn_into::<web_sys::HtmlButtonElement>()
-        .map_err(|_| ())
-        .unwrap();
-    let event_listener = EventListener::new(&start_button, "click", move |ev| {
+    let f = move || {
         canvas.set_width(video.video_width());
         canvas.set_height(video.video_height());
         context
@@ -130,7 +200,6 @@ async fn camera(image_url: WriteSignal<String>, video_id: &str, capture_button_i
             .unwrap();
         let data_url = canvas.to_data_url_with_type("image/png").unwrap();
         image_url(data_url.clone());
-        ev.prevent_default();
-    });
-    event_listener.forget();
+    };
+    Ok(Box::new(f))
 }
