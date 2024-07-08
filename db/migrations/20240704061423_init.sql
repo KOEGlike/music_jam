@@ -1,20 +1,14 @@
-CREATE TYPE access_token AS  (
-  access_token varchar NOT N,
-  expires_at BIGINT ,
-  scope varchar ,
-  refresh_token varchar
-);
-
-create access_token expires_at scope refresh_token as access_token 
-check (
-  (value).city is not null and 
-  (value).address_line is not null and
-  (value).zip_code is not null
+CREATE TABLE access_tokens  (
+  id char(24) UNIQUE PRIMARY KEY NOT NULL,
+  access_token varchar NOT NULL UNIQUE,
+  expires_at BIGINT NOT NULL,
+  scope varchar NOT NULL,
+  refresh_token varchar NOT NULL
 );
 
 CREATE TABLE hosts (
   id char(24) NOT NULL UNIQUE PRIMARY KEY,
-  access_token access_token UNIQUE
+  access_token char(24) UNIQUE REFERENCES access_tokens (id) ON DELETE CASCADE
 );
 
 CREATE TABLE jams (
@@ -27,11 +21,14 @@ CREATE TABLE jams (
 CREATE TABLE users (
   id char(24) UNIQUE PRIMARY KEY NOT NULL,
   jam_id char(6) NOT NULL REFERENCES jams (id) ON DELETE CASCADE,
-  name varchar(50) NOT NULL
+  name varchar(50) NOT NULL,
+  pfp_id char(24) UNIQUE NOT NULL
 );
 
-CREATE TYPE sp_image AS(
-  url varchar(255) ,
+CREATE TABLE images (
+  jam_id char(6) NOT NULL REFERENCES jams (id) ON DELETE CASCADE,
+  id char(24) UNIQUE PRIMARY KEY NOT NULL,
+  url varchar(255) NOT NULL,
   width bigint,
   height bigint
 );
@@ -42,9 +39,16 @@ CREATE TABLE songs (
   name varchar(50) NOT NULL,
   album varchar(50) NOT NULL,
   duration int NOT NULL,
-  image sp_image NOT NULL,
-  artists varchar(50)[] NOT NULL
+  image_id char(22) NOT NULL REFERENCES images (id)
 );
+
+CREATE TABLE artists (
+  id varchar(22) UNIQUE PRIMARY KEY NOT NULL,
+  song_id varchar(22) NOT NULL REFERENCES songs (id) ON DELETE CASCADE,
+  name varchar(50) NOT NULL
+);
+
+
 
 CREATE TABLE votes (
   id char(24) UNIQUE PRIMARY KEY NOT NULL,
