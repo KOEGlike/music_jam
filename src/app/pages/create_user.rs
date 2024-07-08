@@ -1,6 +1,6 @@
 use gloo::events::EventListener;
 use leptos::{
-    logging::{log, warn, error},
+    logging::{error, log, warn},
     prelude::*,
     *,
 };
@@ -47,21 +47,21 @@ pub fn CreateUserPage() -> impl IntoView {
 
     let (image_url, set_image_url) = create_signal(String::from("data:"));
     let video_id = "video";
-    let (update_take_picture, take_picture) = create_signal(()); 
-    let camera=create_local_resource(
+    let (update_take_picture, take_picture) = create_signal(());
+    let camera = create_local_resource(
         || (),
-        move |_| async move { camera(set_image_url, update_take_picture,video_id).await },
+        move |_| async move { camera(set_image_url, update_take_picture, video_id).await },
     );
-    
+
     let (name, set_name) = create_signal(String::new());
 
-    let create_user=create_action(move|_:&()| {
-        let name=name.get();
-        let pfp_url=image_url.get();
+    let create_user = create_action(move |_: &()| {
+        let name = name.get();
+        let pfp_url = image_url.get();
         async move {
-            match create_user(jam_id(),name,pfp_url).await {
+            match create_user(jam_id(), name, pfp_url).await {
                 Ok(user_id) => {
-                   log!("User created: {}", user_id);
+                    log!("User created: {}", user_id);
                 }
                 Err(e) => {
                     error!("Error creating user: {}", e);
@@ -72,17 +72,24 @@ pub fn CreateUserPage() -> impl IntoView {
     view! {
         <video id=video_id>"Video stream not available."</video>
         <img id="photo" prop:src=image_url alt="The screen capture will appear in this box."/>
-        <button id="capture-button" on:click = move|_| {take_picture(());}>
+        <button
+            id="capture-button"
+            on:click=move |_| {
+                take_picture(());
+            }
+        >
             {move || if camera.loading().get() { "Loading..." } else { "Take picture" }}
         </button>
-        <button on:click>
-            "Create User"
-        </button>
-        <input type="text" placeholder="Name" on:input=move |ev|set_name(event_target_value(&ev))/>
+        <button on:click=move |_| { create_user.dispatch(()) }>"Create User"</button>
+        <input type="text" placeholder="Name" on:input=move |ev| set_name(event_target_value(&ev))/>
     }
 }
 
-async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, video_id: &str) -> Result<(), String> {
+async fn camera(
+    image_url: WriteSignal<String>,
+    take_picture: ReadSignal<()>,
+    video_id: &str,
+) -> Result<(), String> {
     use wasm_bindgen::prelude::*;
     use wasm_bindgen_futures::JsFuture;
 
@@ -198,7 +205,8 @@ async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, vid
         }
     };
 
-    let f = move || {
+    create_effect(move |_| {
+        take_picture();
         canvas.set_width(video.video_width());
         canvas.set_height(video.video_height());
         context
@@ -210,13 +218,8 @@ async fn camera(image_url: WriteSignal<String>, take_picture:ReadSignal<()>, vid
                 video.video_height() as f64,
             )
             .unwrap();
-        let data_url = canvas.to_data_url_with_type("image/png").unwrap();
+        let data_url = canvas.to_data_url_with_type("image/webp").unwrap();
         image_url(data_url.clone());
-    };
-
-    create_effect(move |_|{
-        take_picture();
-        f();
     });
 
     Ok(())

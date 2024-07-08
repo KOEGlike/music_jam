@@ -19,18 +19,18 @@ pub async fn get_access_token(
     pool: &sqlx::PgPool,
     jam_id: &str,
 ) -> Result<rspotify::Token, sqlx::Error> {
-    #[allow(dead_code)]
+    #[derive(sqlx::Type)]
+    #[sqlx(type_name = "access_token")]
     struct AccessTokenDb {
         pub refresh_token: String,
         pub access_token: String,
         pub expires_at: i64,
         pub scope: String,
-        pub id: String,
     }
 
     let token = sqlx::query_as!(
         AccessTokenDb,
-        "SELECT * FROM access_tokens WHERE id=(SELECT access_token FROM hosts WHERE id=(SELECT host_id FROM jams WHERE id=$1))",
+        "SELECT access_token FROM hosts WHERE id=(SELECT host_id FROM jams WHERE id=$1)",
         jam_id
     )
     .fetch_one(pool)
@@ -72,10 +72,10 @@ pub async fn create_user(
         return Err(Error::Decode("not an image".to_string()));
     }
     let image_format = match data_url.mime_type().subtype.as_str() {
-        "image/jpeg" => image::ImageFormat::Jpeg,
-        "image/png" => image::ImageFormat::Png,
-        "image/gif" => image::ImageFormat::Gif,
-        "image/webp" => image::ImageFormat::WebP,
+        "jpeg" => image::ImageFormat::Jpeg,
+        "png" => image::ImageFormat::Png,
+        "gif" => image::ImageFormat::Gif,
+        "webp" => image::ImageFormat::WebP,
         _ => return Err(Error::Decode("unsupported image format".to_string())),
     };
     let image = match image::load_from_memory_with_format(&bytes, image_format) {
@@ -84,8 +84,8 @@ pub async fn create_user(
     };
     let image = image.resize(256, 256, image::imageops::FilterType::Lanczos3);
     
-    let image_id = cuid2::create_id();
-    let image_path = format!("./public/uploads/{}.webp", image_id);
+    let user_id= cuid2::create_id();
+    let image_path = format!("./public/uploads/{}.webp", user_id);
 
     match image.save(image_path) {
         Ok(_) => (),
@@ -93,12 +93,10 @@ pub async fn create_user(
     };
     
 
-    let user_id= cuid2::create_id();
-    sqlx::query!("INSERT INTO users(id, jam_id, name, pfp_id) VALUES ($1, $2, $3, $4);",
+    sqlx::query!("INSERT INTO users(id, jam_id, name) VALUES ($1, $2, $3);",
         user_id,
         jam_id,
         name,
-        image_id
     ).execute(pool).await?;
 
     Ok(user_id)
