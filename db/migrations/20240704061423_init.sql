@@ -21,16 +21,7 @@ CREATE TABLE jams (
 CREATE TABLE users (
   id char(24) UNIQUE PRIMARY KEY NOT NULL,
   jam_id char(6) NOT NULL REFERENCES jams (id) ON DELETE CASCADE,
-  name varchar(50) NOT NULL,
-  pfp_id char(24) UNIQUE NOT NULL
-);
-
-CREATE TABLE images (
-  jam_id char(6) NOT NULL REFERENCES jams (id) ON DELETE CASCADE,
-  id char(24) UNIQUE PRIMARY KEY NOT NULL,
-  url varchar(255) NOT NULL,
-  width bigint,
-  height bigint
+  name varchar(50) NOT NULL
 );
 
 CREATE TABLE songs (
@@ -38,8 +29,15 @@ CREATE TABLE songs (
   id varchar(22) UNIQUE PRIMARY KEY NOT NULL,
   name varchar(50) NOT NULL,
   album varchar(50) NOT NULL,
-  duration int NOT NULL,
-  image_id char(22) NOT NULL REFERENCES images (id)
+  duration int NOT NULL
+);
+
+CREATE TABLE images (
+  song_id varchar(22) NOT NULL REFERENCES songs (id) ON DELETE CASCADE,
+  id char(24) UNIQUE PRIMARY KEY NOT NULL,
+  url varchar(255) NOT NULL,
+  width bigint,
+  height bigint
 );
 
 CREATE TABLE artists (

@@ -19,18 +19,18 @@ pub async fn get_access_token(
     pool: &sqlx::PgPool,
     jam_id: &str,
 ) -> Result<rspotify::Token, sqlx::Error> {
-    #[derive(sqlx::Type)]
-    #[sqlx(type_name = "access_token")]
+    #[allow(dead_code)]
     struct AccessTokenDb {
         pub refresh_token: String,
         pub access_token: String,
         pub expires_at: i64,
         pub scope: String,
+        pub id: String,
     }
 
     let token = sqlx::query_as!(
         AccessTokenDb,
-        "SELECT access_token FROM hosts WHERE id=(SELECT host_id FROM jams WHERE id=$1)",
+        "SELECT * FROM access_tokens WHERE id=(SELECT access_token FROM hosts WHERE id=(SELECT host_id FROM jams WHERE id=$1))",
         jam_id
     )
     .fetch_one(pool)
@@ -123,7 +123,7 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sq
         JOIN users u ON s.user_id = u.id
         LEFT JOIN votes v ON s.id = v.song_id
         LEFT JOIN artists a ON s.id = a.song_id
-        LEFT JOIN images i ON s.image_id = i.id
+        LEFT JOIN images i ON i.song_id = s.id
         WHERE u.jam_id = $1
         GROUP BY s.id, i.id
         ORDER BY votes DESC, s.id DESC;",
@@ -227,21 +227,21 @@ pub async fn add_song(
         }
     } else {
         sqlx::query!(
-            "INSERT INTO images (id, url) VALUES ($1, $2);",
+            "INSERT INTO images (id, url, song_id) VALUES ($1, $2, $3);",
             &image_id,
-            &song.album.images[0].url
+            &song.album.images[0].url,
+            &song_id
         )
         .execute(&mut *transaction)
         .await?;
     }
 
-    sqlx::query!("INSERT INTO songs (id, user_id, name, album, duration, image_id) VALUES ($1, $2, $3, $4, $5, $6);",
+    sqlx::query!("INSERT INTO songs (id, user_id, name, album, duration) VALUES ($1, $2, $3, $4, $5);",
         song_id,
         user_id,
         song.name,
         song.album.name,
         song.duration.num_seconds() as i32,
-        &image_id
     ).execute( &mut *transaction).await?;
 
     for artist in song.artists {

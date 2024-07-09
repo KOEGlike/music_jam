@@ -1,4 +1,4 @@
-use gloo::events::EventListener;
+use gloo::storage::LocalStorage;
 use leptos::{
     logging::{error, log, warn},
     prelude::*,
@@ -6,8 +6,6 @@ use leptos::{
 };
 use leptos_router::*;
 use web_sys::MediaStream;
-
-use crate::components::create;
 
 #[server]
 async fn create_user(
@@ -39,7 +37,7 @@ pub fn CreateUserPage() -> impl IntoView {
                 .unwrap_or_else(|_| {
                     let navigate = use_navigate();
                     navigate("/", NavigateOptions::default());
-                    error!("No jam id provided, redirecting to home page");
+                    warn!("No jam id provided, redirecting to home page");
                     "".to_string()
                 })
         })

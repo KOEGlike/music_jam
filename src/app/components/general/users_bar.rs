@@ -23,15 +23,18 @@ pub fn UsersBar(
                         title=&user.name
                         class:kick-user=is_host
                         class="user-icon"
-                        on:click=move |_| {
-                            if let Some(ref kick_user) = *kick_user {
-                                kick_user(&user.id);
+                        on:click={
+                           let user_id = user.id.clone();
+                            move |_| {
+                                if let Some(ref kick_user) = *kick_user {
+                                    kick_user(&user_id);
+                                }
                             }
                         }
                     >
 
                         <img
-                            src=&user.pfp_id
+                            src=&user.id
                             alt=format!("This is the profile picture of {}", &user.name)
                         />
                         <svg viewBox=IoClose.view_box inner_html=IoClose.data></svg>

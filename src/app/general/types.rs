@@ -93,7 +93,6 @@ pub struct User {
     pub id: String,
     pub jam_id: String,
     pub name: String,
-    pub pfp_id: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
