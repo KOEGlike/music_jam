@@ -1,4 +1,5 @@
-use gloo::storage::LocalStorage;
+use futures_util::future::err;
+use gloo::storage::{LocalStorage, Storage};
 use leptos::{
     logging::{error, log, warn},
     prelude::*,
@@ -56,17 +57,24 @@ pub fn CreateUserPage() -> impl IntoView {
     let create_user = create_action(move |_: &()| {
         let name = name.get();
         let pfp_url = image_url.get();
-        async move {
-            match create_user(jam_id(), name, pfp_url).await {
-                Ok(user_id) => {
-                    log!("User created: {}", user_id);
-                }
-                Err(e) => {
-                    error!("Error creating user: {}", e);
-                }
-            }
-        }
+        async move { create_user(jam_id(), name, pfp_url).await }
     });
+
+    create_effect(move |_| {
+        if let Some(res) = create_user.value().get() {
+            match res {
+                Ok(id) => {
+                    if let Err(e) = LocalStorage::set("user_id", id) {
+                        error!("Error setting user id in local storage: {:?}", e);
+                    }
+                    let navigate = use_navigate();
+                    navigate(&("/jam/".to_owned()+&jam_id()), NavigateOptions::default());
+                },
+                Err(e) => error!("Error creating user: {:?}", e)
+            }
+        };
+    });
+
     view! {
         <video id=video_id>"Video stream not available."</video>
         <img id="photo" prop:src=image_url alt="The screen capture will appear in this box."/>
@@ -76,6 +84,7 @@ pub fn CreateUserPage() -> impl IntoView {
                 take_picture(());
             }
         >
+
             {move || if camera.loading().get() { "Loading..." } else { "Take picture" }}
         </button>
         <button on:click=move |_| { create_user.dispatch(()) }>"Create User"</button>
