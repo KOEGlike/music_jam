@@ -9,3 +9,6 @@ pub use user::*;
 
 pub mod home;
 pub use home::*;
+
+pub mod host;
+pub use host::*;

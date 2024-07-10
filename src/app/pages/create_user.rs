@@ -64,13 +64,16 @@ pub fn CreateUserPage() -> impl IntoView {
         if let Some(res) = create_user.value().get() {
             match res {
                 Ok(id) => {
-                    if let Err(e) = LocalStorage::set("user_id", id) {
+                    if let Err(e) = LocalStorage::set(&jam_id(), id) {
                         error!("Error setting user id in local storage: {:?}", e);
                     }
                     let navigate = use_navigate();
-                    navigate(&("/jam/".to_owned()+&jam_id()), NavigateOptions::default());
-                },
-                Err(e) => error!("Error creating user: {:?}", e)
+                    navigate(
+                        &("/jam/".to_owned() + &jam_id()),
+                        NavigateOptions::default(),
+                    );
+                }
+                Err(e) => error!("Error creating user: {:?}", e),
             }
         };
     });
@@ -84,11 +87,11 @@ pub fn CreateUserPage() -> impl IntoView {
                 take_picture(());
             }
         >
-
             {move || if camera.loading().get() { "Loading..." } else { "Take picture" }}
         </button>
         <button on:click=move |_| { create_user.dispatch(()) }>"Create User"</button>
         <input type="text" placeholder="Name" on:input=move |ev| set_name(event_target_value(&ev))/>
+
     }
 }
 

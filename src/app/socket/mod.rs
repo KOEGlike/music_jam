@@ -76,40 +76,7 @@ async fn handle_error(error: Error, close: bool, sender: &mpsc::Sender<ws::Messa
     }
 }
 
-async fn check_id_type(id: &str, pool: &sqlx::PgPool) -> Result<IdType, sqlx::Error> {
-    // Check if the ID exists in the hosts table
-    let host_check = sqlx::query!("SELECT EXISTS(SELECT 1 FROM hosts WHERE id = $1)", id)
-        .fetch_one(pool)
-        .await?;
 
-    if host_check.exists.unwrap_or(false) {
-        let jam_id = sqlx::query!("SELECT id FROM jams WHERE host_id = $1", id)
-            .fetch_one(pool)
-            .await?
-            .id;
-        return Ok(IdType::Host(Id {
-            id: id.to_string(),
-            jam_id,
-        }));
-    }
-
-    let user_check = sqlx::query!("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", id)
-        .fetch_one(pool)
-        .await?;
-
-    if user_check.exists.unwrap_or(false) {
-        let jam_id = sqlx::query!("SELECT jam_id FROM users WHERE id = $1", id)
-            .fetch_one(pool)
-            .await?
-            .jam_id;
-        return Ok(IdType::User(Id {
-            id: id.to_string(),
-            jam_id,
-        }));
-    }
-
-    Err(sqlx::Error::RowNotFound)
-}
 
 async fn send(
     mut receiver: mpsc::Receiver<ws::Message>,
