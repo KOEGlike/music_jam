@@ -1,6 +1,10 @@
 use crate::app::{general::types::*, pages::user};
 use chrono::format;
-use rspotify::model::{Image, SearchResult, TrackId};
+use rspotify::{
+    clients::BaseClient,
+    model::{Image, SearchResult, TrackId},
+};
+use web_sys::ReadableStreamByobRequest;
 
 pub async fn notify(
     channel: real_time::Channels,
@@ -15,26 +19,35 @@ pub async fn notify(
     Ok(())
 }
 
-pub async fn get_access_token(
+#[allow(dead_code)]
+struct AccessTokenDb {
+    pub refresh_token: String,
+    pub access_token: String,
+    pub expires_at: i64,
+    pub scope: String,
+    pub id: String,
+}
+
+async fn get_raw_access_token(
     pool: &sqlx::PgPool,
     jam_id: &str,
-) -> Result<rspotify::Token, sqlx::Error> {
-    #[allow(dead_code)]
-    struct AccessTokenDb {
-        pub refresh_token: String,
-        pub access_token: String,
-        pub expires_at: i64,
-        pub scope: String,
-        pub id: String,
-    }
-
-    let token = sqlx::query_as!(
+) -> Result<AccessTokenDb, sqlx::Error> {
+    sqlx::query_as!(
         AccessTokenDb,
         "SELECT * FROM access_tokens WHERE id=(SELECT access_token FROM hosts WHERE id=(SELECT host_id FROM jams WHERE id=$1))",
         jam_id
     )
     .fetch_one(pool)
-    .await?;
+    .await
+}
+
+pub async fn get_access_token(
+    pool: &sqlx::PgPool,
+    jam_id: &str,
+    reqwest_client: &reqwest::Client,
+) -> Result<rspotify::Token, Error> {
+    refresh_access_token(pool, jam_id, reqwest_client).await?;
+    let token = get_raw_access_token(pool, jam_id).await?;
 
     let expires_at = chrono::DateTime::from_timestamp(token.expires_at, 0).unwrap();
     let expires_at = Some(expires_at);
@@ -50,6 +63,77 @@ pub async fn get_access_token(
     };
 
     Ok(token)
+}
+
+pub async fn refresh_access_token(
+    pool: &sqlx::PgPool,
+    jam_id: &str,
+    reqwest_client: &reqwest::Client,
+) -> Result<(), Error> {
+    let token = get_raw_access_token(pool, jam_id).await?;
+    let now = chrono::Utc::now().timestamp();
+    if now < token.expires_at {
+        return Ok(());
+    }
+
+    let body = {
+        use std::collections::HashMap;
+        let mut body = HashMap::new();
+        body.insert("refresh_token", token.refresh_token.as_str());
+        body.insert("grant_type", "refresh_token");
+        body
+    };
+    let res = match reqwest_client
+        .post("https://accounts.spotify.com/api/token")
+        .form(&body)
+        .send()
+        .await
+    {
+        Ok(res) => res,
+        Err(e) => return Err(Error::Spotify(format!("could not send request: {}", e))),
+    };
+
+    #[derive(serde::Deserialize)]
+    struct AccessToken {
+        access_token: String,
+        token_type: String,
+        scope: String,
+        expires_in: i64,
+        refresh_token: String,
+    }
+
+    let res = match res.status() {
+        reqwest::StatusCode::OK | reqwest::StatusCode::CREATED => match res.text().await {
+            Ok(res) => res,
+            Err(e) => return Err(Error::Spotify(format!("could not read response: {}", e))),
+        },
+        _ => {
+            return Err(Error::Spotify(format!(
+                "error while acquiring spotify token: {:#?}",
+                res
+            )))
+        }
+    };
+
+    let token_id = token.id;
+
+    let token: AccessToken = match serde_json::from_str(&res) {
+        Ok(token) => token,
+        Err(e) => return Err(Error::Spotify(format!("could not parse response: {}", e))),
+    };
+
+    sqlx::query!(
+        "UPDATE access_tokens SET access_token=$1, expires_at=$2, scope=$3, refresh_token=$4 WHERE id=$5;",
+        token.access_token,
+        now + token.expires_in,
+        token.scope,
+        token.refresh_token,
+        token_id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
 }
 
 pub async fn create_user(
@@ -80,24 +164,36 @@ pub async fn create_user(
     };
     let image = match image::load_from_memory_with_format(&bytes, image_format) {
         Ok(image) => image,
-        Err(e) => return Err(Error::Decode(format!("could not decode image, error: {}", e))),
+        Err(e) => {
+            return Err(Error::Decode(format!(
+                "could not decode image, error: {}",
+                e
+            )))
+        }
     };
     let image = image.resize(256, 256, image::imageops::FilterType::Lanczos3);
-    
-    let user_id= cuid2::create_id();
+
+    let user_id = cuid2::create_id();
     let image_path = format!("./public/uploads/{}.webp", user_id);
 
     match image.save(image_path) {
         Ok(_) => (),
-        Err(e) => return Err(Error::FileSystem(format!("could not save image, error: {}",e))),
+        Err(e) => {
+            return Err(Error::FileSystem(format!(
+                "could not save image, error: {}",
+                e
+            )))
+        }
     };
-    
 
-    sqlx::query!("INSERT INTO users(id, jam_id, name) VALUES ($1, $2, $3);",
+    sqlx::query!(
+        "INSERT INTO users(id, jam_id, name) VALUES ($1, $2, $3);",
         user_id,
         jam_id,
         name,
-    ).execute(pool).await?;
+    )
+    .execute(pool)
+    .await?;
 
     Ok(user_id)
 }
@@ -201,11 +297,12 @@ pub async fn add_song(
     user_id: &str,
     jam_id: &str,
     pool: &sqlx::PgPool,
+    reqwest_client: &reqwest::Client,
 ) -> Result<(), Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
 
-    let token = get_access_token(pool, jam_id).await?;
+    let token = get_access_token(pool, jam_id, reqwest_client).await?;
     let client = AuthCodeSpotify::from_token(token);
     let track_id = TrackId::from_id(song_id)?;
     let song = client.track(track_id, None).await?;
@@ -236,13 +333,16 @@ pub async fn add_song(
         .await?;
     }
 
-    sqlx::query!("INSERT INTO songs (id, user_id, name, album, duration) VALUES ($1, $2, $3, $4, $5);",
+    sqlx::query!(
+        "INSERT INTO songs (id, user_id, name, album, duration) VALUES ($1, $2, $3, $4, $5);",
         song_id,
         user_id,
         song.name,
         song.album.name,
         song.duration.num_seconds() as i32,
-    ).execute( &mut *transaction).await?;
+    )
+    .execute(&mut *transaction)
+    .await?;
 
     for artist in song.artists {
         sqlx::query!(
@@ -260,11 +360,16 @@ pub async fn add_song(
     Ok(())
 }
 
-pub async fn search(query: &str, pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<Song>, Error> {
+pub async fn search(
+    query: &str,
+    pool: &sqlx::PgPool,
+    jam_id: &str,
+    reqwest_client: &reqwest::Client,
+) -> Result<Vec<Song>, Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
 
-    let token = get_access_token(pool, jam_id).await?;
+    let token = get_access_token(pool, jam_id, reqwest_client).await?;
     let client = AuthCodeSpotify::from_token(token);
     let result = client
         .search(
@@ -319,7 +424,6 @@ pub async fn remove_song(
     notify(real_time::Channels::Songs, jam_id, pool).await?;
     Ok(())
 }
-
 
 pub async fn check_id_type(id: &str, pool: &sqlx::PgPool) -> Result<IdType, sqlx::Error> {
     // Check if the ID exists in the hosts table
