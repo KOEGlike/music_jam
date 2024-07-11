@@ -1,7 +1,9 @@
-use leptos_router::*;
-use leptos::{logging::log, prelude::*, *};
-use gloo::storage::{LocalStorage, Storage};
 use crate::app::components::host_only::Player;
+use gloo::storage::{LocalStorage, Storage};
+use leptos::{logging::log, prelude::*, *};
+use leptos_router::*;
+use leptos_router::*;
+use leptos_use::{use_websocket, UseWebsocketReturn};
 
 #[component]
 pub fn HostPage() -> impl IntoView {
@@ -11,16 +13,24 @@ pub fn HostPage() -> impl IntoView {
         set_host_id(LocalStorage::get("host_id").unwrap());
     });
 
-    view!{
-        {
-            move||{
-                if !host_id().is_empty() {
-                    log!("host_id: {}", host_id());
-                    view!{<Player host_id={host_id()}/>}.into_view()
-                } else {
-                    "loading....".into_view()
-                }
+    let UseWebsocketReturn {
+        ready_state,
+        message_bytes,
+        open,
+        close,
+        send_bytes,
+        ..
+    } = use_websocket("socket");
+
+    
+    view! {
+        {move || {
+            if !host_id().is_empty() {
+                log!("host_id: {}", host_id());
+                view! { <Player host_id=host_id()/> }.into_view()
+            } else {
+                "loading....".into_view()
             }
-        }
+        }}
     }
 }

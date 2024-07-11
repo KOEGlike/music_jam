@@ -3,8 +3,6 @@ use leptos::{
     prelude::*,
     *,
 };
-use leptos_router::*;
-use leptos_use::{use_websocket, UseWebNotificationReturn, UseWebSocketOptions};
 use rust_spotify_web_playback_sdk::prelude as sp;
 
 #[server]

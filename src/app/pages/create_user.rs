@@ -64,7 +64,7 @@ pub fn CreateUserPage() -> impl IntoView {
         if let Some(res) = create_user.value().get() {
             match res {
                 Ok(id) => {
-                    if let Err(e) = LocalStorage::set(&jam_id(), id) {
+                    if let Err(e) = LocalStorage::set(jam_id(), id) {
                         error!("Error setting user id in local storage: {:?}", e);
                     }
                     let navigate = use_navigate();

@@ -1,10 +1,10 @@
 use crate::app::{general::types::*, pages::user};
+use leptos::logging::*;
 use rspotify::{
     clients::BaseClient,
     model::{Image, SearchResult, TrackId},
 };
 use web_sys::ReadableStreamByobRequest;
-use leptos::logging::*;
 
 pub async fn notify(
     channel: real_time::Channels,
@@ -63,7 +63,6 @@ pub async fn get_access_token(
         scopes: rspotify::scopes!(token.scope),
     };
 
-
     Ok(token)
 }
 
@@ -75,7 +74,6 @@ pub async fn refresh_access_token(
     let token = get_raw_access_token(pool, jam_id).await?;
     let now = chrono::Utc::now().timestamp();
     if now < token.expires_at {
-        log!("token is still valid");
         return Ok(());
     }
 
@@ -203,6 +201,8 @@ pub async fn create_user(
     )
     .execute(pool)
     .await?;
+
+    notify(real_time::Channels::Users, jam_id, pool).await?;
 
     Ok(user_id)
 }
