@@ -11,6 +11,7 @@ pub async fn read(
     app_state: AppState,
 ) {
     let pool = &app_state.db.pool;
+    let reqwest_client = &app_state.reqwest_client;
 
     while let Some(message) = receiver.next().await {
         let message = match message {
@@ -61,7 +62,7 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                if let Err(error) = add_song(&song_id, &id.id, &id.jam_id, pool).await {
+                if let Err(error) = add_song(&song_id, &id.id, &id.jam_id, pool, reqwest_client).await {
                     handle_error(error, false, &sender).await;
                 };
             }
@@ -121,7 +122,7 @@ pub async fn read(
                 }
             }
             real_time::Request::Search { query } => {
-                let songs = match search(&query, pool, id.jam_id()).await {
+                let songs = match search(&query, pool, id.jam_id(), reqwest_client).await {
                     Ok(songs) => songs,
                     Err(e) => {
                         handle_error(e, false, &sender).await;

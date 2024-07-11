@@ -1,10 +1,10 @@
 use crate::app::{general::types::*, pages::user};
-use chrono::format;
 use rspotify::{
     clients::BaseClient,
     model::{Image, SearchResult, TrackId},
 };
 use web_sys::ReadableStreamByobRequest;
+use leptos::logging::*;
 
 pub async fn notify(
     channel: real_time::Channels,
@@ -20,6 +20,7 @@ pub async fn notify(
 }
 
 #[allow(dead_code)]
+#[derive(Debug, Clone)]
 struct AccessTokenDb {
     pub refresh_token: String,
     pub access_token: String,
@@ -62,6 +63,7 @@ pub async fn get_access_token(
         scopes: rspotify::scopes!(token.scope),
     };
 
+
     Ok(token)
 }
 
@@ -73,6 +75,7 @@ pub async fn refresh_access_token(
     let token = get_raw_access_token(pool, jam_id).await?;
     let now = chrono::Utc::now().timestamp();
     if now < token.expires_at {
+        log!("token is still valid");
         return Ok(());
     }
 
@@ -93,7 +96,7 @@ pub async fn refresh_access_token(
         Err(e) => return Err(Error::Spotify(format!("could not send request: {}", e))),
     };
 
-    #[derive(serde::Deserialize)]
+    #[derive(serde::Deserialize, Debug)]
     struct AccessToken {
         access_token: String,
         token_type: String,
@@ -115,12 +118,16 @@ pub async fn refresh_access_token(
         }
     };
 
+    log!("got response: {:#?}", res);
+
     let token_id = token.id;
 
     let token: AccessToken = match serde_json::from_str(&res) {
         Ok(token) => token,
         Err(e) => return Err(Error::Spotify(format!("could not parse response: {}", e))),
     };
+
+    log!("got token: {:#?}", token);
 
     sqlx::query!(
         "UPDATE access_tokens SET access_token=$1, expires_at=$2, scope=$3, refresh_token=$4 WHERE id=$5;",
@@ -132,6 +139,8 @@ pub async fn refresh_access_token(
     )
     .execute(pool)
     .await?;
+
+    log!("updated token");
 
     Ok(())
 }

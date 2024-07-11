@@ -1,4 +1,8 @@
-use leptos::{logging::log, prelude::*, *};
+use leptos::{
+    logging::{error, log},
+    prelude::*,
+    *,
+};
 use leptos_router::*;
 use leptos_use::{use_websocket, UseWebNotificationReturn, UseWebSocketOptions};
 use rust_spotify_web_playback_sdk::prelude as sp;
@@ -39,37 +43,62 @@ async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnEr
 
 #[component]
 pub fn Player(host_id: String) -> impl IntoView {
-    let (player_is_ready, set_player_is_ready) = create_signal(false);
+    let (player_is_connected, set_player_is_connected) = create_signal(false);
     let token = create_action(move |_: &()| {
         let host_id = host_id.clone();
         async move { get_access_token(host_id).await }
     });
 
-    create_effect(move |_| {
-        if !token.pending().get() {
-            token.dispatch(());
-            return;
+    token.dispatch(());
+
+    let connect = create_action(move |_: &()| async move { sp::connect().await });
+
+    create_effect(move |_| match connect.value().get() {
+        Some(Ok(_)) => {
+            set_player_is_connected(true);
         }
-
-        let token_value = token.value().get();
-        let token_value = match token_value {
-            Some(Ok(token)) => token,
-            Some(Err(e)) => {
-                log!("{:?}", e);
-                return;
-            }
-            None => return,
-        };
-
-        sp::init(
-            move || {
-                token.dispatch(());
-                token_value.access_token.clone()
-            },
-            move || set_player_is_ready(true),
-            "jam",
-            1.0,
-            false,
-        );
+        Some(Err(e)) => {
+            error!("error while connecting to spotify:{:?}", e);
+        }
+        None => {}
     });
+
+    
+
+    create_effect(move |_|{
+        if !sp::player_ready()   {
+            if let Some(Ok(token_value)) = token.value().get() {
+                sp::init(
+                    move || {
+                        token.dispatch(());
+                        token_value.access_token.clone()
+                    },
+                    move || {
+                        log!("player is ready");
+                        connect.dispatch(());
+                    },
+                    "jam",
+                    1.0,
+                    false,
+                );
+            }
+        }
+    });
+
+    let toggle_play = create_action(move |_: &()| async {
+        if let Err(e) = sp::toggle_play().await {
+            error!("Error toggling play: {:?}", e);
+        }
+    });
+
+    view! {
+        {move || {
+            if player_is_connected() {
+                view! { <button on:click=move |_| toggle_play.dispatch(())>"Play"</button> }
+                    .into_view()
+            } else {
+                "loading...".into_view()
+            }
+        }}
+    }
 }
