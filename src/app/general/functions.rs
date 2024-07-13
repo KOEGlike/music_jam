@@ -207,6 +207,20 @@ pub async fn create_user(
     Ok(user_id)
 }
 
+pub async fn notify_all(jam_id: &str, pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+    let err = tokio::join!(
+        notify(real_time::Channels::Songs, jam_id, pool),
+        notify(real_time::Channels::Users, jam_id, pool),
+        notify(real_time::Channels::Votes, jam_id, pool)
+    );
+
+    err.0?;
+    err.1?;
+    err.2?;
+
+    Ok(())
+}
+
 pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sqlx::Error> {
     struct SongDb {
         pub id: String,

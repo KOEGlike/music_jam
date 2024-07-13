@@ -43,17 +43,22 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
     };
 
     let bridge_task = tokio::spawn(send(mpsc_receiver, sender));
-    let send_task = tokio::spawn(write::write(
-        mpsc_sender.clone(),
-        id.clone(),
-        app_state.clone(),
-    ));
     let recv_task = tokio::spawn(read::read(
         receiver,
         mpsc_sender.clone(),
         id.clone(),
         app_state.clone(),
     ));
+    
+    let send_task = tokio::spawn(write::write(
+        mpsc_sender.clone(),
+        id.clone(),
+        app_state.clone(),
+    ));
+
+    if let Err(e)=notify_all(id.jam_id(), &app_state.db.pool).await {
+        handle_error(e.into(), false, &mpsc_sender).await;
+    }
 
     bridge_task.await.unwrap();
     send_task.abort();
@@ -75,8 +80,6 @@ async fn handle_error(error: Error, close: bool, sender: &mpsc::Sender<ws::Messa
         sender.send(ws::Message::Binary(bin)).await.unwrap();
     }
 }
-
-
 
 async fn send(
     mut receiver: mpsc::Receiver<ws::Message>,

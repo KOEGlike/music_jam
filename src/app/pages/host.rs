@@ -1,4 +1,8 @@
-use crate::app::components::{host_only::Player, Share, SongList, UsersBar};
+use crate::app::components::{
+    general::song_list::{SongAction, SongList},
+    host_only::Player,
+    Share, UsersBar,
+};
 use crate::app::general::types::*;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{
@@ -65,9 +69,40 @@ pub fn HostPage() -> impl IntoView {
             }
         });
 
+        let remove_song = {
+            let send_bytes = send_bytes.clone();
+            move |id| {
+                let request = real_time::Request::RemoveSong { song_id: id };
+                let bin = rmp_serde::to_vec(&request).unwrap();
+                send_bytes(bin);
+            }
+        };
+
+        let request_update = {
+            let send_bytes = send_bytes.clone();
+            move || {
+                send_bytes.clone()(rmp_serde::to_vec(&real_time::Request::Update).unwrap());
+            }
+        };
+
+        let kick_user= {
+            let send_bytes = send_bytes.clone();
+            move |id| {
+                let request = real_time::Request::KickUser { user_id: id };
+                let bin = rmp_serde::to_vec(&request).unwrap();
+                send_bytes(bin);
+            }
+        };
+
         let view = view! {
-            <UsersBar users=users/>
+            <UsersBar users=users kick_user=kick_user.into()/>
             <Player host_id=host_id()/>
+            <SongList
+                songs=songs
+                votes=votes
+                request_update=request_update
+                song_action=SongAction::Remove(remove_song.into())
+            />
         }
         .into_view();
         Some(view)

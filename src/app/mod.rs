@@ -33,6 +33,7 @@ pub fn App() -> impl IntoView {
                     <Route path="/create-host" view=pages::CreateHostPage/>
                     <Route path="/create-user/:id" view=pages::CreateUserPage/>
                     <Route path="/jam/host/:id" view=pages::HostPage/>
+                    <Route path="/jam/:id" view=pages::UserPage/>
                 </Routes>
             </main>
         </Router>

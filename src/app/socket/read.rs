@@ -62,7 +62,9 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                if let Err(error) = add_song(&song_id, &id.id, &id.jam_id, pool, reqwest_client).await {
+                if let Err(error) =
+                    add_song(&song_id, &id.id, &id.jam_id, pool, reqwest_client).await
+                {
                     handle_error(error, false, &sender).await;
                 };
             }
@@ -105,19 +107,7 @@ pub async fn read(
                 };
             }
             real_time::Request::Update => {
-                let err = tokio::join!(
-                    notify(real_time::Channels::Songs, id.jam_id(), pool),
-                    notify(real_time::Channels::Users, id.jam_id(), pool),
-                    notify(real_time::Channels::Votes, id.jam_id(), pool)
-                );
-
-                if let Err(e) = err.0 {
-                    handle_error(e.into(), false, &sender).await;
-                } 
-                if let Err(e) = err.1 {
-                    handle_error(e.into(), false, &sender).await;
-                }
-                if let Err(e) = err.2 {
+                if let Err(e) = notify_all(id.jam_id(), pool).await {
                     handle_error(e.into(), false, &sender).await;
                 }
             }
@@ -137,7 +127,6 @@ pub async fn read(
                     eprintln!("Error sending message: {:?}", e);
                     break;
                 }
-            
             }
         }
     }

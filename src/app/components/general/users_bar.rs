@@ -33,7 +33,7 @@ pub fn UsersBar(
                     >
 
                         <img
-                            src=&user.id
+                            src=format!("/uploads/{}.webp",&user.id)
                             alt=format!("This is the profile picture of {}", &user.name)
                         />
                         <svg viewBox=IoClose.view_box inner_html=IoClose.data></svg>
