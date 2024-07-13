@@ -14,8 +14,8 @@ where
 
 #[component]
 pub fn SongList(
-    songs: ReadSignal<Vec<Song>>,
-    votes: ReadSignal<Votes>,
+    songs: impl Fn() -> Vec<Song> + 'static,
+    votes: impl Fn() -> Votes + 'static,
     request_update: impl Fn() + 'static,
     song_action: SongAction<impl Fn(&str) + Clone + 'static>,
 ) -> impl IntoView {
@@ -54,7 +54,7 @@ pub fn SongList(
                             move |_| {
                                 match song_action.borrow() {
                                     SongAction::Vote(vote) => vote(&song_id),
-                                    SongAction::Remove(_) => {}
+                                    SongAction::Remove(remove) => remove(&song_id),
                                 }
                             }
                         }>

@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 #[component]
 pub fn UsersBar(
-    users: ReadSignal<Vec<User>>,
+    users: impl Fn() -> Vec<User> + 'static,
     #[prop(optional)] 
     kick_user: Option<impl Fn(&str) + 'static>,
 ) -> impl IntoView {
