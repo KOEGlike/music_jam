@@ -1,7 +1,11 @@
-use crate::app::components::{host_only::Player};
+use crate::app::components::{host_only::Player, Share, SongList, UsersBar};
 use crate::app::general::types::*;
 use gloo::storage::{LocalStorage, Storage};
-use leptos::{logging::{log, error}, prelude::*, *};
+use leptos::{
+    logging::{error, log},
+    prelude::*,
+    *,
+};
 use leptos_use::{use_websocket, UseWebsocketReturn};
 use rspotify::model::user;
 
@@ -54,12 +58,18 @@ pub fn HostPage() -> impl IntoView {
                     real_time::Update::Songs(songs) => set_songs(songs),
                     real_time::Update::Votes(votes) => set_votes(votes),
                     real_time::Update::Error(e) => error!("Error: {:#?}", e),
-                    real_time::Update::Search(_) => {error!("Unexpected search update")},
+                    real_time::Update::Search(_) => {
+                        error!("Unexpected search update")
+                    }
                 }
             }
         });
 
-        let view = view! { <Player host_id=host_id()/> }.into_view();
+        let view = view! {
+            <UsersBar users=users/>
+            <Player host_id=host_id()/>
+        }
+        .into_view();
         Some(view)
     };
 

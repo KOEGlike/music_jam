@@ -4,20 +4,18 @@ use leptos::{logging::log, prelude::*, *};
 use std::{borrow::Borrow, rc::Rc};
 
 #[derive(Clone, Debug)]
-pub enum SongAction<F>
-where
-    F: Fn(&str) + Clone + 'static,
+pub enum SongAction
 {
-    Vote(F),
-    Remove(F),
+    Vote(Callback<String>),
+    Remove(Callback<String>),
 }
 
 #[component]
 pub fn SongList(
-    songs: impl Fn() -> Vec<Song> + 'static,
-    votes: impl Fn() -> Votes + 'static,
+    songs: ReadSignal<Vec<Song>>,
+    votes: ReadSignal<Votes>,
     request_update: impl Fn() + 'static,
-    song_action: SongAction<impl Fn(&str) + Clone + 'static>,
+    song_action: SongAction,
 ) -> impl IntoView {
     let songs = move || {
         let songs = songs();
@@ -38,7 +36,7 @@ pub fn SongList(
             .collect::<Vec<_>>()
     };
 
-    let song_action = Rc::new(song_action);
+    //let song_action = Rc::new(song_action);
 
     view! {
         <div class="song-list">
@@ -46,15 +44,15 @@ pub fn SongList(
                 each=songs
                 key=|song| song.id.clone()
                 children=move |song| {
-                    let song_action = Rc::clone(&song_action);
+                    //let song_action = Rc::clone(&song_action);
                     view! {
                         <div on:click={
-                            let song_action = Rc::clone(&song_action);
-                            let song_id = song.id.clone();
+                            let song_action = song_action.clone();
+                            
                             move |_| {
-                                match song_action.borrow() {
-                                    SongAction::Vote(vote) => vote(&song_id),
-                                    SongAction::Remove(remove) => remove(&song_id),
+                                match song_action.clone() {
+                                    SongAction::Vote(vote) => vote(song.id.clone()),
+                                    SongAction::Remove(remove) => remove(song.id.clone()),
                                 }
                             }
                         }>
@@ -74,7 +72,6 @@ pub fn SongList(
                             </div>
 
                             {
-                                let song_action = Rc::clone(&song_action);
                                 let song_id = song.id.clone();
                                 match song_action.borrow() {
                                     SongAction::Vote(_) => song.votes.into_view(),
@@ -84,7 +81,7 @@ pub fn SongList(
                                             <button
                                                 class="remove-song"
                                                 on:click=move |_| {
-                                                    remove_song(&song_id);
+                                                    remove_song(song_id.clone());
                                                 }
                                             >
 
