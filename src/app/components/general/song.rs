@@ -2,7 +2,7 @@ use leptos::{*, prelude::*};
 use crate::app::general::types::*;
 use icondata::IoClose;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub enum SongAction {
     Vote(Callback<String>),
     Remove(Callback<String>),
@@ -16,11 +16,12 @@ pub fn Song(
 ) -> impl IntoView {
 
     view! {
-        <div on:click={
-            let song_action = song_action.clone();
+        <div
+        class="song"
+         on:click={
             let song_id = song.id.clone();
             move |_| {
-                match song_action.clone() {
+                match song_action {
                     SongAction::Vote(vote) => vote(song_id.clone()),
                     SongAction::Remove(remove) => remove(song_id.clone()),
                     SongAction::Add(add) => add(song_id.clone()),
@@ -28,7 +29,9 @@ pub fn Song(
             }
         }>
 
-            <div>
+            <div
+                class="song-info"
+            >
                 <img
                     src=&song.image.url
                     alt=format!("This is the album cover of {}", &song.name)
@@ -42,12 +45,14 @@ pub fn Song(
                 </div>
             </div>
 
-            {
+            <div 
+                class="song-action"
+            >{
                 let song = song.clone();
                 let song_id = song.id.clone();
                 match song_action {
                     SongAction::Vote(_) => song.votes.into_view(),
-                    SongAction::Add(_)=>todo!(),
+                    SongAction::Add(_)=>"+".into_view(),
                     SongAction::Remove(remove_song) => {
                         view! {
                             <button
@@ -64,6 +69,7 @@ pub fn Song(
                     }
                 }
             }
+            </div>
 
         </div>
 

@@ -1,0 +1,42 @@
+@use '../defaults' as *;
+
+.song {
+    @extend .glass-element;
+
+    height: 75px;
+    width: 300px;
+    border-radius: 10px;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0px 28px 0px 5px;
+
+    .song-info {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        align-items: center;
+        justify-content: start;
+
+        img {
+            width: 65px;
+            height: 65px;
+            border-radius: 5px;
+        }
+
+        div {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            justify-content: center;
+            align-items: start;
+
+            font-family: "Roboto Mono", monospace;
+            font-weight: bold;
+            font-size: 20px;
+        }
+    }
+
+}

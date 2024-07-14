@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
+
 $colors: (
 	"bg": #343434,
 	"shadow": #585858,
@@ -7,6 +9,8 @@ $colors: (
 	"err": #ff2020,
 	"primary": #3187ff,
 	"secondary": #ff26f1,
+	"glass":#b5b5b530,
+	"glass-border": #b5b5b5,
 );
 
 $opacities: (

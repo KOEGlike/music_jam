@@ -1,13 +1,16 @@
 use crate::app::general::*;
 use icondata::AiSearchOutlined;
 use leptos::{logging::log, prelude::*, *};
+use crate::app::components::{Song, SongAction};
 
 #[component]
 pub fn Search<F1,F2>(search_result: ReadSignal<Vec<Song>>, search: F1, add_song:F2) -> impl IntoView
 where
-    F1: Fn(&str) + 'static,
-    F2: Fn(&str) + 'static,
+    F1: Fn(String) + 'static,
+    F2: Fn(String) + 'static,
 {
+
+    let add_song=Callback::new(add_song);
     view! {
         <div class="search">
             <div>
@@ -15,7 +18,7 @@ where
                     type="text"
                     placeholder="Search for a song"
                     on:input=move |ev| {
-                        search(&event_target_value(&ev));
+                        search(event_target_value(&ev));
                     }
                 />
 
@@ -29,21 +32,7 @@ where
                     key=|song| song.id.clone()
                     children=move |song| {
                         view! {
-                            <div on:click=|_| {}>
-                                <div>
-                                    <img
-                                        src=&song.image.url
-                                        alt=format!("This is the album cover of {}", &song.name)
-                                    />
-                                    <div>
-                                        {&song.name}
-                                        <div>
-                                            {&song.artists.join(", ")} "·" {song.duration % 60} "."
-                                            {song.duration / 60}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <Song song=song.clone() song_action=SongAction::Add(add_song)/>
                         }
                     }
                 />

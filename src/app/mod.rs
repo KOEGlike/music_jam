@@ -30,6 +30,7 @@ pub fn App() -> impl IntoView {
                     <Route path="/create-user/:id" view=pages::CreateUserPage/>
                     <Route path="/jam/host/:id" view=pages::HostPage/>
                     <Route path="/jam/:id" view=pages::UserPage/>
+                    <Route path="/test" view=Test/>
                 </Routes>
             </main>
         </Router>
@@ -49,7 +50,7 @@ pub fn Test() -> impl IntoView {
         user_id: None,
         name: "Yesterday".to_string(),
         artists: vec!["Beatles".to_string()],
-        album: todo!(),
+        album: "Help!".to_string(),
         duration: 240,
         image: general::Image {
             height: Some(64),
