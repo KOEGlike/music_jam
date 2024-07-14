@@ -1,5 +1,5 @@
 use crate::app::components::{
-    general::song_list::{SongAction, SongList},
+   SongAction, SongList,
     host_only::Player,
     Share, UsersBar,
 };

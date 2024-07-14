@@ -2,26 +2,22 @@ use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 pub mod components;
-pub mod pages;
 pub mod general;
-
+pub mod pages;
 
 #[cfg(feature = "ssr")]
 pub mod socket;
 
-use components::error_template::*;
+use components::{error_template::*, song};
 
 #[component]
 pub fn App() -> impl IntoView {
-    // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
     view! {
         <Stylesheet id="leptos" href="/pkg/music_jam.css"/>
 
-        // sets the document title
         <Title text="Welcome to Leptos"/>
 
-        // content for this welcome page
         <Router fallback=|| {
             let mut outside_errors = Errors::default();
             outside_errors.insert_with_default_key(AppError::NotFound);
@@ -40,68 +36,28 @@ pub fn App() -> impl IntoView {
     }
 }
 
-
 #[component]
-fn TestSocketRead() -> impl IntoView {
-    use crate::app::general::*;
-    use leptos_use::{core::ConnectionReadyState, use_websocket, UseWebsocketReturn};
-    let id = "123456789012345678901234";
+pub fn Test() -> impl IntoView {
+    use components::{Song, SongAction};
+    let cb = Callback::new(move |id| {
+        leptos::logging::log!("Add song with id: {}", id);
+    });
+    let song_action = SongAction::Add(cb);
 
-    let UseWebsocketReturn {
-        ready_state,
-        message_bytes,
-        send_bytes,
-        open,
-        message,
-        ..
-    } = use_websocket(&format!("ws://localhost:3000/socket?id={}", id));
-
-    let update = move || match message_bytes() {
-        Some(m) => rmp_serde::from_slice::<real_time::Update>(&m).unwrap(),
-        None => real_time::Update::Error(Error::Database(
-            "idk this is on the client side so it should never happen".to_string(),
-        )),
+    let song = general::Song {
+        id: "lol".to_string(),
+        user_id: None,
+        name: "Yesterday".to_string(),
+        artists: vec!["Beatles".to_string()],
+        album: todo!(),
+        duration: 240,
+        image: general::Image {
+            height: Some(64),
+            url: "https://i.scdn.co/image/ab67616d00004851099b70ad78a864219e894dca".to_string(),
+            width: Some(64),
+        },
+        votes: 2,
     };
 
-    let send = move || {
-        let message = real_time::Request::AddSong {
-            song_id: "song_id".to_string(),
-        };
-        let message = rmp_serde::to_vec(&message).unwrap();
-        send_bytes(message);
-    };
-
-    create_effect(move |_| {
-        let message = match ready_state() {
-            ConnectionReadyState::Connecting => "Connecting",
-            ConnectionReadyState::Open => "Open",
-            ConnectionReadyState::Closing => "Closing",
-            ConnectionReadyState::Closed => "Closed",
-        };
-        leptos::logging::log!("{message}");
-    });
-
-    create_effect(move |_| {
-        leptos::logging::log!("{:?}",message());
-    });
-
-    create_effect(move |_| {
-        leptos::logging::log!("{:?}", update());
-    });
-
-    view! {
-        <button on:click=move |_| open()>"Open"</button>
-        <br/>
-        <button on:click=move |_| send()>"Send"</button>
-        <br/>
-        {move || match ready_state() {
-            ConnectionReadyState::Connecting => "Connecting",
-            ConnectionReadyState::Open => "Open",
-            ConnectionReadyState::Closing => "Closing",
-            ConnectionReadyState::Closed => "Closed",
-        }}
-
-        <br/>
-        {move || format!("{:#?}", update())}
-    }
+    view! { <Song song=song song_action=song_action/> }
 }

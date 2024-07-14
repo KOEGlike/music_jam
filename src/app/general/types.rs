@@ -2,6 +2,7 @@
 use axum::extract::FromRef;
 use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
+pub use rspotify::model::image::Image;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpotifyCredentials {
@@ -110,7 +111,7 @@ pub struct Song {
     pub artists: Vec<String>,
     pub album: String,
     pub duration: u16,
-    pub image: rspotify::model::image::Image,
+    pub image: Image,
     pub votes: i64,
 }
 
