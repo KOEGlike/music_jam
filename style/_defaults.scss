@@ -2,15 +2,13 @@
 
 $colors: (
 	"bg": #343434,
+	"glass":#b5b5b5,
+	"glass-border": #888888,
+	"font":#ffffff,
 	"shadow": #585858,
-	"white": #ffffff,
 	"spotify": #1DB954,
 	"ok": #00ff00,
-	"err": #ff2020,
-	"primary": #3187ff,
-	"secondary": #ff26f1,
-	"glass":#b5b5b530,
-	"glass-border": #b5b5b5,
+	"err": #ff2020
 );
 
 $opacities: (
@@ -22,7 +20,7 @@ $opacities: (
 
 $font-stack: Josefin Sans, sans-serif;
 
-$border: 1px solid rgba(map-get($colors, "white"), map-get($opacities, "border"));
+$border: 1px solid rgba(map-get($colors, "glass-border"), map-get($opacities, "border"));
 
 $border-radiuses: (
 	"small": 10px,
@@ -42,11 +40,11 @@ $blur: blur(12px);
 
 .glass {
 	box-sizing: border-box;
-	background-color: rgba(map-get($colors, "white"), map-get($opacities, "bg"));
+	background-color: rgba(map-get($colors, "glass"), map-get($opacities, "bg"));
 	border: $border;
 	backdrop-filter: $blur;
 	-webkit-backdrop-filter: $blur;
-	color: map-get($colors, "white");
+	color: map-get($colors, "font");
 	box-shadow: 0 8px 32px 0 map-get($colors, "shadow");
 }
 
@@ -56,11 +54,11 @@ $blur: blur(12px);
 }
 
 .glass-element:hover {
-	background-color: rgba(map-get($colors, "white"), map-get($opacities, "hover"));
+	background-color: rgba(map-get($colors, "glass"), map-get($opacities, "hover"));
 }
 
 .glass-element:active {
-	background-color: rgba(map-get($colors, "white"), map-get($opacities, "selected"));
+	background-color: rgba(map-get($colors, "glass"), map-get($opacities, "selected"));
 }
 
 .glass-element_err {
@@ -126,7 +124,7 @@ body {
 
 .text-input:focus {
 	outline: none;
-	background-color: rgba(map-get($colors, "white"), map-get($opacities, "selected"));
+	background-color: rgba(map-get($colors, "font"), map-get($opacities, "selected"));
 }
 
 .input-with-label {
@@ -146,6 +144,7 @@ body {
 	display: flex;
 	flex-direction: column;
 	justify-content: start;
+	align-items: center;
 	border-radius: map-get($border-radiuses, "large");
 	width: 350px;
 	height: 600px;

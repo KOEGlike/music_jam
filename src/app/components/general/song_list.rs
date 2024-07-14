@@ -38,7 +38,7 @@ where
                 each=songs
                 key=|song| song.id.clone()
                 children=move |song| {
-                    view! { <Song song=song.clone() song_action=song_action.clone()/> }
+                    view! { <Song song=song.clone() song_action=song_action/> }
                 }
             />
 

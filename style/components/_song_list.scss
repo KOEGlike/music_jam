@@ -1,0 +1,9 @@
+@use '../defaults' as *;
+
+.song-list {
+    @extend .standard-island;
+    gap: 10px;
+    padding-top: 25px;
+    padding-bottom: 25px;
+    overflow: scroll;
+}

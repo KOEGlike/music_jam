@@ -39,7 +39,7 @@ pub fn App() -> impl IntoView {
 
 #[component]
 pub fn Test() -> impl IntoView {
-    use components::{Song, SongAction};
+    use components::{Song, SongAction, SongList};
     let cb = Callback::new(move |id| {
         leptos::logging::log!("Add song with id: {}", id);
     });
@@ -54,11 +54,21 @@ pub fn Test() -> impl IntoView {
         duration: 240,
         image: general::Image {
             height: Some(64),
-            url: "https://i.scdn.co/image/ab67616d00004851099b70ad78a864219e894dca".to_string(),
+            url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
             width: Some(64),
         },
         votes: 2,
     };
 
-    view! { <Song song=song song_action=song_action/> }
+    let songs = {
+        let mut songs = Vec::new();
+        for _ in 0..10 {
+            songs.push(song.clone());
+        }
+        songs
+    };
+    let (songs, _) = create_signal(songs);
+    let (votes, _) = create_signal(general::Votes::new());
+
+    view! { <SongList songs=songs votes=votes song_action=song_action request_update=move||{leptos::logging::log!("requested update.....")}/> }
 }
