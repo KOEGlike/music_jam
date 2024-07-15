@@ -221,6 +221,15 @@ pub async fn notify_all(jam_id: &str, pool: &sqlx::PgPool) -> Result<(), sqlx::E
     Ok(())
 }
 
+pub async fn reset_votes(jam_id: &str, pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query!("DELETE FROM votes WHERE song_id IN (SELECT id FROM songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1));", jam_id)
+        .execute(pool)
+        .await?;
+
+    notify(real_time::Channels::Votes, jam_id, pool).await?;
+    Ok(())
+}
+
 pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sqlx::Error> {
     struct SongDb {
         pub id: String,

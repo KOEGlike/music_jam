@@ -112,7 +112,18 @@ pub async fn read(
                 }
             }
             real_time::Request::Search { query } => {
-                let songs = match search(&query, pool, id.jam_id(), reqwest_client).await {
+                let id= match only_user(
+                    &id,
+                    "Only users can search, this is a bug, terminating socket connection",
+                    &sender,
+                )
+                .await
+                {
+                    Ok(id) => id,
+                    Err(_) => break,
+                };
+                
+                let songs = match search(&query, pool, &id.jam_id, reqwest_client).await {
                     Ok(songs) => songs,
                     Err(e) => {
                         handle_error(e, false, &sender).await;
@@ -127,6 +138,23 @@ pub async fn read(
                     eprintln!("Error sending message: {:?}", e);
                     break;
                 }
+            }
+            real_time::Request::ResetVotes => {
+                let id = match only_host(
+                    &id,
+                    "Only hosts can reset votes, this is a bug, terminating socket connection",
+                    &sender,
+                )
+                .await
+                {
+                    Ok(id) => id,
+                    Err(_) => break,
+                };
+
+                if let Err(error)=reset_votes(&id.jam_id, pool).await{
+                    let error=Error::Database(format!("Error resetting votes: {}", error));
+                    handle_error(error, false, &sender).await;
+                };
             }
         }
     }

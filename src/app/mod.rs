@@ -30,7 +30,7 @@ pub fn App() -> impl IntoView {
                     <Route path="/create-user/:id" view=pages::CreateUserPage/>
                     <Route path="/jam/host/:id" view=pages::HostPage/>
                     <Route path="/jam/:id" view=pages::UserPage/>
-                    <Route path="/test" view=Test/>
+                    <Route path="/test" view=SongListTest/>
                 </Routes>
             </main>
         </Router>
@@ -38,7 +38,7 @@ pub fn App() -> impl IntoView {
 }
 
 #[component]
-pub fn Test() -> impl IntoView {
+pub fn SongListTest() -> impl IntoView {
     use components::{Song, SongAction, SongList};
     let cb = Callback::new(move |id| {
         leptos::logging::log!("Add song with id: {}", id);
@@ -71,4 +71,12 @@ pub fn Test() -> impl IntoView {
     let (votes, _) = create_signal(general::Votes::new());
 
     view! { <SongList songs=songs votes=votes song_action=song_action request_update=move||{leptos::logging::log!("requested update.....")}/> }
+}
+
+#[component]
+pub fn PlayerTest() -> impl IntoView {
+
+    view! {
+        
+    }
 }

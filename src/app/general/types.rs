@@ -275,6 +275,7 @@ pub mod real_time {
         AddVote { song_id: String },
         RemoveVote { song_id: String },
         Search{ query: String },
+        ResetVotes,
         Update,
     }
 
