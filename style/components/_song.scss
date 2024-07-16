@@ -1,6 +1,6 @@
 @use '../defaults' as *;
 
-.song {
+.song >{
     @extend .glass-element;
 
     height: 75px;
@@ -13,7 +13,7 @@
     justify-content: space-between;
     padding: 0px 28px 0px 5px;
 
-    .song-info {
+    .song-info >{
         display: flex;
         flex-direction: row;
         gap: 10px;
@@ -26,7 +26,7 @@
             border-radius: 5px;
         }
 
-        div {
+        div >{
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -37,7 +37,7 @@
             font-weight: bold;
             font-size: 20px;
 
-            div {
+            div >{
                 opacity: 0.5;
 
                 display: flex;

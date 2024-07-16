@@ -1,8 +1,4 @@
-use crate::app::components::{
-   SongAction, SongList,
-    host_only::Player,
-    Share, UsersBar,
-};
+use crate::app::components::{host_only::Player, Share, SongAction, SongList, UsersBar};
 use crate::app::general::types::*;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{
@@ -85,7 +81,7 @@ pub fn HostPage() -> impl IntoView {
             }
         };
 
-        let kick_user= {
+        let kick_user = {
             let send_bytes = send_bytes.clone();
             move |id| {
                 let request = real_time::Request::KickUser { user_id: id };
@@ -94,9 +90,16 @@ pub fn HostPage() -> impl IntoView {
             }
         };
 
+        let top_song = move || {
+            songs()
+                .iter()
+                .max_by_key(|song| votes().get(&song.id).copied().unwrap_or(0))
+                .cloned()
+        };
+
         let view = view! {
             <UsersBar users=users kick_user=kick_user.into()/>
-            <Player host_id=host_id()/>
+            <Player host_id=host_id() top_song=top_song/>
             <SongList
                 songs=songs
                 votes=votes

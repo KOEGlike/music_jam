@@ -8,7 +8,7 @@ pub mod pages;
 #[cfg(feature = "ssr")]
 pub mod socket;
 
-use components::{error_template::*, song};
+use components::error_template::*;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -39,7 +39,7 @@ pub fn App() -> impl IntoView {
 
 #[component]
 pub fn SongListTest() -> impl IntoView {
-    use components::{Song, SongAction, SongList};
+    use components::{SongAction, SongList};
     let cb = Callback::new(move |id| {
         leptos::logging::log!("Add song with id: {}", id);
     });
@@ -71,12 +71,4 @@ pub fn SongListTest() -> impl IntoView {
     let (votes, _) = create_signal(general::Votes::new());
 
     view! { <SongList songs=songs votes=votes song_action=song_action request_update=move||{leptos::logging::log!("requested update.....")}/> }
-}
-
-#[component]
-pub fn PlayerTest() -> impl IntoView {
-
-    view! {
-        
-    }
 }

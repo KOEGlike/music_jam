@@ -39,8 +39,15 @@ async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnEr
     Ok(token)
 }
 
+use crate::app::general::types::Song;
+
 #[component]
-pub fn Player(host_id: String) -> impl IntoView {
+pub fn Player<F>(
+    host_id: String, 
+    top_song: F
+) -> impl IntoView 
+where F: Fn() -> Option<Song> + 'static
+{
     let (player_is_connected, set_player_is_connected) = create_signal(false);
     let token = create_action(move |_: &()| {
         let host_id = host_id.clone();
@@ -61,10 +68,8 @@ pub fn Player(host_id: String) -> impl IntoView {
         None => {}
     });
 
-    
-
-    create_effect(move |_|{
-        if !sp::player_ready()   {
+    create_effect(move |_| {
+        if !sp::player_ready() {
             if let Some(Ok(token_value)) = token.value().get() {
                 sp::init(
                     move || {
@@ -91,12 +96,17 @@ pub fn Player(host_id: String) -> impl IntoView {
 
     view! {
         {move || {
-            if player_is_connected() {
-                view! { <button on:click=move |_| toggle_play.dispatch(())>"Play"</button> }
-                    .into_view()
-            } else {
-                "loading...".into_view()
+            if !player_is_connected() {
+                return "loading...".into_view();
             }
+            view! {
+                <div class="player">
+                    <div></div>
+                    <div class="song-info"></div>
+                    <button class="play-pause"></button>
+                </div>
+            }
+                .into_view()
         }}
     }
 }
