@@ -65,8 +65,10 @@ pub fn SongListTest() -> impl IntoView {
         for _ in 0..10 {
             songs.push(song.clone());
         }
-        songs
+        Some(songs)
     };
+
+    
     let (songs, _) = create_signal(songs);
     let (votes, _) = create_signal(general::Votes::new());
 

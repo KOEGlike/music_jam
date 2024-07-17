@@ -1,6 +1,6 @@
 @use '../defaults' as *;
 
-.song >{
+.song {
     @extend .glass-element;
 
     height: 75px;
@@ -13,20 +13,20 @@
     justify-content: space-between;
     padding: 0px 28px 0px 5px;
 
-    .song-info >{
+    >.song-info {
         display: flex;
         flex-direction: row;
         gap: 10px;
         align-items: center;
         justify-content: start;
 
-        img {
+        >img {
             width: 65px;
             height: 65px;
             border-radius: 5px;
         }
 
-        div >{
+        >div {
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -37,23 +37,23 @@
             font-weight: bold;
             font-size: 20px;
 
-            div >{
+            >div {
                 opacity: 0.5;
 
                 display: flex;
                 flex-direction: row;
                 gap: 3px;
 
-                font-size:14px;
+                font-size: 14px;
                 line-height: 14px;
                 font-weight: 550;
 
 
-                #bullet-point {
+                >#bullet-point {
                     font-weight: 900;
                 }
 
-                #song-duration {
+                >#song-duration {
                     letter-spacing: -0.5px;
                 }
 

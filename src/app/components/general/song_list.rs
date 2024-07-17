@@ -1,24 +1,23 @@
 use crate::app::general;
 use crate::components::{Song, SongAction};
-use icondata::IoClose;
 use leptos::{logging::log, prelude::*, *};
 
 #[component]
 pub fn SongList<F>(
-    songs: ReadSignal<Option<Vec<general::Song>>>,
-    votes: ReadSignal<general::Votes>,
+    #[prop(into)] songs: Signal<Option<Vec<general::Song>>>,
+    #[prop(into)] votes: Signal<general::Votes>,
     request_update: F,
     song_action: SongAction,
 ) -> impl IntoView
 where
     F: Fn() + 'static,
 {
-    let songs_vec = move || {
+    let songs = move || {
         if let Some(songs) = songs() {
             let votes = votes();
             if songs.len() != votes.len() {
                 request_update();
-                return songs;
+                return Some(songs);
             }
             let songs = songs
                 .iter()
@@ -30,34 +29,39 @@ where
                     }
                 })
                 .collect::<Vec<_>>();
-            songs
+            Some(songs)
         } else {
-            Vec::new()
+            None
         }
     };
 
-    view! {
-        {move || {
-            if songs().is_none() {
-                let mut vec = Vec::new();
-                for _ in 0..5 {
-                    vec.push(
-                        view! { <Song song=MaybeSignal::Static(None) song_action=song_action/> },
-                    );
-                }
-                vec.into_view()
-            } else {
-                ().into_view()
-            }
-        }}
+    let songs = Signal::derive(songs);
 
+    view! {
         <div class="song-list">
+            {move || {
+                if songs.with(|songs| { songs.is_none() }) {
+                    let mut vec = Vec::new();
+                    for _ in 0..5 {
+                        vec.push(
+                            view! {
+                                // avoids cloning the whole list
+
+                                <Song song=None song_action=song_action/>
+                            },
+                        );
+                    }
+                    vec.into_view()
+                } else {
+                    ().into_view()
+                }
+            }}
             <For
-                each=songs_vec
+                each=move || songs().unwrap_or_default()
                 key=|song| song.id.clone()
                 children=move |song| {
                     view! {
-                        <Song song=MaybeSignal::Static(Some(song.clone())) song_action=song_action/>
+                        <Song song=Some(song.clone()) song_action=song_action/>
                     }
                 }
             />

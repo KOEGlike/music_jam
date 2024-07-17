@@ -10,7 +10,10 @@ pub enum SongAction {
 }
 
 #[component]
-pub fn Song(song: MaybeSignal<Option<Song>>, song_action: SongAction) -> impl IntoView {
+pub fn Song(
+    #[prop(into)] song: MaybeSignal<Option<Song>>,
+    song_action: SongAction,
+) -> impl IntoView {
     let loaded = move |song: Song| {
         view! {
             <div

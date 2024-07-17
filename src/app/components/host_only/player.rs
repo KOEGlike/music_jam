@@ -5,48 +5,16 @@ use leptos::{
 };
 use rust_spotify_web_playback_sdk::prelude as sp;
 
-#[server]
-async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnError> {
-    use crate::app::general::*;
-    let app_state = expect_context::<AppState>();
-    let pool = &app_state.db.pool;
-    let reqwest_client = &app_state.reqwest_client;
-
-    let jam_id = check_id_type(&host_id, pool).await;
-    let jam_id = match jam_id {
-        Ok(id) => id,
-        Err(sqlx::Error::RowNotFound) => {
-            leptos_axum::redirect("/");
-            return Err(ServerFnError::Request("Host not found".to_string()));
-        }
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
-    let jam_id = match jam_id {
-        IdType::Host(id) => id.jam_id,
-        IdType::User(_) => {
-            leptos_axum::redirect("/");
-            return Err(ServerFnError::Request(
-                "the id was found, but it belongs to a user".to_string(),
-            ));
-        }
-    };
-
-    let token = match get_access_token(pool, &jam_id, reqwest_client).await {
-        Ok(token) => token,
-        Err(e) => return Err(ServerFnError::ServerError(e.into())),
-    };
-
-    Ok(token)
-}
-
 use crate::app::general::types::Song;
 
 #[component]
 pub fn Player<F>(
-    host_id: String, 
-    top_song: F
-) -> impl IntoView 
-where F: Fn() -> Option<Song> + 'static
+    host_id: String,
+    #[prop(into)] top_song: Signal<Option<Song>>,
+    reset_votes: F,
+) -> impl IntoView
+where
+    F: Fn() + 'static,
 {
     let (player_is_connected, set_player_is_connected) = create_signal(false);
     let token = create_action(move |_: &()| {
@@ -94,19 +62,52 @@ where F: Fn() -> Option<Song> + 'static
         }
     });
 
+    let is_loaded=move||player_is_connected() || top_song.with(|song|song.is_some());
+
     view! {
         {move || {
-            if !player_is_connected() {
-                return "loading...".into_view();
+            if !is_loaded() {
+                "loading...".into_view();
             }
-            view! {
-                <div class="player">
-                    <div></div>
-                    <div class="song-info"></div>
-                    <button class="play-pause"></button>
-                </div>
-            }
-                .into_view()
+    
+            
+            
+            
         }}
+
     }
+}
+
+#[server]
+async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnError> {
+    use crate::app::general::*;
+    let app_state = expect_context::<AppState>();
+    let pool = &app_state.db.pool;
+    let reqwest_client = &app_state.reqwest_client;
+
+    let jam_id = check_id_type(&host_id, pool).await;
+    let jam_id = match jam_id {
+        Ok(id) => id,
+        Err(sqlx::Error::RowNotFound) => {
+            leptos_axum::redirect("/");
+            return Err(ServerFnError::Request("Host not found".to_string()));
+        }
+        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
+    };
+    let jam_id = match jam_id {
+        IdType::Host(id) => id.jam_id,
+        IdType::User(_) => {
+            leptos_axum::redirect("/");
+            return Err(ServerFnError::Request(
+                "the id was found, but it belongs to a user".to_string(),
+            ));
+        }
+    };
+
+    let token = match get_access_token(pool, &jam_id, reqwest_client).await {
+        Ok(token) => token,
+        Err(e) => return Err(ServerFnError::ServerError(e.into())),
+    };
+
+    Ok(token)
 }

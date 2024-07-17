@@ -1,29 +1,22 @@
 use crate::app::general::*;
 use icondata::IoClose;
 use leptos::{logging::log, prelude::*, *};
-use std::rc::Rc;
 
 #[component]
 pub fn UsersBar(
-    users: ReadSignal<Option<Vec<User>>>,
+    #[prop(into)]
+    users: Signal<Option<Vec<User>>>,
     #[prop(optional)] kick_user: Option<Callback<String, ()>>,
 ) -> impl IntoView {
     let is_host = kick_user.is_some();
 
-    let users_vec = move || match users() {
-        Some(users) => users.clone(),
-        None => Vec::new(),
-    };
-
-    let lol = view! { <div></div> };
-
     view! {
         <div class="user-bar">
             {move || {
-                if users().is_none() {
+                if users.with(|users| users.is_none()) {
                     let mut vec = Vec::new();
                     for _ in 0..5 {
-                        vec.push(lol.clone());
+                        vec.push(view! {<div/>});
                     }
                     vec.into_view()
                 } else {
@@ -31,7 +24,7 @@ pub fn UsersBar(
                 }
             }}
             <For
-                each=users_vec
+                each=move || users().unwrap_or_default()
                 key=|user| user.id.clone()
                 children=move |user| {
                     view! {
