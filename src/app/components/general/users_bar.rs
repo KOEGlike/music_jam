@@ -31,7 +31,7 @@ pub fn UsersBar(
                         <div
                             title=&user.name
                             class:kick-user=is_host
-                            class="user-icon"
+                            class="icon"
                             on:click={
                                 let user_id = user.id.clone();
                                 move |_| {

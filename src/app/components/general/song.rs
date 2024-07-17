@@ -30,7 +30,7 @@ pub fn Song(
                 }
             >
 
-                <div class="song-info">
+                <div class="info">
                     <img
                         src=&song.image.url
                         alt=format!("This is the album cover of {}", &song.name)
@@ -46,7 +46,7 @@ pub fn Song(
                     </div>
                 </div>
 
-                <div class="song-action">
+                <div class="action">
 
                     {
                         let song = song.clone();
@@ -57,7 +57,7 @@ pub fn Song(
                             SongAction::Remove(remove_song) => {
                                 view! {
                                     <button
-                                        class="remove-song"
+                                        class="remove"
                                         on:click=move |_| {
                                             remove_song(song_id.clone());
                                         }

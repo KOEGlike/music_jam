@@ -3,6 +3,7 @@ use leptos::{
     prelude::*,
     *,
 };
+use rspotify::model::artist;
 use rust_spotify_web_playback_sdk::prelude as sp;
 
 use crate::app::general::types::Song;
@@ -62,19 +63,41 @@ where
         }
     });
 
-    let is_loaded=move||player_is_connected() || top_song.with(|song|song.is_some());
+    let is_loaded = move || player_is_connected() || top_song.with(|song| song.is_some());
+    let song_url = move || top_song.with(|song| song.as_ref().unwrap().image.url.clone());
+    let song_name=move||top_song.with(|song|song.as_ref().unwrap().name.clone());
+    let artists=move||top_song.with(|song|song.as_ref().unwrap().artists.clone().join(","));
+    let song_length=move||top_song.with(|song|song.as_ref().unwrap().duration);
+    let (song_position, set_song_position)=create_signal(0);
+    let (playing, set_playing)=create_signal(false);
+    sp::add_listener!("player_state_changed", move |state_change:sp::StateChange|{
+        set_song_position(state_change.position);
+        set_playing(!state_change.paused);
+    });
 
     view! {
-        {move || {
-            if !is_loaded() {
-                "loading...".into_view();
-            }
-    
-            
-            
-            
-        }}
+        <Show when=is_loaded fallback=|| "loading...">
+            <div class="player">
+                <img prop:src=song_url/>
 
+                <div class="info">
+                    <div class="title">{song_name}</div>
+                    <div class="artist">{artists}</div>
+                </div>
+
+                <div class="progress">
+                    <div class="bar">
+                        <div class="position"/>
+                    </div>
+                    <div class="times">
+                        <div>{song_position}</div>
+                        <div>{song_length}</div>
+                    </div>
+                </div>
+
+                <button on:click=move|_|toggle_play.dispatch(()) class="play-pause"></button>
+            </div>
+        </Show>
     }
 }
 
