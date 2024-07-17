@@ -6,6 +6,7 @@ use leptos::{
     prelude::*,
     *,
 };
+use leptos_router::{use_navigate, NavigateOptions};
 use leptos_use::{use_websocket, UseWebsocketReturn};
 use rspotify::model::user;
 
@@ -17,7 +18,20 @@ pub fn HostPage() -> impl IntoView {
         set_host_id(LocalStorage::get("host_id").unwrap());
     });
 
-    log!("host_id: {}", host_id());
+    let host_id = Signal::derive(move || {
+        if host_id().is_empty() {
+            None
+        } else {
+            Some(host_id())
+        }
+    });
+
+    log!("host_id: {:#?}", host_id());
+    if host_id.with(Option::is_none) {
+        let navigator=use_navigate();
+        navigator("/", NavigateOptions::default());
+        return view! { };
+    }
     let UseWebsocketReturn {
         ready_state,
         message_bytes,
@@ -96,18 +110,5 @@ pub fn HostPage() -> impl IntoView {
         send_bytes(bin);
     };
 
-    view! {
-        <Show when=move || host_id.with(|s| !s.is_empty()) fallback=move || "loading.">
-
-            // <UsersBar users=users kick_user=kick_user/>
-            <Player host_id=host_id() top_song=top_song reset_votes=reset_votes/>
-        // <SongList
-        // songs=songs
-        // votes=votes
-        // request_update=request_update
-        // song_action=SongAction::Remove(remove_song)
-        // />
-
-        </Show>
-    }
+    view! { <Player host_id=host_id top_song=top_song reset_votes=reset_votes/> }
 }
