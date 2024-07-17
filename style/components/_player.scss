@@ -1,2 +1,36 @@
 @use '../defaults' as *;
 
+.player{
+    @extend .standard-island;
+    width:fit-content;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    padding: 25px;
+    padding-bottom: 13px;
+
+    >img{
+        width: 410px;
+        height: 410px;
+        border-radius: 15px;
+    }
+
+    >.info{
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        padding-left: 20px;
+        padding-right: 20px;
+        justify-content: center;
+        align-items:start;
+
+        >.title{
+            font-weight: bold;
+            font-size: 25px;
+            line-height: 30px;
+        }
+    }
+
+
+}

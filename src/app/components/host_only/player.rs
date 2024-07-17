@@ -63,27 +63,50 @@ where
     });
 
     let is_loaded = move || {
-        let x=player_is_connected() || top_song.with(|song| song.is_some());
-        if x{
+        let x = player_is_connected() || top_song.with(|song| song.is_some());
+        if x {
             log!("player is connected");
         } else {
             log!("player is not connected");
         }
         x
     };
-    let song_url = move || top_song.with(|song| song.as_ref().unwrap().image.url.clone());
-    let song_name=move||top_song.with(|song|song.as_ref().unwrap().name.clone());
-    let artists=move||top_song.with(|song|song.as_ref().unwrap().artists.clone().join(","));
-    let song_length=move||top_song.with(|song|song.as_ref().unwrap().duration);
-    let (song_position, set_song_position)=create_signal(0);
-    let (playing, set_playing)=create_signal(false);
-    sp::add_listener!("player_state_changed", move |state_change:sp::StateChange|{
-        set_song_position(state_change.position);
-        set_playing(!state_change.paused);
+    let song_url = move || {
+        top_song.with(|song| match song.as_ref() {
+            Some(song) => song.image.url.clone(),
+            None => String::new(),
+        })
+    };
+    let song_name = move || {
+        top_song.with(|song| match song.as_ref() {
+            Some(song) => song.name.clone(),
+            None => String::new(),
+        })
+    };
+    let artists = move || {
+        top_song.with(|song| match song.as_ref() {
+            Some(song) => song.artists.join(", "),
+            None => String::new(),
+        })
+    };
+    let song_length = move || top_song.with(|song| match song.as_ref() {
+        Some(song) => song.duration,
+        None => 0,
+    });
+    let (song_position, set_song_position) = create_signal(0);
+    let (playing, set_playing) = create_signal(false);
+    create_effect(move |_| {
+        sp::add_listener!(
+            "player_state_changed",
+            move |state_change: sp::StateChange| {
+                set_song_position(state_change.position);
+                set_playing(!state_change.paused);
+                log!("state change: {:?}", state_change);
+            }
+        );
     });
 
     view! {
-        <button on:click=move|_|{is_loaded();}>{"is loaded?"}</button>
         <Show when=is_loaded fallback=|| "loading.......">
             <div class="player">
                 <img prop:src=song_url/>
@@ -95,7 +118,7 @@ where
 
                 <div class="progress">
                     <div class="bar">
-                        <div class="position"/>
+                        <div class="position"></div>
                     </div>
                     <div class="times">
                         <div>{song_position}</div>
@@ -103,11 +126,26 @@ where
                     </div>
                 </div>
 
-                <button on:click=move|_|toggle_play.dispatch(()) class="play-pause">
+                <button on:click=move |_| toggle_play.dispatch(()) class="play-pause">
                     {move || match playing() {
-                        true => view!{<svg viewBox=icondata::FaPauseSolid.view_box inner_html=icondata::FaPauseSolid.data/>},
-                        false => view!{<svg viewBox=icondata::BsPlayFill.view_box inner_html=icondata::BsPlayFill.data/>},
+                        true => {
+                            view! {
+                                <svg
+                                    viewBox=icondata::FaPauseSolid.view_box
+                                    inner_html=icondata::FaPauseSolid.data
+                                ></svg>
+                            }
+                        }
+                        false => {
+                            view! {
+                                <svg
+                                    viewBox=icondata::BsPlayFill.view_box
+                                    inner_html=icondata::BsPlayFill.data
+                                ></svg>
+                            }
+                        }
                     }}
+
                 </button>
             </div>
         </Show>

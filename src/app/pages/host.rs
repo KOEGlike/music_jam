@@ -1,11 +1,13 @@
 use crate::app::components::{host_only::Player, Share, SongAction, SongList, UsersBar};
 use crate::app::general::types::*;
+use crate::components::create;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{
     logging::{error, log},
     prelude::*,
     *,
 };
+use leptos_router::{use_navigate, NavigateOptions};
 use leptos_use::{use_websocket, UseWebsocketReturn};
 use rspotify::model::user;
 
@@ -15,6 +17,13 @@ pub fn HostPage() -> impl IntoView {
 
     create_effect(move |_| {
         set_host_id(LocalStorage::get("host_id").unwrap());
+    });
+
+    create_effect(move |_| {
+        if host_id.with(String::is_empty) {
+            let navigator = use_navigate();
+            navigator("/", NavigateOptions::default());
+        }
     });
 
     log!("host_id: {}", host_id());
@@ -88,6 +97,20 @@ pub fn HostPage() -> impl IntoView {
             .cloned(),
         None => None,
     };
+    let top_song=move||Some(crate::app::general::Song {
+        id: "lol".to_string(),
+        user_id: None,
+        name: "Yesterday".to_string(),
+        artists: vec!["Beatles".to_string()],
+        album: "Help!".to_string(),
+        duration: 240,
+        image: crate::app::general::Image {
+            height: Some(64),
+            url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
+            width: Some(64),
+        },
+        votes: 2,
+    });
     let top_song = Signal::derive(top_song);
 
     let reset_votes = move || {
