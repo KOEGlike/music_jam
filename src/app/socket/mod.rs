@@ -10,7 +10,6 @@ use futures_util::{
     sink::SinkExt,
     stream::{SplitSink, StreamExt},
 };
-use std::result::Result;
 use tokio::sync::mpsc;
 
 mod read;

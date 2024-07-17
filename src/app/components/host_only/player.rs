@@ -3,7 +3,6 @@ use leptos::{
     prelude::*,
     *,
 };
-use rspotify::model::artist;
 use rust_spotify_web_playback_sdk::prelude as sp;
 
 use crate::app::general::types::Song;
@@ -63,7 +62,15 @@ where
         }
     });
 
-    let is_loaded = move || player_is_connected() || top_song.with(|song| song.is_some());
+    let is_loaded = move || {
+        let x=player_is_connected() || top_song.with(|song| song.is_some());
+        if x{
+            log!("player is connected");
+        } else {
+            log!("player is not connected");
+        }
+        x
+    };
     let song_url = move || top_song.with(|song| song.as_ref().unwrap().image.url.clone());
     let song_name=move||top_song.with(|song|song.as_ref().unwrap().name.clone());
     let artists=move||top_song.with(|song|song.as_ref().unwrap().artists.clone().join(","));
@@ -76,7 +83,8 @@ where
     });
 
     view! {
-        <Show when=is_loaded fallback=|| "loading...">
+        <button on:click=move|_|{is_loaded();}>{"is loaded?"}</button>
+        <Show when=is_loaded fallback=|| "loading.......">
             <div class="player">
                 <img prop:src=song_url/>
 
@@ -95,7 +103,12 @@ where
                     </div>
                 </div>
 
-                <button on:click=move|_|toggle_play.dispatch(()) class="play-pause"></button>
+                <button on:click=move|_|toggle_play.dispatch(()) class="play-pause">
+                    {move || match playing() {
+                        true => view!{<svg viewBox=icondata::FaPauseSolid.view_box inner_html=icondata::FaPauseSolid.data/>},
+                        false => view!{<svg viewBox=icondata::BsPlayFill.view_box inner_html=icondata::BsPlayFill.data/>},
+                    }}
+                </button>
             </div>
         </Show>
     }
