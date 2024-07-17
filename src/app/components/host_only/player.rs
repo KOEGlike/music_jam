@@ -9,7 +9,7 @@ use crate::app::general::types::Song;
 
 #[component]
 pub fn Player<F>(
-    #[prop(into)] host_id: Signal<Option<String>>,
+    host_id: String,
     #[prop(into)] top_song: Signal<Option<Song>>,
     reset_votes: F,
 ) -> impl IntoView
@@ -17,18 +17,12 @@ where
     F: Fn() + 'static,
 {
     let (player_is_connected, set_player_is_connected) = create_signal(false);
-    let token = create_action(move |_: &()| async move {
-        match host_id() {
-            Some(host_id) => get_access_token(host_id).await,
-            None => Err(ServerFnError::Request(
-                "called this fn with no host id".to_string(),
-            )),
-        }
+    let token = create_action(move |_: &()| {
+        let host_id = host_id.clone();
+        async move { get_access_token(host_id).await }
     });
 
-    if host_id.with(Option::is_some) {
-        token.dispatch(());
-    }
+    token.dispatch(());
 
     let connect = create_action(move |_: &()| async move { sp::connect().await });
 
@@ -47,9 +41,7 @@ where
             if let Some(Ok(token_value)) = token.value().get() {
                 sp::init(
                     move || {
-                        if host_id.with(Option::is_some) {
-                            token.dispatch(());
-                        }
+                        token.dispatch(());
                         token_value.access_token.clone()
                     },
                     move || {
@@ -71,10 +63,8 @@ where
     });
 
     let is_loaded = move || {
-        let x = player_is_connected()
-            && top_song.with(|song| song.is_some())
-            && host_id.with(Option::is_some);
-        if x {
+        let x=player_is_connected() || top_song.with(|song| song.is_some());
+        if x{
             log!("player is connected");
         } else {
             log!("player is not connected");
@@ -82,23 +72,18 @@ where
         x
     };
     let song_url = move || top_song.with(|song| song.as_ref().unwrap().image.url.clone());
-    let song_name = move || top_song.with(|song| song.as_ref().unwrap().name.clone());
-    let artists = move || top_song.with(|song| song.as_ref().unwrap().artists.clone().join(","));
-    let song_length = move || top_song.with(|song| song.as_ref().unwrap().duration);
-    let (song_position, set_song_position) = create_signal(0);
-    let (playing, set_playing) = create_signal(false);
-    sp::add_listener!(
-        "player_state_changed",
-        move |state_change: sp::StateChange| {
-            set_song_position(state_change.position);
-            set_playing(!state_change.paused);
-        }
-    );
+    let song_name=move||top_song.with(|song|song.as_ref().unwrap().name.clone());
+    let artists=move||top_song.with(|song|song.as_ref().unwrap().artists.clone().join(","));
+    let song_length=move||top_song.with(|song|song.as_ref().unwrap().duration);
+    let (song_position, set_song_position)=create_signal(0);
+    let (playing, set_playing)=create_signal(false);
+    sp::add_listener!("player_state_changed", move |state_change:sp::StateChange|{
+        set_song_position(state_change.position);
+        set_playing(!state_change.paused);
+    });
 
     view! {
-        <button on:click=move |_| {
-            is_loaded();
-        }>{"is loaded?"}</button>
+        <button on:click=move|_|{is_loaded();}>{"is loaded?"}</button>
         <Show when=is_loaded fallback=|| "loading.......">
             <div class="player">
                 <img prop:src=song_url/>
@@ -110,7 +95,7 @@ where
 
                 <div class="progress">
                     <div class="bar">
-                        <div class="position"></div>
+                        <div class="position"/>
                     </div>
                     <div class="times">
                         <div>{song_position}</div>
@@ -118,26 +103,11 @@ where
                     </div>
                 </div>
 
-                <button on:click=move |_| toggle_play.dispatch(()) class="play-pause">
+                <button on:click=move|_|toggle_play.dispatch(()) class="play-pause">
                     {move || match playing() {
-                        true => {
-                            view! {
-                                <svg
-                                    viewBox=icondata::FaPauseSolid.view_box
-                                    inner_html=icondata::FaPauseSolid.data
-                                ></svg>
-                            }
-                        }
-                        false => {
-                            view! {
-                                <svg
-                                    viewBox=icondata::BsPlayFill.view_box
-                                    inner_html=icondata::BsPlayFill.data
-                                ></svg>
-                            }
-                        }
+                        true => view!{<svg viewBox=icondata::FaPauseSolid.view_box inner_html=icondata::FaPauseSolid.data/>},
+                        false => view!{<svg viewBox=icondata::BsPlayFill.view_box inner_html=icondata::BsPlayFill.data/>},
                     }}
-
                 </button>
             </div>
         </Show>
