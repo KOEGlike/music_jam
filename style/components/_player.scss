@@ -53,7 +53,7 @@
             border-radius: $border-rad;
         }
 
-        >.times{
+        >.times {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -65,6 +65,31 @@
         }
     }
 
-    
+    >.play-pause {
+        @extend .button;
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        border-radius: 50px;
+        left: 350px;
+        top: 410px;
+        $blur: blur(20px);
+        //opacity: 0.4;
+        backdrop-filter: $blur;
+        -webkit-backdrop-filter: $blur;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        >svg {
+            fill: white;
+        }
+
+        >.play {
+            transform: translateX(5px);
+        }
+
+    }
 
 }

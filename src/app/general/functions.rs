@@ -371,7 +371,7 @@ pub async fn add_song(
         user_id,
         song.name,
         song.album.name,
-        song.duration.num_seconds() as i32,
+        song.duration.num_milliseconds() as i32,
     )
     .execute(&mut *transaction)
     .await?;

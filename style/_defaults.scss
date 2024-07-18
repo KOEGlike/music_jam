@@ -1,9 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
 
-*{
-	font-family: "Roboto Mono", monospace;
-}
-
 $colors: (
 	"bg": #343434,
 	"glass":#b5b5b5,
@@ -39,6 +35,13 @@ $element-heights: (
 
 
 $blur: blur(12px);
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	font-family: $font-stack;
+}
 
 
 
@@ -93,12 +96,7 @@ $blur: blur(12px);
 	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "selected"));
 }
 
-* {
-	margin: 0;
-	padding: 0;
-	box-sizing: border-box;
-	font-family: $font-stack;
-}
+
 
 body {
 	background-color: map-get($colors, "bg");

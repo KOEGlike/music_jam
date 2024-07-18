@@ -92,7 +92,7 @@ where
                             move |state_change: sp::StateChange| {
                                 set_song_position(state_change.position);
                                 set_playing(!state_change.paused);
-                                log!("state change: {:?}", state_change);
+                                log!("state change: {:#?}", state_change);
                             }
                         );
                         connect.dispatch(());
@@ -130,16 +130,22 @@ where
                         true => {
                             view! {
                                 <svg
+                                    width="60"
+                                    height="54"
                                     viewBox=icondata::FaPauseSolid.view_box
                                     inner_html=icondata::FaPauseSolid.data
+                                    class="pause"
                                 ></svg>
                             }
                         }
                         false => {
                             view! {
                                 <svg
+                                    width="71"
+                                    height="71"
                                     viewBox=icondata::BsPlayFill.view_box
                                     inner_html=icondata::BsPlayFill.data
+                                    class="play"
                                 ></svg>
                             }
                         }
