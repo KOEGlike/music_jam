@@ -5,7 +5,7 @@ use leptos::{
 };
 use rust_spotify_web_playback_sdk::prelude as sp;
 
-use crate::app::general::types::Song;
+use crate::{app::general::types::Song, components::create};
 
 #[component]
 pub fn Player<F>(
@@ -34,26 +34,6 @@ where
             error!("error while connecting to spotify:{:?}", e);
         }
         None => {}
-    });
-
-    create_effect(move |_| {
-        if !sp::player_ready() {
-            if let Some(Ok(token_value)) = token.value().get() {
-                sp::init(
-                    move || {
-                        token.dispatch(());
-                        token_value.access_token.clone()
-                    },
-                    move || {
-                        log!("player is ready");
-                        connect.dispatch(());
-                    },
-                    "jam",
-                    1.0,
-                    false,
-                );
-            }
-        }
     });
 
     let toggle_play = create_action(move |_: &()| async {
@@ -89,21 +69,40 @@ where
             None => String::new(),
         })
     };
-    let song_length = move || top_song.with(|song| match song.as_ref() {
-        Some(song) => song.duration,
-        None => 0,
-    });
+    let song_length = move || {
+        top_song.with(|song| match song.as_ref() {
+            Some(song) => song.duration,
+            None => 0,
+        })
+    };
     let (song_position, set_song_position) = create_signal(0);
     let (playing, set_playing) = create_signal(false);
+
     create_effect(move |_| {
-        sp::add_listener!(
-            "player_state_changed",
-            move |state_change: sp::StateChange| {
-                set_song_position(state_change.position);
-                set_playing(!state_change.paused);
-                log!("state change: {:?}", state_change);
+        if !sp::player_ready() {
+            if let Some(Ok(token_value)) = token.value().get() {
+                sp::init(
+                    move || {
+                        token.dispatch(());
+                        token_value.access_token.clone()
+                    },
+                    move || {
+                        sp::add_listener!(
+                            "player_state_changed",
+                            move |state_change: sp::StateChange| {
+                                set_song_position(state_change.position);
+                                set_playing(!state_change.paused);
+                                log!("state change: {:?}", state_change);
+                            }
+                        );
+                        connect.dispatch(());
+                    },
+                    "jam",
+                    1.0,
+                    false,
+                );
             }
-        );
+        }
     });
 
     view! {

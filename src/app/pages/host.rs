@@ -26,7 +26,7 @@ pub fn HostPage() -> impl IntoView {
         }
     });
 
-    log!("host_id: {}", host_id());
+    log!("host_id: {}", host_id.get_untracked());
     let UseWebsocketReturn {
         ready_state,
         message_bytes,
@@ -34,7 +34,7 @@ pub fn HostPage() -> impl IntoView {
         close,
         send_bytes,
         ..
-    } = use_websocket(&format!("/socket?id={}", host_id()));
+    } = use_websocket(&format!("/socket?id={}", host_id.get_untracked()));
 
     let send_bytes = Callback::new(send_bytes);
 
@@ -123,7 +123,7 @@ pub fn HostPage() -> impl IntoView {
         <Show when=move || host_id.with(|s| !s.is_empty()) fallback=move || "loading.">
 
             // <UsersBar users=users kick_user=kick_user/>
-            <Player host_id=host_id() top_song=top_song reset_votes=reset_votes/>
+            <Player host_id=host_id.get_untracked() top_song=top_song reset_votes=reset_votes/>
         // <SongList
         // songs=songs
         // votes=votes

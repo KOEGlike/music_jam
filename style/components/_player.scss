@@ -1,8 +1,8 @@
 @use '../defaults' as *;
 
-.player{
+.player {
     @extend .standard-island;
-    width:fit-content;
+    width: fit-content;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -10,27 +10,61 @@
     padding: 25px;
     padding-bottom: 13px;
 
-    >img{
+    >img {
         width: 410px;
         height: 410px;
         border-radius: 15px;
     }
 
-    >.info{
+    >.info {
         display: flex;
         flex-direction: column;
         gap: 3px;
         padding-left: 20px;
         padding-right: 20px;
         justify-content: center;
-        align-items:start;
+        align-items: start;
+        width: 100%;
 
-        >.title{
+        >.title {
             font-weight: bold;
             font-size: 25px;
             line-height: 30px;
         }
+
+        >.artist {
+            font-size: 17px;
+            opacity: 0.5;
+        }
     }
 
+    >.progress {
+        @extend .glass;
+        width: 100%;
+        height: 80px;
+        $border-rad: 30px;
+        border-radius: $border-rad;
+
+        >.bar {
+            @extend .glass;
+            opacity: 0.75;
+            height: 100%;
+            width: 75%;
+            border-radius: $border-rad;
+        }
+
+        >.times{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-left: 20px;
+            padding-right: 20px;
+            font-size: 13px;
+            opacity: 0.5;
+
+        }
+    }
+
+    
 
 }
