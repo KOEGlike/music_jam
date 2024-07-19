@@ -107,7 +107,7 @@ pub fn HostPage() -> impl IntoView {
     };
 
     view! {
-        <Show when=move || host_id.with(|s| !s.is_empty()) fallback=move || "loading.">
+        <Show when=move || host_id.with(|s| !s.is_empty()) fallback=move || "no access token">
 
             // <UsersBar users=users kick_user=kick_user/>
             <Player host_id=host_id.get_untracked() top_song_id=top_song_id reset_votes=reset_votes/>

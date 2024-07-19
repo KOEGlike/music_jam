@@ -52,7 +52,6 @@ $blur: blur(12px);
 	backdrop-filter: $blur;
 	-webkit-backdrop-filter: $blur;
 	color: map-get($colors, "font");
-	box-shadow: 0 8px 32px 0 map-get($colors, "shadow");
 }
 
 .glass-element {

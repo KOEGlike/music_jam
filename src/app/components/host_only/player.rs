@@ -1,11 +1,10 @@
+use gloo::timers::callback::Interval;
 use leptos::{
     logging::{error, log},
     prelude::*,
     *,
 };
 use rust_spotify_web_playback_sdk::prelude as sp;
-
-use crate::{app::general::types::Song, components::create};
 
 #[component]
 pub fn Player<F>(
@@ -42,15 +41,8 @@ where
         }
     });
 
-    let is_loaded = move || {
-        let x = player_is_connected() || top_song_id.with(|song| song.is_some());
-        if x {
-            log!("player is connected");
-        } else {
-            log!("player is not connected");
-        }
-        x
-    };
+    let is_loaded = move || player_is_connected() || top_song_id.with(|song| song.is_some());
+    let is_loaded = Signal::derive(is_loaded);
     let (image_url, set_image_url) = create_signal(String::new());
     let (song_name, set_song_name) = create_signal(String::new());
     let (artists, set_artists) = create_signal(String::new());
@@ -59,7 +51,6 @@ where
     let (playing, set_playing) = create_signal(false);
 
     let on_update = move |state_change: sp::StateChange| {
-        log!("state change: {:#?}", state_change);
         set_song_position(state_change.position);
         set_playing(!state_change.paused);
         set_song_length(state_change.track_window.current_track.duration_ms);
@@ -101,10 +92,27 @@ where
         }
     });
 
+    let position_update = create_action(move |_: &()| async move {
+        if is_loaded.get_untracked() {
+            let state = sp::get_current_state().await.unwrap();
+            if let Some(state) = state {
+                set_song_position(state.position);
+            };
+        }
+    });
+
+    if cfg!(any(target_arch = "wasm32", target_os = "unknown")) {
+        let position_update = Interval::new(100, move || {
+            position_update.dispatch(());
+        });
+
+        position_update.forget();
+    }
+
     view! {
         <Show when=is_loaded fallback=|| "loading.......">
             <div class="player">
-                <img prop:src=image_url/>
+                <img prop:src=image_url alt="the album cover of the current song"/>
 
                 <div class="info">
                     <div class="title">{song_name}</div>
@@ -115,15 +123,16 @@ where
                     <div class="bar">
                         <div
                             class="position"
-                            prop:width=move || {
+                            style=move || {
                                 let percentage = if song_length() == 0 {
                                     0.0
                                 } else {
                                     (song_position() as f64 / song_length() as f64) * 100.0
                                 };
-                                format!("{}%", percentage)
+                                format!("width:{}%;", percentage)
                             }
-                        ></div>
+                        >
+                        </div>
                     </div>
                     <div class="times">
                         <div>{move || { millis_to_min_sec(song_position() as u32) }}</div>
@@ -131,7 +140,7 @@ where
                     </div>
                 </div>
 
-                <button on:click=move |_| toggle_play.dispatch(()) class="play-pause">
+                <button on:click=move |_| toggle_play.dispatch(()) class="play-pause" title="play-pause">
                     {move || match playing() {
                         true => {
                             view! {
@@ -165,7 +174,7 @@ fn millis_to_min_sec(millis: u32) -> String {
     let seconds = millis / 1000;
     let minutes = seconds / 60;
     let seconds = seconds % 60;
-    format!("{:}:{:}", minutes, seconds)
+    format!("{:01}:{:02}", minutes, seconds)
 }
 
 #[server]
