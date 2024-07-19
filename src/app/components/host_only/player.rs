@@ -6,6 +6,8 @@ use leptos::{
 };
 use rust_spotify_web_playback_sdk::prelude as sp;
 
+use crate::app::pages::host;
+
 #[component]
 pub fn Player<F>(
     host_id: String,
@@ -15,11 +17,16 @@ pub fn Player<F>(
 where
     F: Fn() + 'static,
 {
+    
     let (player_is_connected, set_player_is_connected) = create_signal(false);
-    let token = create_action(move |_: &()| {
+    let (current_song_id, set_current_song_id) = create_signal(String::new());
+    let token = {
         let host_id = host_id.clone();
-        async move { get_access_token(host_id).await }
-    });
+        create_action(move |_: &()| {
+            let host_id = host_id.clone();
+            async move { get_access_token(host_id).await }
+        })
+    };
 
     token.dispatch(());
 
@@ -59,6 +66,7 @@ where
                 .url
                 .clone(),
         );
+        set_current_song_id(state_change.track_window.current_track.id);
         set_song_name(state_change.track_window.current_track.name);
         set_artists(
             state_change
@@ -72,6 +80,37 @@ where
         );
     };
 
+    let switch_device={
+        let host_id=host_id.clone();
+        create_action(move |device_id:&String| {
+            let host_id=host_id.clone();
+            let device_id=device_id.clone();
+            async move {
+                if let Err(e)=change_playback_device(device_id, host_id).await{
+                    error!("Error switching device: {:?}", e);
+                }
+            }
+        })
+    };
+
+    let play_song=create_action(move |song_id:&String| {
+        let host_id=host_id.clone();
+        let song_id=song_id.clone();
+        async move {
+            if let Err(e)=play_song(song_id, host_id).await{
+                error!("Error playing song: {:?}", e);
+            }
+        }
+    });
+
+    create_effect(move |_| {
+        if let Some(top_song_id)=top_song_id() {
+            if current_song_id() != top_song_id {
+                play_song.dispatch(top_song_id);
+            }
+        }
+    });
+
     create_effect(move |_| {
         if !sp::player_ready() {
             if let Some(Ok(token_value)) = token.value().get() {
@@ -81,7 +120,10 @@ where
                         token_value.access_token.clone()
                     },
                     move || {
-                        sp::add_listener!("player_state_changed", on_update);
+                        sp::add_listener!("player_state_changed", on_update).unwrap();
+                        sp::add_listener!("ready", move|player:sp::Player| {
+                            switch_device.dispatch(player.device_id);
+                        }).unwrap();
                         connect.dispatch(());
                     },
                     "jam",
@@ -140,13 +182,15 @@ where
                     </div>
                 </div>
 
-                <button on:click=move |_| toggle_play.dispatch(()) class="play-pause" title="play-pause">
+                <button
+                    on:click=move |_| toggle_play.dispatch(())
+                    class="play-pause"
+                    title="play-pause"
+                >
                     {move || match playing() {
                         true => {
                             view! {
                                 <svg
-                                    width="60"
-                                    height="54"
                                     viewBox=icondata::FaPauseSolid.view_box
                                     inner_html=icondata::FaPauseSolid.data
                                     class="pause"
@@ -175,6 +219,59 @@ fn millis_to_min_sec(millis: u32) -> String {
     let minutes = seconds / 60;
     let seconds = seconds % 60;
     format!("{:01}:{:02}", minutes, seconds)
+}
+
+#[server]
+async fn play_song(song_id: String, host_id: String) -> Result<(), ServerFnError> {
+    use crate::app::general::*;
+    let app_state = expect_context::<AppState>();
+    let pool = &app_state.db.pool;
+    let reqwest_client = &app_state.reqwest_client;
+    let credentials = &app_state.spotify_credentials;
+
+    let jam_id = match check_id_type(&host_id, pool).await {
+        Ok(IdType::Host(id)) => id.jam_id,
+        Ok(IdType::User(_)) => {
+            leptos_axum::redirect("/");
+            return Err(ServerFnError::Request(
+                "the id was found, but it belongs to a user".to_string(),
+            ));
+        }
+        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
+    };
+
+    if let Err(e)=play_song(&song_id, &jam_id, pool, reqwest_client, credentials).await{
+        return Err(ServerFnError::ServerError(e.into()));
+    };
+
+    Ok(())
+}
+
+#[server]
+async fn change_playback_device(device_id:String, host_id:String) -> Result<(),ServerFnError> {
+    use crate::app::general::*;
+    let app_state = expect_context::<AppState>();
+    let pool = &app_state.db.pool;
+    let reqwest_client = &app_state.reqwest_client;
+    let credentials = &app_state.spotify_credentials;
+
+    let jam_id = match check_id_type(&host_id, pool).await {
+        Ok(IdType::Host(id)) => id.jam_id,
+        Ok(IdType::User(_)) => {
+            leptos_axum::redirect("/");
+            return Err(ServerFnError::Request(
+                "the id was found, but it belongs to a user".to_string(),
+            ));
+        }
+        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
+    };
+
+    if let Err(e)=switch_playback_to_device(&device_id, &jam_id, pool, reqwest_client, credentials).await{
+        return Err(ServerFnError::ServerError(e.into()));
+    };
+
+    Ok(())
+
 }
 
 #[server]

@@ -4,8 +4,8 @@ use crate::app::{general::types::*, pages::user};
 use http::{HeaderMap, HeaderValue};
 use leptos::logging::*;
 use rspotify::{
-    clients::BaseClient,
-    model::{Image, SearchResult, TrackId},
+    clients::{BaseClient, OAuthClient},
+    model::{device, Image, SearchResult, TrackId}, AuthCodeSpotify,
 };
 use web_sys::ReadableStreamByobRequest;
 
@@ -21,6 +21,45 @@ pub async fn notify(
         .await?;
     Ok(())
 }
+
+pub async fn play_song(
+    song_id: &str,
+    jam_id: &str,
+    pool: &sqlx::PgPool,
+    reqwest_client: &reqwest::Client,
+    credentials: &SpotifyCredentials,
+
+) -> Result<(), Error> {
+    let token=get_access_token(pool, jam_id, reqwest_client, credentials).await?;
+    let client = AuthCodeSpotify::from_token(token);
+    let song_id=match TrackId::from_id(song_id){
+        Ok(id)=>id,
+        Err(e)=>return Err(Error::Spotify(format!("could not play song, song id is not correct: {}", e)))
+    };
+    if let Err(e)= client.add_item_to_queue(rspotify::model::PlayableId::Track(song_id), None).await{
+        return Err(Error::Spotify(format!("could not play song, could add song to queue: {}", e)));
+    };
+    if let Err(e)=client.next_track(None).await{
+        return Err(Error::Spotify(format!("could not play song, could not skip to next song: {}", e)));
+    };
+    Ok(())
+}
+
+pub async fn switch_playback_to_device(
+    device_id: &str,
+    jam_id: &str,
+    pool: &sqlx::PgPool,
+    reqwest_client: &reqwest::Client,
+    credentials: &SpotifyCredentials,
+)-> Result<(), Error> {
+    let token=get_access_token(pool, jam_id, reqwest_client, credentials).await?;
+    let client = AuthCodeSpotify::from_token(token);
+    if let Err(e)=client.transfer_playback(device_id, Some(true)).await{
+        return Err(Error::Spotify(format!("could not switch playback to device: {}", e)));
+    };
+    Ok(())
+}
+
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
