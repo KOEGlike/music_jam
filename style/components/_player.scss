@@ -39,18 +39,21 @@
     }
 
     >.progress {
-        @extend .glass;
         width: 100%;
-        height: 80px;
-        $border-rad: 30px;
-        border-radius: $border-rad;
 
         >.bar {
             @extend .glass;
-            opacity: 0.75;
-            height: 100%;
-            width: 75%;
+            width: 100%;
+            height: 80px;
+            $border-rad: 30px;
             border-radius: $border-rad;
+
+            >.position {
+                @extend .glass;
+                opacity: 0.75;
+                height: 100%;
+                border-radius: $border-rad;
+            }
         }
 
         >.times {
@@ -87,7 +90,14 @@
         }
 
         >.play {
+            height: 71;
+            width: 71;
             transform: translateX(5px);
+        }
+
+        >.pause {
+            width: 60;
+            height: 54;
         }
 
     }

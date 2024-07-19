@@ -90,28 +90,15 @@ pub fn HostPage() -> impl IntoView {
     };
     let kick_user = Callback::new(kick_user);
 
-    let top_song = move || match songs() {
+    let top_song_id = move || match songs() {
         Some(songs) => songs
             .iter()
             .max_by_key(|song| votes().get(&song.id).copied().unwrap_or(0))
-            .cloned(),
+            .map(|song| song.id.clone()),
         None => None,
     };
-    let top_song=move||Some(crate::app::general::Song {
-        id: "lol".to_string(),
-        user_id: None,
-        name: "Yesterday".to_string(),
-        artists: vec!["Beatles".to_string()],
-        album: "Help!".to_string(),
-        duration: 240,
-        image: crate::app::general::Image {
-            height: Some(64),
-            url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
-            width: Some(64),
-        },
-        votes: 2,
-    });
-    let top_song = Signal::derive(top_song);
+    let top_song_id=move||Some("11dFghVXANMlKmJXsNCbNl".to_string());
+    let top_song = Signal::derive(top_song_id);
 
     let reset_votes = move || {
         let request = real_time::Request::ResetVotes;
@@ -123,7 +110,7 @@ pub fn HostPage() -> impl IntoView {
         <Show when=move || host_id.with(|s| !s.is_empty()) fallback=move || "loading.">
 
             // <UsersBar users=users kick_user=kick_user/>
-            <Player host_id=host_id.get_untracked() top_song=top_song reset_votes=reset_votes/>
+            <Player host_id=host_id.get_untracked() top_song_id=top_song_id reset_votes=reset_votes/>
         // <SongList
         // songs=songs
         // votes=votes

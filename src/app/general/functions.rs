@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use crate::app::{general::types::*, pages::user};
+use http::{HeaderMap, HeaderValue};
 use leptos::logging::*;
 use rspotify::{
     clients::BaseClient,
@@ -46,8 +49,9 @@ pub async fn get_access_token(
     pool: &sqlx::PgPool,
     jam_id: &str,
     reqwest_client: &reqwest::Client,
+    credentials: &SpotifyCredentials,
 ) -> Result<rspotify::Token, Error> {
-    refresh_access_token(pool, jam_id, reqwest_client).await?;
+    refresh_access_token(pool, jam_id, reqwest_client, credentials).await?;
     let token = get_raw_access_token(pool, jam_id).await?;
 
     let expires_at = chrono::DateTime::from_timestamp(token.expires_at, 0).unwrap();
@@ -70,6 +74,7 @@ pub async fn refresh_access_token(
     pool: &sqlx::PgPool,
     jam_id: &str,
     reqwest_client: &reqwest::Client,
+    credentials: &SpotifyCredentials,
 ) -> Result<(), Error> {
     let token = get_raw_access_token(pool, jam_id).await?;
     let now = chrono::Utc::now().timestamp();
@@ -84,9 +89,20 @@ pub async fn refresh_access_token(
         body.insert("grant_type", "refresh_token");
         body
     };
+
+    let headers = {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            HeaderValue::from_str(&format!("Basic: {}:{}", credentials.id, credentials.secret)).unwrap(),
+        );
+        headers.insert("Content-Type", HeaderValue::from_static("application/x-www-form-urlencoded"));
+        headers
+    };
     let res = match reqwest_client
         .post("https://accounts.spotify.com/api/token")
         .form(&body)
+        .headers(headers)
         .send()
         .await
     {
@@ -330,11 +346,12 @@ pub async fn add_song(
     jam_id: &str,
     pool: &sqlx::PgPool,
     reqwest_client: &reqwest::Client,
+    credentials: &SpotifyCredentials
 ) -> Result<(), Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
 
-    let token = get_access_token(pool, jam_id, reqwest_client).await?;
+    let token = get_access_token(pool, jam_id, reqwest_client,credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let track_id = TrackId::from_id(song_id)?;
     let song = client.track(track_id, None).await?;
@@ -397,11 +414,12 @@ pub async fn search(
     pool: &sqlx::PgPool,
     jam_id: &str,
     reqwest_client: &reqwest::Client,
+    credentials: &SpotifyCredentials
 ) -> Result<Vec<Song>, Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
 
-    let token = get_access_token(pool, jam_id, reqwest_client).await?;
+    let token = get_access_token(pool, jam_id, reqwest_client, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let result = client
         .search(

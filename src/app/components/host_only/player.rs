@@ -10,7 +10,7 @@ use crate::{app::general::types::Song, components::create};
 #[component]
 pub fn Player<F>(
     host_id: String,
-    #[prop(into)] top_song: Signal<Option<Song>>,
+    #[prop(into)] top_song_id: Signal<Option<String>>,
     reset_votes: F,
 ) -> impl IntoView
 where
@@ -43,7 +43,7 @@ where
     });
 
     let is_loaded = move || {
-        let x = player_is_connected() || top_song.with(|song| song.is_some());
+        let x = player_is_connected() || top_song_id.with(|song| song.is_some());
         if x {
             log!("player is connected");
         } else {
@@ -51,32 +51,35 @@ where
         }
         x
     };
-    let song_url = move || {
-        top_song.with(|song| match song.as_ref() {
-            Some(song) => song.image.url.clone(),
-            None => String::new(),
-        })
-    };
-    let song_name = move || {
-        top_song.with(|song| match song.as_ref() {
-            Some(song) => song.name.clone(),
-            None => String::new(),
-        })
-    };
-    let artists = move || {
-        top_song.with(|song| match song.as_ref() {
-            Some(song) => song.artists.join(", "),
-            None => String::new(),
-        })
-    };
-    let song_length = move || {
-        top_song.with(|song| match song.as_ref() {
-            Some(song) => song.duration,
-            None => 0,
-        })
-    };
+    let (image_url, set_image_url) = create_signal(String::new());
+    let (song_name, set_song_name) = create_signal(String::new());
+    let (artists, set_artists) = create_signal(String::new());
+    let (song_length, set_song_length) = create_signal(0);
     let (song_position, set_song_position) = create_signal(0);
     let (playing, set_playing) = create_signal(false);
+
+    let on_update = move |state_change: sp::StateChange| {
+        log!("state change: {:#?}", state_change);
+        set_song_position(state_change.position);
+        set_playing(!state_change.paused);
+        set_song_length(state_change.track_window.current_track.duration_ms);
+        set_image_url(
+            state_change.track_window.current_track.album.images[0]
+                .url
+                .clone(),
+        );
+        set_song_name(state_change.track_window.current_track.name);
+        set_artists(
+            state_change
+                .track_window
+                .current_track
+                .artists
+                .into_iter()
+                .map(|a| a.name)
+                .collect::<Vec<_>>()
+                .join(", "),
+        );
+    };
 
     create_effect(move |_| {
         if !sp::player_ready() {
@@ -87,14 +90,7 @@ where
                         token_value.access_token.clone()
                     },
                     move || {
-                        sp::add_listener!(
-                            "player_state_changed",
-                            move |state_change: sp::StateChange| {
-                                set_song_position(state_change.position);
-                                set_playing(!state_change.paused);
-                                log!("state change: {:#?}", state_change);
-                            }
-                        );
+                        sp::add_listener!("player_state_changed", on_update);
                         connect.dispatch(());
                     },
                     "jam",
@@ -108,7 +104,7 @@ where
     view! {
         <Show when=is_loaded fallback=|| "loading.......">
             <div class="player">
-                <img prop:src=song_url/>
+                <img prop:src=image_url/>
 
                 <div class="info">
                     <div class="title">{song_name}</div>
@@ -117,11 +113,21 @@ where
 
                 <div class="progress">
                     <div class="bar">
-                        <div class="position"></div>
+                        <div
+                            class="position"
+                            prop:width=move || {
+                                let percentage = if song_length() == 0 {
+                                    0.0
+                                } else {
+                                    (song_position() as f64 / song_length() as f64) * 100.0
+                                };
+                                format!("{}%", percentage)
+                            }
+                        ></div>
                     </div>
                     <div class="times">
-                        <div>{song_position}</div>
-                        <div>{song_length}</div>
+                        <div>{move || { millis_to_min_sec(song_position() as u32) }}</div>
+                        <div>{move || millis_to_min_sec(song_length() as u32)}</div>
                     </div>
                 </div>
 
@@ -141,8 +147,6 @@ where
                         false => {
                             view! {
                                 <svg
-                                    width="71"
-                                    height="71"
                                     viewBox=icondata::BsPlayFill.view_box
                                     inner_html=icondata::BsPlayFill.data
                                     class="play"
@@ -157,12 +161,20 @@ where
     }
 }
 
+fn millis_to_min_sec(millis: u32) -> String {
+    let seconds = millis / 1000;
+    let minutes = seconds / 60;
+    let seconds = seconds % 60;
+    format!("{:}:{:}", minutes, seconds)
+}
+
 #[server]
 async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnError> {
     use crate::app::general::*;
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     let reqwest_client = &app_state.reqwest_client;
+    let credentials = &app_state.spotify_credentials;
 
     let jam_id = check_id_type(&host_id, pool).await;
     let jam_id = match jam_id {
@@ -183,7 +195,7 @@ async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnEr
         }
     };
 
-    let token = match get_access_token(pool, &jam_id, reqwest_client).await {
+    let token = match get_access_token(pool, &jam_id, reqwest_client, credentials).await {
         Ok(token) => token,
         Err(e) => return Err(ServerFnError::ServerError(e.into())),
     };
