@@ -97,7 +97,7 @@ pub fn HostPage() -> impl IntoView {
             .map(|song| song.id.clone()),
         None => None,
     };
-    let top_song_id=move||Some("11dFghVXANMlKmJXsNCbNl".to_string());
+    let top_song_id = move || Some("11dFghVXANMlKmJXsNCbNl".to_string());
     let top_song = Signal::derive(top_song_id);
 
     let reset_votes = move || {
@@ -110,13 +110,17 @@ pub fn HostPage() -> impl IntoView {
         <Show when=move || host_id.with(|s| !s.is_empty()) fallback=move || "no access token">
 
             // <UsersBar users=users kick_user=kick_user/>
-            <Player host_id=host_id.get_untracked() top_song_id=top_song_id reset_votes=reset_votes/>
-        // <SongList
-        // songs=songs
-        // votes=votes
-        // request_update=request_update
-        // song_action=SongAction::Remove(remove_song)
-        // />
+            <Player
+                host_id=host_id.get_untracked()
+                top_song_id=top_song_id
+                reset_votes=reset_votes
+            />
+            <SongList
+                songs=songs
+                votes=votes
+                request_update=request_update
+                song_action=SongAction::Remove(remove_song)
+            />
 
         </Show>
     }

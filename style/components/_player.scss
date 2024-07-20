@@ -40,7 +40,7 @@
 
     >.progress {
         width: 100%;
-        overflow: hidden;
+        
 
         >.bar {
             @extend .glass;
@@ -48,12 +48,13 @@
             height: 80px;
             $border-rad: 30px;
             border-radius: $border-rad;
+            overflow: hidden;
 
             >.position {
                 @extend .glass;
                 opacity: 0.75;
                 height: 100%;
-                border-radius: $border-rad;
+                border-radius: 0px $border-rad $border-rad 0px;
             }
         }
 

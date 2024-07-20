@@ -34,9 +34,10 @@ where
             None
         }
     };
-
     let songs = Signal::derive(songs);
 
+
+    
     view! {
         <div class="song-list">
             {move || {
@@ -45,8 +46,6 @@ where
                     for _ in 0..5 {
                         vec.push(
                             view! {
-                                // avoids cloning the whole list
-
                                 <Song song=None song_action=song_action/>
                             },
                         );
@@ -57,11 +56,17 @@ where
                 }
             }}
             <For
-                each=move || songs().unwrap_or_default()
-                key=|song| song.id.clone()
-                children=move |song| {
+                each=move || songs().unwrap_or_default().into_iter().enumerate()
+                key=|(_,song)| song.id.clone()
+                children=move |(index, song)| {
+                    let votes=create_memo(move|_|songs.with(|songs|{songs.as_ref().map(|songs|songs.get(index).map(|s|s.votes).unwrap_or(0))}.unwrap_or(0)));
+                    let song=move||{
+                        let mut=song.clone();
+                        song.votes=votes();
+                        Some(song)
+                    };
                     view! {
-                        <Song song=Some(song.clone()) song_action=song_action/>
+                        "lol"
                     }
                 }
             />

@@ -6,8 +6,6 @@ use leptos::{
 };
 use rust_spotify_web_playback_sdk::prelude as sp;
 
-use crate::app::pages::host;
-
 #[component]
 pub fn Player<F>(
     host_id: String,
@@ -17,9 +15,22 @@ pub fn Player<F>(
 where
     F: Fn() + 'static,
 {
-    
     let (player_is_connected, set_player_is_connected) = create_signal(false);
+
+    let top_song_id = create_memo(move |_| top_song_id());
     let (current_song_id, set_current_song_id) = create_signal(String::new());
+    let current_song_id = create_memo(move |_| current_song_id());
+
+    let is_loaded = move || player_is_connected() || top_song_id.with(|song| song.is_some());
+    let is_loaded = Signal::derive(is_loaded);
+
+    let (image_url, set_image_url) = create_signal(String::new());
+    let (song_name, set_song_name) = create_signal(String::new());
+    let (artists, set_artists) = create_signal(String::new());
+    let (song_length, set_song_length) = create_signal(0);
+    let (song_position, set_song_position) = create_signal(0);
+    let (playing, set_playing) = create_signal(false);
+
     let token = {
         let host_id = host_id.clone();
         create_action(move |_: &()| {
@@ -27,20 +38,22 @@ where
             async move { get_access_token(host_id).await }
         })
     };
-
     token.dispatch(());
 
     let connect = create_action(move |_: &()| async move { sp::connect().await });
 
-    create_effect(move |_| match connect.value().get() {
-        Some(Ok(_)) => {
-            set_player_is_connected(true);
-        }
-        Some(Err(e)) => {
-            error!("error while connecting to spotify:{:?}", e);
-        }
-        None => {}
-    });
+    let play_song = {
+        let host_id = host_id.clone();
+        create_action(move |song_id: &String| {
+            let host_id = host_id.clone();
+            let song_id = song_id.clone();
+            async move {
+                if let Err(e) = play_song(song_id, host_id).await {
+                    error!("Error playing song: {:?}", e);
+                }
+            }
+        })
+    };
 
     let toggle_play = create_action(move |_: &()| async {
         if let Err(e) = sp::toggle_play().await {
@@ -48,14 +61,33 @@ where
         }
     });
 
-    let is_loaded = move || player_is_connected() || top_song_id.with(|song| song.is_some());
-    let is_loaded = Signal::derive(is_loaded);
-    let (image_url, set_image_url) = create_signal(String::new());
-    let (song_name, set_song_name) = create_signal(String::new());
-    let (artists, set_artists) = create_signal(String::new());
-    let (song_length, set_song_length) = create_signal(0);
-    let (song_position, set_song_position) = create_signal(0);
-    let (playing, set_playing) = create_signal(false);
+    let switch_device = {
+        let host_id = host_id.clone();
+        create_action(move |device_id: &String| {
+            let host_id = host_id.clone();
+            let device_id = device_id.clone();
+            async move {
+                if let Err(e) = change_playback_device(device_id, host_id).await {
+                    error!("Error switching device: {:?}", e);
+                }
+            }
+        })
+    };
+
+    let position_update = create_action(move |_: &()| async move {
+        if is_loaded.get_untracked() {
+            if let Ok(Some(state)) = sp::get_current_state().await {
+                set_song_position(state.position);
+            };
+        }
+    });
+
+    if cfg!(any(target_arch = "wasm32", target_os = "unknown")) {
+        let position_update = Interval::new(100, move || {
+            position_update.dispatch(());
+        });
+        position_update.forget();
+    }
 
     let on_update = move |state_change: sp::StateChange| {
         set_song_position(state_change.position);
@@ -80,33 +112,21 @@ where
         );
     };
 
-    let switch_device={
-        let host_id=host_id.clone();
-        create_action(move |device_id:&String| {
-            let host_id=host_id.clone();
-            let device_id=device_id.clone();
-            async move {
-                if let Err(e)=change_playback_device(device_id, host_id).await{
-                    error!("Error switching device: {:?}", e);
-                }
-            }
-        })
-    };
-
-    let play_song=create_action(move |song_id:&String| {
-        let host_id=host_id.clone();
-        let song_id=song_id.clone();
-        async move {
-            if let Err(e)=play_song(song_id, host_id).await{
-                error!("Error playing song: {:?}", e);
-            }
+    create_effect(move |_| match connect.value().get() {
+        Some(Ok(_)) => {
+            set_player_is_connected(true);
         }
+        Some(Err(e)) => {
+            error!("error while connecting to spotify:{:?}", e);
+        }
+        None => {}
     });
 
     create_effect(move |_| {
-        if let Some(top_song_id)=top_song_id() {
+        if let Some(top_song_id) = top_song_id() {
             if current_song_id() != top_song_id {
                 play_song.dispatch(top_song_id);
+                reset_votes();
             }
         }
     });
@@ -121,9 +141,10 @@ where
                     },
                     move || {
                         sp::add_listener!("player_state_changed", on_update).unwrap();
-                        sp::add_listener!("ready", move|player:sp::Player| {
+                        sp::add_listener!("ready", move |player: sp::Player| {
                             switch_device.dispatch(player.device_id);
-                        }).unwrap();
+                        })
+                        .unwrap();
                         connect.dispatch(());
                     },
                     "jam",
@@ -133,23 +154,6 @@ where
             }
         }
     });
-
-    let position_update = create_action(move |_: &()| async move {
-        if is_loaded.get_untracked() {
-            let state = sp::get_current_state().await.unwrap();
-            if let Some(state) = state {
-                set_song_position(state.position);
-            };
-        }
-    });
-
-    if cfg!(any(target_arch = "wasm32", target_os = "unknown")) {
-        let position_update = Interval::new(100, move || {
-            position_update.dispatch(());
-        });
-
-        position_update.forget();
-    }
 
     view! {
         <Show when=is_loaded fallback=|| "loading.......">
@@ -240,7 +244,7 @@ async fn play_song(song_id: String, host_id: String) -> Result<(), ServerFnError
         Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
     };
 
-    if let Err(e)=play_song(&song_id, &jam_id, pool, reqwest_client, credentials).await{
+    if let Err(e) = play_song(&song_id, &jam_id, pool, reqwest_client, credentials).await {
         return Err(ServerFnError::ServerError(e.into()));
     };
 
@@ -248,7 +252,7 @@ async fn play_song(song_id: String, host_id: String) -> Result<(), ServerFnError
 }
 
 #[server]
-async fn change_playback_device(device_id:String, host_id:String) -> Result<(),ServerFnError> {
+async fn change_playback_device(device_id: String, host_id: String) -> Result<(), ServerFnError> {
     use crate::app::general::*;
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
@@ -266,12 +270,13 @@ async fn change_playback_device(device_id:String, host_id:String) -> Result<(),S
         Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
     };
 
-    if let Err(e)=switch_playback_to_device(&device_id, &jam_id, pool, reqwest_client, credentials).await{
+    if let Err(e) =
+        switch_playback_to_device(&device_id, &jam_id, pool, reqwest_client, credentials).await
+    {
         return Err(ServerFnError::ServerError(e.into()));
     };
 
     Ok(())
-
 }
 
 #[server]
