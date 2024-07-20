@@ -11,7 +11,10 @@ pub enum SongAction {
 
 #[component]
 pub fn Song(
-    #[prop(into)] song: MaybeSignal<Option<Song>>,
+    #[prop(optional_no_strip)] song: Option<Song>,
+    #[prop(into)]
+    #[prop(optional)]
+    votes: Option<MaybeSignal<u32>>,
     song_action: SongAction,
 ) -> impl IntoView {
     let loaded = move |song: Song| {
@@ -29,7 +32,6 @@ pub fn Song(
                     }
                 }
             >
-
                 <div class="info">
                     <img
                         src=&song.image.url
@@ -47,24 +49,40 @@ pub fn Song(
                 </div>
 
                 <div class="action">
-
                     {
                         let song = song.clone();
-                        let song_id = song.id.clone();
                         match song_action {
-                            SongAction::Vote(_) => song.votes.into_view(),
-                            SongAction::Add(_) => "+".into_view(),
-                            SongAction::Remove(remove_song) => {
+                            SongAction::Vote(_) => {
+                                let votes = if let Some(votes) = votes {
+                                    votes()
+                                } else {
+                                    song.votes as u32
+                                };
                                 view! {
-                                    <button
-                                        class="remove"
-                                        on:click=move |_| {
-                                            remove_song(song_id.clone());
-                                        }
-                                    >
-
+                                    <div class="votes">
+                                        {votes}
                                         <svg viewBox=IoClose.view_box inner_html=IoClose.data></svg>
-                                    </button>
+                                    </div>
+                                }
+                                    .into_view()
+                            }
+                            SongAction::Add(_) => {
+                                view! {
+                                    <svg
+                                        class="add"
+                                        viewBox=IoClose.view_box
+                                        inner_html=IoClose.data
+                                    ></svg>
+                                }
+                                    .into_view()
+                            }
+                            SongAction::Remove(_) => {
+                                view! {
+                                    <svg
+                                        class="remove"
+                                        viewBox=IoClose.view_box
+                                        inner_html=IoClose.data
+                                    ></svg>
                                 }
                                     .into_view()
                             }
@@ -72,7 +90,6 @@ pub fn Song(
                     }
 
                 </div>
-
             </div>
         }
         .into_view()
@@ -81,7 +98,7 @@ pub fn Song(
     let loading = move || view! {}.into_view();
 
     view! {
-        {move || match song() {
+        {move || match song.clone() {
             Some(song) => loaded(song.clone()),
             None => loading(),
         }}

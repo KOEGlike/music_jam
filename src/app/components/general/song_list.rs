@@ -59,14 +59,10 @@ where
                 each=move || songs().unwrap_or_default().into_iter().enumerate()
                 key=|(_,song)| song.id.clone()
                 children=move |(index, song)| {
-                    let votes=create_memo(move|_|songs.with(|songs|{songs.as_ref().map(|songs|songs.get(index).map(|s|s.votes).unwrap_or(0))}.unwrap_or(0)));
-                    let song=move||{
-                        let mut=song.clone();
-                        song.votes=votes();
-                        Some(song)
-                    };
+                    let votes=create_memo(move|_|songs.with(|songs|{songs.as_ref().map(|songs|songs.get(index).map(|s|s.votes).unwrap_or(0))}.unwrap_or(0) as u32));
+                    
                     view! {
-                        "lol"
+                        <Song song=Some(song) song_action=song_action votes=votes/>
                     }
                 }
             />

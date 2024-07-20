@@ -285,6 +285,8 @@ pub async fn reset_votes(jam_id: &str, pool: &sqlx::PgPool) -> Result<(), sqlx::
     Ok(())
 }
 
+
+
 pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sqlx::Error> {
     struct SongDb {
         pub id: String,
@@ -298,7 +300,6 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sq
         pub image_height: Option<i64>,
         pub image_url: String,
     }
-
     let vec = sqlx::query_as!(
         SongDb,
         "SELECT s.id, s.user_id, s.name, s.album, s.duration, i.url AS image_url, i.width AS image_width, i.height AS image_height, COUNT(v.id) AS votes, ARRAY_AGG(a.name) AS artists
@@ -476,8 +477,16 @@ pub async fn search(
         return Err(Error::Spotify("Error in search".to_string()));
     };
 
+    let songs_in_jam=sqlx::query!("SELECT id FROM songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1);", jam_id)
+        .fetch_all(pool)
+        .await?
+        .into_iter()
+        .map(|song| song.id)
+        .collect::<Vec<String>>();
+
+    let songs=songs.items.into_iter().filter(|song| !songs_in_jam.contains(&song.id.as_ref().unwrap().id().to_owned())).collect::<Vec<_>>();
+
     let songs = songs
-        .items
         .iter()
         .map(|track| {
             let id = match track.id.clone() {

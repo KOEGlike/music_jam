@@ -97,8 +97,7 @@ pub fn HostPage() -> impl IntoView {
             .map(|song| song.id.clone()),
         None => None,
     };
-    let top_song_id = move || Some("11dFghVXANMlKmJXsNCbNl".to_string());
-    let top_song = Signal::derive(top_song_id);
+    let top_song_id = Signal::derive(top_song_id);
 
     let reset_votes = move || {
         let request = real_time::Request::ResetVotes;
