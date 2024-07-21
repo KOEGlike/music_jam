@@ -27,11 +27,18 @@ async fn create_user(
 pub fn CreateUser(jam_id: String) -> impl IntoView {
     let (image_url, set_image_url) = create_signal(String::from("data:"));
     let video_id = "video";
-    let (update_take_picture, take_picture) = create_signal(());
     let camera = create_local_resource(
         || (),
-        move |_| async move { camera(set_image_url, update_take_picture, video_id).await },
+        move |_| async move { camera(set_image_url, video_id).await },
     );
+    let take_picture=move||{
+        camera.with(|take_pic|if let Some(take_pic) = take_pic {
+            match take_pic {
+                Ok(take_pic) => take_pic(),
+                Err(e) => error!("Error taking picture: {:?}", e),
+            }
+        })
+    };
 
     let (name, set_name) = create_signal(String::new());
 
@@ -45,6 +52,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
         }
     });
 
+    
     create_effect(move |_| {
         if let Some(res) = create_user.value().get() {
             match res {
@@ -66,7 +74,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
         <button
             id="capture-button"
             on:click=move |_| {
-                take_picture(());
+                take_picture();
             }
         >
 
@@ -79,9 +87,8 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
 
 async fn camera(
     image_url: WriteSignal<String>,
-    take_picture: ReadSignal<()>,
     video_id: &str,
-) -> Result<(), String> {
+) -> Result<impl Fn(), String> {
     use wasm_bindgen::prelude::*;
     use wasm_bindgen_futures::JsFuture;
 
@@ -197,8 +204,7 @@ async fn camera(
         }
     };
 
-    create_effect(move |_| {
-        take_picture();
+    let capture=Box::new(move || {
         canvas.set_width(video.video_width());
         canvas.set_height(video.video_height());
         context
@@ -214,5 +220,5 @@ async fn camera(
         image_url(data_url.clone());
     });
 
-    Ok(())
+    Ok(capture)
 }

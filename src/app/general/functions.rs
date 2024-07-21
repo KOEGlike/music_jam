@@ -5,7 +5,8 @@ use http::{HeaderMap, HeaderValue};
 use leptos::logging::*;
 use rspotify::{
     clients::{BaseClient, OAuthClient},
-    model::{device, Image, SearchResult, TrackId}, AuthCodeSpotify,
+    model::{device, Image, SearchResult, TrackId},
+    AuthCodeSpotify,
 };
 use web_sys::ReadableStreamByobRequest;
 
@@ -28,19 +29,32 @@ pub async fn play_song(
     pool: &sqlx::PgPool,
     reqwest_client: &reqwest::Client,
     credentials: &SpotifyCredentials,
-
 ) -> Result<(), Error> {
-    let token=get_access_token(pool, jam_id, reqwest_client, credentials).await?;
+    let token = get_access_token(pool, jam_id, reqwest_client, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
-    let song_id=match TrackId::from_id(song_id){
-        Ok(id)=>id,
-        Err(e)=>return Err(Error::Spotify(format!("could not play song, song id is not correct: {}", e)))
+    let song_id = match TrackId::from_id(song_id) {
+        Ok(id) => id,
+        Err(e) => {
+            return Err(Error::Spotify(format!(
+                "could not play song, song id is not correct: {}",
+                e
+            )))
+        }
     };
-    if let Err(e)= client.add_item_to_queue(rspotify::model::PlayableId::Track(song_id), None).await{
-        return Err(Error::Spotify(format!("could not play song, could add song to queue: {}", e)));
+    if let Err(e) = client
+        .add_item_to_queue(rspotify::model::PlayableId::Track(song_id), None)
+        .await
+    {
+        return Err(Error::Spotify(format!(
+            "could not play song, could add song to queue: {}",
+            e
+        )));
     };
-    if let Err(e)=client.next_track(None).await{
-        return Err(Error::Spotify(format!("could not play song, could not skip to next song: {}", e)));
+    if let Err(e) = client.next_track(None).await {
+        return Err(Error::Spotify(format!(
+            "could not play song, could not skip to next song: {}",
+            e
+        )));
     };
     Ok(())
 }
@@ -51,15 +65,17 @@ pub async fn switch_playback_to_device(
     pool: &sqlx::PgPool,
     reqwest_client: &reqwest::Client,
     credentials: &SpotifyCredentials,
-)-> Result<(), Error> {
-    let token=get_access_token(pool, jam_id, reqwest_client, credentials).await?;
+) -> Result<(), Error> {
+    let token = get_access_token(pool, jam_id, reqwest_client, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
-    if let Err(e)=client.transfer_playback(device_id, Some(true)).await{
-        return Err(Error::Spotify(format!("could not switch playback to device: {}", e)));
+    if let Err(e) = client.transfer_playback(device_id, Some(true)).await {
+        return Err(Error::Spotify(format!(
+            "could not switch playback to device: {}",
+            e
+        )));
     };
     Ok(())
 }
-
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -133,9 +149,13 @@ pub async fn refresh_access_token(
         let mut headers = HeaderMap::new();
         headers.insert(
             "Authorization",
-            HeaderValue::from_str(&format!("Basic: {}:{}", credentials.id, credentials.secret)).unwrap(),
+            HeaderValue::from_str(&format!("Basic: {}:{}", credentials.id, credentials.secret))
+                .unwrap(),
         );
-        headers.insert("Content-Type", HeaderValue::from_static("application/x-www-form-urlencoded"));
+        headers.insert(
+            "Content-Type",
+            HeaderValue::from_static("application/x-www-form-urlencoded"),
+        );
         headers
     };
     let res = match reqwest_client
@@ -285,8 +305,6 @@ pub async fn reset_votes(jam_id: &str, pool: &sqlx::PgPool) -> Result<(), sqlx::
     Ok(())
 }
 
-
-
 pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sqlx::Error> {
     struct SongDb {
         pub id: String,
@@ -386,12 +404,13 @@ pub async fn add_song(
     jam_id: &str,
     pool: &sqlx::PgPool,
     reqwest_client: &reqwest::Client,
-    credentials: &SpotifyCredentials
+    credentials: &SpotifyCredentials,
 ) -> Result<(), Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
+    log!("adding song, with id: {}", song_id);
 
-    let token = get_access_token(pool, jam_id, reqwest_client,credentials).await?;
+    let token = get_access_token(pool, jam_id, reqwest_client, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let track_id = TrackId::from_id(song_id)?;
     let song = client.track(track_id, None).await?;
@@ -399,14 +418,26 @@ pub async fn add_song(
     let mut transaction = pool.begin().await?;
     let image_id = cuid2::create_id();
 
+    sqlx::query!(
+        "INSERT INTO songs (id, user_id, name, album, duration) VALUES ($1, $2, $3, $4, $5);",
+        song_id,
+        user_id,
+        song.name,
+        song.album.name,
+        song.duration.num_milliseconds() as i32,
+    )
+    .execute(&mut *transaction)
+    .await?;
+
     if let Some(width) = song.album.images[0].width {
         if let Some(height) = song.album.images[0].height {
             sqlx::query!(
-                "INSERT INTO images (id, url, width, height) VALUES ($1, $2, $3, $4);",
+                "INSERT INTO images (id, url, width, height, song_id) VALUES ($1, $2, $3, $4, $5);",
                 &image_id,
                 &song.album.images[0].url,
                 width as i32,
-                height as i32
+                height as i32,
+                &song_id
             )
             .execute(&mut *transaction)
             .await?;
@@ -422,22 +453,14 @@ pub async fn add_song(
         .await?;
     }
 
-    sqlx::query!(
-        "INSERT INTO songs (id, user_id, name, album, duration) VALUES ($1, $2, $3, $4, $5);",
-        song_id,
-        user_id,
-        song.name,
-        song.album.name,
-        song.duration.num_milliseconds() as i32,
-    )
-    .execute(&mut *transaction)
-    .await?;
-
+    
     for artist in song.artists {
         sqlx::query!(
-            "INSERT INTO artists (song_id, name) VALUES ($1, $2);",
+            "INSERT INTO artists (song_id, name, id) VALUES ($1, $2, $3);",
             song_id,
-            artist.name
+            artist.name,
+            artist.id.unwrap().id().to_owned()
+            
         )
         .execute(&mut *transaction)
         .await?;
@@ -454,7 +477,7 @@ pub async fn search(
     pool: &sqlx::PgPool,
     jam_id: &str,
     reqwest_client: &reqwest::Client,
-    credentials: &SpotifyCredentials
+    credentials: &SpotifyCredentials,
 ) -> Result<Vec<Song>, Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
@@ -477,23 +500,26 @@ pub async fn search(
         return Err(Error::Spotify("Error in search".to_string()));
     };
 
-    let songs_in_jam=sqlx::query!("SELECT id FROM songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1);", jam_id)
-        .fetch_all(pool)
-        .await?
-        .into_iter()
-        .map(|song| song.id)
-        .collect::<Vec<String>>();
+    let songs_in_jam = sqlx::query!(
+        "SELECT id FROM songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1);",
+        jam_id
+    )
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(|song| song.id)
+    .collect::<Vec<String>>();
 
-    let songs=songs.items.into_iter().filter(|song| !songs_in_jam.contains(&song.id.as_ref().unwrap().id().to_owned())).collect::<Vec<_>>();
+    let songs = songs
+        .items
+        .into_iter()
+        .filter(|song| !songs_in_jam.contains(&song.id.as_ref().unwrap().id().to_owned()))
+        .collect::<Vec<_>>();
 
     let songs = songs
         .iter()
         .map(|track| {
-            let id = match track.id.clone() {
-                Some(id) => id.to_string(),
-                None => "lol this is not a local song, this is a bug".to_string(),
-            };
-
+            let id = track.id.as_ref().unwrap().id().to_owned();
             Song {
                 id,
                 user_id: None,

@@ -4,6 +4,7 @@ use axum::extract::ws;
 use sqlx::postgres::PgListener;
 use std::future::Future;
 use tokio::sync::mpsc;
+use leptos::logging::log;
 
 pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: AppState) {
     let pool = app_state.db.pool;
@@ -43,7 +44,7 @@ async fn listen_songs(
         id.jam_id(),
         sender,
         real_time::Channels::Songs,
-        || get_songs(&pool, &id),
+        || {log!("updated songs"); get_songs(&pool, &id)},
     )
     .await
 }
