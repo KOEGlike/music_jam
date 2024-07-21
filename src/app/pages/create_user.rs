@@ -22,10 +22,11 @@ pub fn CreateUserPage() -> impl IntoView {
                 })
         })
     };
+    let jam_id = Signal::derive( jam_id);
 
     view!{
         <div class="create-user-page">
-            <CreateUser jam_id={jam_id()} />
+            <CreateUser jam_id={jam_id.get_untracked()} />
         </div>
     }
 }
