@@ -1,3 +1,4 @@
+use chrono::format;
 use leptos::{logging::log, prelude::*, *};
 use leptos_router::{use_navigate, NavigateOptions};
 
@@ -7,7 +8,9 @@ use leptos_router::{use_navigate, NavigateOptions};
 pub fn JoinIsland() -> impl IntoView {
     let (jam_code, set_jam_code) = create_signal(String::new());
     let on_click = move |_| {
-        log!("Joining jam code: {}", jam_code.get());
+        let navigator=use_navigate();
+        let url=format!("/create-user/{}", jam_code.get_untracked());
+        navigator(&url,NavigateOptions::default());
     };
 
     view! {

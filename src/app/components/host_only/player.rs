@@ -7,19 +7,16 @@ use leptos::{
 use rust_spotify_web_playback_sdk::prelude as sp;
 
 #[component]
-pub fn Player<F>(
+pub fn Player(
     host_id: String,
     #[prop(into)] top_song_id: Signal<Option<String>>,
-    reset_votes: F,
+    #[prop(into)]reset_votes: Callback<()>,
 ) -> impl IntoView
-where
-    F: Fn() + 'static,
+
 {
     let (player_is_connected, set_player_is_connected) = create_signal(false);
 
     let top_song_id = create_memo(move |_| top_song_id());
-    let (current_song_id, set_current_song_id) = create_signal(String::new());
-    let current_song_id = create_memo(move |_| current_song_id());
 
     let is_loaded = move || player_is_connected() || top_song_id.with(|song| song.is_some());
     let is_loaded = Signal::derive(is_loaded);
@@ -98,7 +95,6 @@ where
                 .url
                 .clone(),
         );
-        set_current_song_id(state_change.track_window.current_track.id);
         set_song_name(state_change.track_window.current_track.name);
         set_artists(
             state_change
@@ -110,6 +106,17 @@ where
                 .collect::<Vec<_>>()
                 .join(", "),
         );
+
+        if state_change
+            .track_window
+            .previous_tracks
+            .into_iter()
+            .any(|t| t.id == state_change.track_window.current_track.id)
+            && !state_change.paused
+        {
+            reset_votes(());
+            play_song.dispatch(state_change.track_window.current_track.id);
+        }
     };
 
     create_effect(move |_| match connect.value().get() {
@@ -120,15 +127,6 @@ where
             error!("error while connecting to spotify:{:?}", e);
         }
         None => {}
-    });
-
-    create_effect(move |_| {
-        if let Some(top_song_id) = top_song_id() {
-            if current_song_id() != top_song_id {
-                play_song.dispatch(top_song_id);
-                reset_votes();
-            }
-        }
     });
 
     create_effect(move |_| {

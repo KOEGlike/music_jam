@@ -99,11 +99,13 @@ pub fn HostPage() -> impl IntoView {
     };
     let top_song_id = Signal::derive(top_song_id);
 
-    let reset_votes = move || {
+    let reset_votes = move |_:()| {
         let request = real_time::Request::ResetVotes;
         let bin = rmp_serde::to_vec(&request).unwrap();
         send_bytes(bin);
     };
+
+    let reset_votes = Callback::new(reset_votes);
 
     view! {
         <Show when=move || host_id.with(|s| !s.is_empty()) fallback=move || "no access token">
