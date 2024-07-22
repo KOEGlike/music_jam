@@ -10,13 +10,13 @@ use rust_spotify_web_playback_sdk::prelude as sp;
 pub fn Player(
     host_id: String,
     #[prop(into)] top_song_id: Signal<Option<String>>,
-    #[prop(into)]reset_votes: Callback<()>,
-) -> impl IntoView
-
-{
+    #[prop(into)] reset_votes: Callback<()>,
+) -> impl IntoView {
     let (player_is_connected, set_player_is_connected) = create_signal(false);
 
     let top_song_id = create_memo(move |_| top_song_id());
+    //let (current_song_id, set_current_song_id) = create_signal(String::new());
+    //let current_song_id = create_memo(move |_| current_song_id());
 
     let is_loaded = move || player_is_connected() || top_song_id.with(|song| song.is_some());
     let is_loaded = Signal::derive(is_loaded);
@@ -96,6 +96,7 @@ pub fn Player(
                 .clone(),
         );
         set_song_name(state_change.track_window.current_track.name);
+
         set_artists(
             state_change
                 .track_window
@@ -106,18 +107,17 @@ pub fn Player(
                 .collect::<Vec<_>>()
                 .join(", "),
         );
-
-        if state_change
-            .track_window
-            .previous_tracks
-            .into_iter()
-            .any(|t| t.id == state_change.track_window.current_track.id)
-            && !state_change.paused
-        {
-            reset_votes(());
-            play_song.dispatch(state_change.track_window.current_track.id);
-        }
     };
+
+    create_effect(move |_| {
+        if song_position() as f32 / song_length() as f32 > 0.99 {
+            if let Some(song_id) = top_song_id.get() {
+                play_song.dispatch(song_id);
+            } else {
+                toggle_play.dispatch(());
+            }
+        }
+    });
 
     create_effect(move |_| match connect.value().get() {
         Some(Ok(_)) => {
