@@ -1,6 +1,7 @@
 use crate::app::general;
-use crate::{app::components::Search, components::search};
-use gloo::storage::*;
+use crate::{app::components::Search};
+use gloo::{storage::*, timers::callback::Interval};
+use http::request;
 use leptos::{logging::*, prelude::*, *};
 use leptos_router::*;
 use leptos_use::{use_websocket, UseWebsocketReturn};
@@ -24,6 +25,7 @@ pub fn UserPage() -> impl IntoView {
         }
         set_user_id(user_id);
     });
+    
 
     view! {
         <Show
@@ -94,6 +96,16 @@ pub fn UserPage() -> impl IntoView {
                     let bin = rmp_serde::to_vec(&request).unwrap();
                     send_bytes(bin);
                 };
+                let request_update=move||{
+                    let request = general::real_time::Request::Update;
+                    let bin = rmp_serde::to_vec(&request).unwrap();
+                    send_bytes(bin);
+                    log!("Sent update request");
+                };
+
+                let request_update=Interval::new(60*1000, request_update);
+                request_update.forget();
+                
                 view! { <Search search_result=search_result search=search add_song=add_song/> }
             }}
 

@@ -1,3 +1,5 @@
+use core::panic;
+
 use crate::app::general::*;
 use axum::{
     extract::{
@@ -65,6 +67,7 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
 }
 
 async fn handle_error(error: Error, close: bool, sender: &mpsc::Sender<ws::Message>) {
+    panic!("Error: {:#?}", error);
     eprintln!("Error: {:?}", error);
 
     if close {
