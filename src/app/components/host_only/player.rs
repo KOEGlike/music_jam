@@ -229,7 +229,7 @@ async fn play_song(song_id: String, host_id: String) -> Result<(), ServerFnError
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     let reqwest_client = &app_state.reqwest_client;
-    let credentials = &app_state.spotify_credentials;
+    let credentials = app_state.spotify_credentials;
 
     let jam_id = match check_id_type(&host_id, pool).await {
         Ok(IdType::Host(id)) => id.jam_id,
@@ -242,7 +242,7 @@ async fn play_song(song_id: String, host_id: String) -> Result<(), ServerFnError
         Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
     };
 
-    if let Err(e) = play_song(&song_id, &jam_id, pool, reqwest_client, credentials).await {
+    if let Err(e) = play_song(&song_id, &jam_id, pool, credentials).await {
         return Err(ServerFnError::ServerError(e.into()));
     };
 
@@ -254,8 +254,7 @@ async fn change_playback_device(device_id: String, host_id: String) -> Result<()
     use crate::app::general::*;
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
-    let reqwest_client = &app_state.reqwest_client;
-    let credentials = &app_state.spotify_credentials;
+    let credentials = app_state.spotify_credentials;
 
     let jam_id = match check_id_type(&host_id, pool).await {
         Ok(IdType::Host(id)) => id.jam_id,
@@ -269,7 +268,7 @@ async fn change_playback_device(device_id: String, host_id: String) -> Result<()
     };
 
     if let Err(e) =
-        switch_playback_to_device(&device_id, &jam_id, pool, reqwest_client, credentials).await
+        switch_playback_to_device(&device_id, &jam_id, pool, credentials).await
     {
         return Err(ServerFnError::ServerError(e.into()));
     };
@@ -282,8 +281,7 @@ async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnEr
     use crate::app::general::*;
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
-    let reqwest_client = &app_state.reqwest_client;
-    let credentials = &app_state.spotify_credentials;
+    let credentials = app_state.spotify_credentials;
 
     let jam_id = check_id_type(&host_id, pool).await;
     let jam_id = match jam_id {
@@ -304,7 +302,7 @@ async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnEr
         }
     };
 
-    let token = match get_access_token(pool, &jam_id, reqwest_client, credentials).await {
+    let token = match get_access_token(pool, &jam_id, credentials).await {
         Ok(token) => token,
         Err(e) => return Err(ServerFnError::ServerError(e.into())),
     };

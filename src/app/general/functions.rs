@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{borrow::Borrow, collections::HashMap};
 
 use crate::app::{general::types::*, pages::user};
 use http::{HeaderMap, HeaderValue};
@@ -27,10 +27,9 @@ pub async fn play_song(
     song_id: &str,
     jam_id: &str,
     pool: &sqlx::PgPool,
-    reqwest_client: &reqwest::Client,
-    credentials: &SpotifyCredentials,
+    credentials: SpotifyCredentials,
 ) -> Result<(), Error> {
-    let token = get_access_token(pool, jam_id, reqwest_client, credentials).await?;
+    let token = get_access_token(pool, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let song_id = match TrackId::from_id(song_id) {
         Ok(id) => id,
@@ -63,10 +62,9 @@ pub async fn switch_playback_to_device(
     device_id: &str,
     jam_id: &str,
     pool: &sqlx::PgPool,
-    reqwest_client: &reqwest::Client,
-    credentials: &SpotifyCredentials,
+    credentials: SpotifyCredentials,
 ) -> Result<(), Error> {
-    let token = get_access_token(pool, jam_id, reqwest_client, credentials).await?;
+    let token = get_access_token(pool, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     if let Err(e) = client.transfer_playback(device_id, Some(true)).await {
         return Err(Error::Spotify(format!(
@@ -87,27 +85,17 @@ struct AccessTokenDb {
     pub id: String,
 }
 
-async fn get_raw_access_token(
+async fn get_maybe_expired_access_token(
     pool: &sqlx::PgPool,
     jam_id: &str,
-) -> Result<AccessTokenDb, sqlx::Error> {
-    sqlx::query_as!(
+) -> Result<rspotify::Token, sqlx::Error> {
+    let token=sqlx::query_as!(
         AccessTokenDb,
         "SELECT * FROM access_tokens WHERE id=(SELECT access_token FROM hosts WHERE id=(SELECT host_id FROM jams WHERE id=$1))",
         jam_id
     )
     .fetch_one(pool)
-    .await
-}
-
-pub async fn get_access_token(
-    pool: &sqlx::PgPool,
-    jam_id: &str,
-    reqwest_client: &reqwest::Client,
-    credentials: &SpotifyCredentials,
-) -> Result<rspotify::Token, Error> {
-    refresh_access_token(pool, jam_id, reqwest_client, credentials).await?;
-    let token = get_raw_access_token(pool, jam_id).await?;
+    .await?;
 
     let expires_at = chrono::DateTime::from_timestamp(token.expires_at, 0).unwrap();
     let expires_at = Some(expires_at);
@@ -125,97 +113,52 @@ pub async fn get_access_token(
     Ok(token)
 }
 
-pub async fn refresh_access_token(
+///this also refreshes the token if it is expired
+pub async fn get_access_token(
     pool: &sqlx::PgPool,
     jam_id: &str,
-    reqwest_client: &reqwest::Client,
-    credentials: &SpotifyCredentials,
-) -> Result<(), Error> {
-    let token = get_raw_access_token(pool, jam_id).await?;
+    credentials: SpotifyCredentials,
+) -> Result<rspotify::Token, Error> {
+    let token = get_maybe_expired_access_token(pool, jam_id).await?;
     let now = chrono::Utc::now().timestamp();
-    if now < token.expires_at {
-        return Ok(());
+    if now < token.expires_at.unwrap_or_default().timestamp() {
+        return Ok(token);
     }
-
-    let body = {
-        use std::collections::HashMap;
-        let mut body = HashMap::new();
-        body.insert("refresh_token", token.refresh_token.as_str());
-        body.insert("grant_type", "refresh_token");
-        body
-    };
-
-    let headers = {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            "Authorization",
-            HeaderValue::from_str(&format!("Basic: {}:{}", credentials.id, credentials.secret))
-                .unwrap(),
-        );
-        headers.insert(
-            "Content-Type",
-            HeaderValue::from_static("application/x-www-form-urlencoded"),
-        );
-        headers
-    };
-    let res = match reqwest_client
-        .post("https://accounts.spotify.com/api/token")
-        .form(&body)
-        .headers(headers)
-        .send()
-        .await
-    {
-        Ok(res) => res,
-        Err(e) => return Err(Error::Spotify(format!("could not send request: {}", e))),
-    };
-
-    #[derive(serde::Deserialize, Debug)]
-    struct AccessToken {
-        access_token: String,
-        token_type: String,
-        scope: String,
-        expires_in: i64,
-        refresh_token: String,
-    }
-
-    let res = match res.status() {
-        reqwest::StatusCode::OK | reqwest::StatusCode::CREATED => match res.text().await {
-            Ok(res) => res,
-            Err(e) => return Err(Error::Spotify(format!("could not read response: {}", e))),
+    let old_access_token = token.access_token.clone();
+    let client = rspotify::AuthCodeSpotify::from_token_with_config(
+        token,
+        rspotify::Credentials {
+            id: credentials.id,
+            secret: Some(credentials.secret),
         },
-        _ => {
-            return Err(Error::Spotify(format!(
-                "error while acquiring spotify token: {:#?}",
-                res
-            )))
-        }
-    };
-
-    log!("got response: {:#?}", res);
-
-    let token_id = token.id;
-
-    let token: AccessToken = match serde_json::from_str(&res) {
-        Ok(token) => token,
-        Err(e) => return Err(Error::Spotify(format!("could not parse response: {}", e))),
-    };
-
-    log!("got token: {:#?}", token);
+        rspotify::OAuth::default(),
+        rspotify::Config::default(),
+    );
+    client.refetch_token().await?;
+    client.refresh_token().await?;
+    let new_token = client
+        .get_token()
+        .as_ref()
+        .lock()
+        .await
+        .unwrap()
+        .clone()
+        .unwrap();
 
     sqlx::query!(
-        "UPDATE access_tokens SET access_token=$1, expires_at=$2, scope=$3, refresh_token=$4 WHERE id=$5;",
-        token.access_token,
-        now + token.expires_in,
-        token.scope,
-        token.refresh_token,
-        token_id
+        "UPDATE access_tokens SET access_token=$1, expires_at=$2, scope=$3, refresh_token=$4 WHERE access_token=$5;",
+        new_token.access_token,
+        now + new_token.expires_in.num_seconds(),
+        new_token.scopes.clone().into_iter().collect::<Vec<_>>().join(" "),
+        new_token.refresh_token,
+        old_access_token
     )
     .execute(pool)
     .await?;
 
     log!("updated token");
 
-    Ok(())
+    Ok(new_token)
 }
 
 pub async fn create_user(
@@ -403,14 +346,13 @@ pub async fn add_song(
     user_id: &str,
     jam_id: &str,
     pool: &sqlx::PgPool,
-    reqwest_client: &reqwest::Client,
-    credentials: &SpotifyCredentials,
+    credentials: SpotifyCredentials,
 ) -> Result<(), Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
     log!("adding song, with id: {}", song_id);
 
-    let token = get_access_token(pool, jam_id, reqwest_client, credentials).await?;
+    let token = get_access_token(pool, jam_id , credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let track_id = TrackId::from_id(song_id)?;
     let song = client.track(track_id, None).await?;
@@ -453,14 +395,12 @@ pub async fn add_song(
         .await?;
     }
 
-    
     for artist in song.artists {
         sqlx::query!(
             "INSERT INTO artists (song_id, name, id) VALUES ($1, $2, $3);",
             song_id,
             artist.name,
             artist.id.unwrap().id().to_owned()
-            
         )
         .execute(&mut *transaction)
         .await?;
@@ -476,13 +416,12 @@ pub async fn search(
     query: &str,
     pool: &sqlx::PgPool,
     jam_id: &str,
-    reqwest_client: &reqwest::Client,
-    credentials: &SpotifyCredentials,
+    credentials: SpotifyCredentials,
 ) -> Result<Vec<Song>, Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
 
-    let token = get_access_token(pool, jam_id, reqwest_client, credentials).await?;
+    let token = get_access_token(pool, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let result = client
         .search(
