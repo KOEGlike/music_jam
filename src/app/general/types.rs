@@ -112,7 +112,7 @@ pub struct Song {
     pub album: String,
     pub duration: u16,
     pub image: Image,
-    pub votes: i64,
+    pub votes: Vote,
 }
 
 pub trait ToVotes {
@@ -206,7 +206,14 @@ impl ToVotes for Vec<Song> {
 
 
 use std::collections::HashMap;
-pub type Votes = HashMap<String, i64>;
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct Vote{
+    pub votes: u64,
+    ///none if requested by the host, or a unknown person
+    pub have_you_voted: Option<bool>,
+
+}
+pub type Votes = HashMap<String,Vote>;
 
 pub mod real_time {
     use super::*;
@@ -235,8 +242,6 @@ pub mod real_time {
         Error(Error),
         Votes(Votes),
         Search(Vec<Song>),
-        ///A vector of song ids that the user has voted on
-        YourVotes(Vec<String>)
     }
 
     impl From<Votes> for Update {

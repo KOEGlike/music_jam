@@ -1,3 +1,4 @@
+use general::Vote;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -39,11 +40,11 @@ pub fn App() -> impl IntoView {
 
 #[component]
 pub fn SongListTest() -> impl IntoView {
-    use components::{SongAction, SongList};
+    use components::{SongListAction, SongList};
     let cb = Callback::new(move |id| {
         leptos::logging::log!("Add song with id: {}", id);
     });
-    let song_action = SongAction::Add(cb);
+    let song_action = SongListAction::Add(cb);
 
     let song = general::Song {
         id: "lol".to_string(),
@@ -57,7 +58,7 @@ pub fn SongListTest() -> impl IntoView {
             url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
             width: Some(64),
         },
-        votes: 2,
+        votes: Vote{votes: 0, have_you_voted:None},
     };
 
     let songs = {

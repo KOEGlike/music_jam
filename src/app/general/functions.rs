@@ -277,9 +277,50 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sq
     .fetch_all(pool)
     .await?;
 
+    let votes: HashMap<String, Vote> = match id {
+        IdType::Host(_) => vec
+            .iter()
+            .map(|song| {
+                (
+                    song.id.clone(),
+                    Vote {
+                        votes: song.votes.unwrap_or(0) as u64,
+                        have_you_voted: None,
+                    },
+                )
+            })
+            .collect(),
+        IdType::User(id) => {
+            let votes = sqlx::query!("SELECT song_id FROM votes WHERE user_id=$1;", id.id)
+                .fetch_all(pool)
+                .await?
+                .into_iter()
+                .map(|vote| vote.song_id)
+                .collect::<Vec<String>>();
+            vec.iter()
+                .map(|song| {
+                    (
+                        song.id.clone(),
+                        Vote {
+                            votes: song.votes.unwrap_or(0) as u64,
+                            have_you_voted: Some(votes.contains(&song.id)),
+                        },
+                    )
+                })
+                .collect()
+        }
+    };
+
     let songs = vec
         .into_iter()
         .map(|song| Song {
+            votes: votes.get(&song.id).cloned().unwrap_or(Vote {
+                votes: 0,
+                have_you_voted: match id {
+                    IdType::Host(_) => None,
+                    IdType::User(_) => Some(false),
+                },
+            }),
             id: song.id,
             user_id: {
                 if let IdType::User(ref id) = id {
@@ -303,14 +344,13 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sq
                 width: song.image_width.map(|width| width as u32),
                 height: song.image_height.map(|height| height as u32),
             },
-            votes: song.votes.unwrap_or(0),
         })
         .collect::<Vec<_>>();
 
     Ok(songs)
 }
 
-pub async fn get_votes(pool: &sqlx::PgPool, jam_id: &str) -> Result<Votes, sqlx::Error> {
+pub async fn get_votes(pool: &sqlx::PgPool, id: &IdType) -> Result<Votes, sqlx::Error> {
     struct VotesDb {
         pub song_id: String,
         pub votes_nr: Option<i64>,
@@ -324,27 +364,47 @@ pub async fn get_votes(pool: &sqlx::PgPool, jam_id: &str) -> Result<Votes, sqlx:
         WHERE u.jam_id = $1
         GROUP BY s.id
         ORDER BY votes_nr DESC",
-        jam_id
+        id.jam_id()
     )
     .fetch_all(pool)
     .await?;
-    let map = vec
-        .into_iter()
-        .map(|v| (v.song_id, v.votes_nr.unwrap_or(0)))
-        .collect();
-    Ok(map)
-}
+    let votes = match id {
+        IdType::Host(_) => {
+            vec.into_iter()
+                .map(|v| {
+                    (
+                        v.song_id,
+                        Vote {
+                            votes: v.votes_nr.unwrap_or(0) as u64,
+                            have_you_voted: None,
+                        },
+                    )
+                })
+                .collect()
+        }
+        IdType::User(id) => {
+            let votes = sqlx::query!("SELECT song_id FROM votes WHERE user_id=$1;", id.id)
+                .fetch_all(pool)
+                .await?
+                .into_iter()
+                .map(|vote| vote.song_id)
+                .collect::<Vec<String>>();
+            vec.into_iter()
+                .map(|v| {
+                    let contains=votes.contains(&v.song_id);
+                    (
+                        v.song_id,
+                        Vote {
+                            votes: v.votes_nr.unwrap_or(0) as u64,
+                            have_you_voted: Some(contains),
+                        },
+                    )
+                })
+                .collect()
+        }
+    };
 
-///returns a vector of Song IDs that the user has voted for
-pub async fn get_users_votes(
-    user_id: &str,
-    pool: &sqlx::PgPool,
-) -> Result<Vec<String>, sqlx::Error> {
-    let votes = sqlx::query!("SELECT song_id FROM votes WHERE user_id=$1", user_id)
-        .fetch_all(pool)
-        .await?;
-    let song_ids=votes.into_iter().map(|vote| vote.song_id).collect();
-    Ok(song_ids)
+    Ok(votes)
 }
 
 pub async fn get_users(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<User>, sqlx::Error> {
@@ -479,7 +539,7 @@ pub async fn search(
                 album: track.album.name.clone(),
                 duration: track.duration.num_seconds() as u16,
                 image: track.album.images[0].clone(),
-                votes: 0,
+                votes: Vote{votes:0, have_you_voted:None},
             }
         })
         .collect::<Vec<Song>>();

@@ -61,7 +61,6 @@ pub fn HostPage() -> impl IntoView {
                     real_time::Update::Votes(votes) => set_votes(votes),
                     real_time::Update::Error(e) => error!("Error: {:#?}", e),
                     real_time::Update::Search(_) => error!("Unexpected search update"),
-                    real_time::Update::YourVotes(_) => error!("Unexpected your votes update"),
                 }
             }
         });
@@ -83,7 +82,12 @@ pub fn HostPage() -> impl IntoView {
         let top_song_id = move || match songs() {
             Some(songs) => songs
                 .iter()
-                .max_by_key(|song| votes().get(&song.id).copied().unwrap_or(0))
+                .max_by_key(|song| {
+                    votes().get(&song.id).copied().unwrap_or(Vote {
+                        votes: 0,
+                        have_you_voted: None,
+                    }).votes
+                })
                 .map(|song| song.id.clone()),
             None => None,
         };

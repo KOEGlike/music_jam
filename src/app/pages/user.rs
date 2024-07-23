@@ -41,7 +41,6 @@ pub fn UserPage() -> impl IntoView {
             let (songs, set_songs) = create_signal(None);
             let (votes, set_votes) = create_signal(general::Votes::new());
             let (users, set_users) = create_signal(None);
-            let (your_votes, set_your_votes) = create_signal(vec![]);
 
             let update = move || {
                 use general::real_time;
@@ -68,7 +67,6 @@ pub fn UserPage() -> impl IntoView {
                         real_time::Update::Songs(songs) => set_songs(Some(songs)),
                         real_time::Update::Votes(votes) => set_votes(votes),
                         real_time::Update::Users(users) => set_users(Some(users)),
-                        real_time::Update::YourVotes(votes) => set_your_votes(votes),
                     }
                 }
             });
