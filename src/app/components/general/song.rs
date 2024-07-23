@@ -3,8 +3,19 @@ use icondata::IoClose;
 use leptos::{prelude::*, *};
 
 #[derive(Clone, Debug, Copy)]
+pub enum SongVoteState{
+    Voted,
+    NotVoted,   
+    Loading,
+}
+
+#[derive(Clone, Debug, Copy)]
 pub enum SongAction {
-    Vote(Callback<String>),
+    Vote{
+        vote: Callback<String>,
+        remove_vote: Callback<String>,
+        current_state: Signal<SongVoteState>
+    },
     Remove(Callback<String>),
     Add(Callback<String>),
 }
@@ -25,7 +36,11 @@ pub fn Song(
                     let song_id = song.id.clone();
                     move |_| {
                         match song_action {
-                            SongAction::Vote(vote) => vote(song_id.clone()),
+                            SongAction::Vote{vote, remove_vote, current_state} => match current_state(){
+                                SongVoteState::Voted => remove_vote(song_id.clone()),
+                                SongVoteState::NotVoted => vote(song_id.clone()),
+                                SongVoteState::Loading => {},
+                            },
                             SongAction::Remove(remove) => remove(song_id.clone()),
                             SongAction::Add(add) => add(song_id.clone()),
                         }
@@ -52,7 +67,7 @@ pub fn Song(
                     {
                         let song = song.clone();
                         match song_action {
-                            SongAction::Vote(_) => {
+                            SongAction::Vote{..} => {
                                 let votes = if let Some(votes) = votes {
                                     votes()
                                 } else {

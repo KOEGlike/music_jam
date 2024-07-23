@@ -49,7 +49,7 @@ CREATE TABLE artists (
 
 
 CREATE TABLE votes (
-  id char(24) UNIQUE PRIMARY KEY NOT NULL,
+  id varchar(46) UNIQUE PRIMARY KEY NOT NULL,
   user_id char(24) NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   song_id varchar(22) NOT NULL REFERENCES songs (id) ON DELETE CASCADE
 );

@@ -335,6 +335,18 @@ pub async fn get_votes(pool: &sqlx::PgPool, jam_id: &str) -> Result<Votes, sqlx:
     Ok(map)
 }
 
+///returns a vector of Song IDs that the user has voted for
+pub async fn get_users_votes(
+    user_id: &str,
+    pool: &sqlx::PgPool,
+) -> Result<Vec<String>, sqlx::Error> {
+    let votes = sqlx::query!("SELECT song_id FROM votes WHERE user_id=$1", user_id)
+        .fetch_all(pool)
+        .await?;
+    let song_ids=votes.into_iter().map(|vote| vote.song_id).collect();
+    Ok(song_ids)
+}
+
 pub async fn get_users(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<User>, sqlx::Error> {
     sqlx::query_as!(User, "SELECT * FROM users WHERE jam_id=$1", jam_id)
         .fetch_all(pool)
@@ -352,7 +364,7 @@ pub async fn add_song(
     use rspotify::AuthCodeSpotify;
     log!("adding song, with id: {}", song_id);
 
-    let token = get_access_token(pool, jam_id , credentials).await?;
+    let token = get_access_token(pool, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let track_id = TrackId::from_id(song_id)?;
     let song = client.track(track_id, None).await?;
@@ -475,16 +487,26 @@ pub async fn search(
     Ok(songs)
 }
 
-pub async fn remove_song(
-    song_id: &str,
-    jam_id: &str,
-    pool: &sqlx::PgPool,
-) -> Result<(), sqlx::Error> {
+pub async fn remove_song(song_id: &str, id: &IdType, pool: &sqlx::PgPool) -> Result<(), Error> {
+    if let IdType::User(id) = id {
+        let song_user_id = sqlx::query!(
+            "SELECT * FROM songs WHERE id=$1 AND user_id=$2",
+            song_id,
+            id.id
+        )
+        .fetch_optional(pool)
+        .await?;
+        if song_user_id.is_none() {
+            return Err(Error::Forbidden(
+                "this song was not added by the user who wants to remove it".to_string(),
+            ));
+        }
+    }
+
     sqlx::query!("DELETE FROM songs WHERE id=$1;", song_id)
         .execute(pool)
         .await?;
-
-    notify(real_time::Channels::Songs, jam_id, pool).await?;
+    notify(real_time::Channels::Songs, id.jam_id(), pool).await?;
     Ok(())
 }
 
@@ -523,40 +545,50 @@ pub async fn check_id_type(id: &str, pool: &sqlx::PgPool) -> Result<IdType, sqlx
     Err(sqlx::Error::RowNotFound)
 }
 
-pub async fn add_vote(
-    song_id: &str,
-    user_id: &str,
-    jam_id: &str,
-    pool: &sqlx::PgPool,
-) -> Result<(), sqlx::Error> {
-    sqlx::query!(
-        "INSERT INTO votes (song_id, user_id, id) VALUES ($1, $2, $3);",
+pub async fn add_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Result<(), Error> {
+    let vote_exists = sqlx::query!(
+        "SELECT * FROM votes WHERE song_id=$1 AND user_id=$2;",
         song_id,
-        user_id,
-        format!("{}{}", song_id, user_id)
+        user_id.id
     )
-    .execute(pool)
+    .fetch_optional(pool)
     .await?;
 
-    notify(real_time::Channels::Votes, jam_id, pool).await?;
+    if vote_exists.is_none() {
+        sqlx::query!(
+            "INSERT INTO votes (song_id, user_id, id) VALUES ($1, $2, $3);",
+            song_id,
+            user_id.id,
+            format!("{}{}", song_id, user_id.id)
+        )
+        .execute(pool)
+        .await?;
+    } else {
+        return Err(Error::Forbidden(
+            "user has already voted for this song".to_string(),
+        ));
+    }
+
+    notify(real_time::Channels::Votes, &user_id.jam_id, pool).await?;
     Ok(())
 }
 
-pub async fn remove_vote(
-    song_id: &str,
-    user_id: &str,
-    jam_id: &str,
-    pool: &sqlx::PgPool,
-) -> Result<(), sqlx::Error> {
-    sqlx::query!(
-        "DELETE FROM votes WHERE song_id=$1 AND user_id=$2;",
+pub async fn remove_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Result<(), Error> {
+    let vote_exists = sqlx::query!(
+        "SELECT * FROM votes WHERE song_id=$1 AND user_id=$2;",
         song_id,
-        user_id,
+        user_id.id
     )
-    .execute(pool)
+    .fetch_optional(pool)
     .await?;
 
-    notify(real_time::Channels::Votes, jam_id, pool).await?;
+    if vote_exists.is_none() {
+        return Err(Error::Forbidden(
+            "user has not voted for this song".to_string(),
+        ));
+    }
+
+    notify(real_time::Channels::Votes, &user_id.jam_id, pool).await?;
     Ok(())
 }
 

@@ -61,6 +61,7 @@ pub fn HostPage() -> impl IntoView {
                     real_time::Update::Votes(votes) => set_votes(votes),
                     real_time::Update::Error(e) => error!("Error: {:#?}", e),
                     real_time::Update::Search(_) => error!("Unexpected search update"),
+                    real_time::Update::YourVotes(_) => error!("Unexpected your votes update"),
                 }
             }
         });

@@ -235,6 +235,8 @@ pub mod real_time {
         Error(Error),
         Votes(Votes),
         Search(Vec<Song>),
+        ///A vector of song ids that the user has voted on
+        YourVotes(Vec<String>)
     }
 
     impl From<Votes> for Update {

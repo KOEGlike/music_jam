@@ -1,19 +1,15 @@
 use super::{handle_error, IdType};
 use crate::app::general::*;
 use axum::extract::ws;
+use leptos::logging::log;
 use sqlx::postgres::PgListener;
 use std::future::Future;
 use tokio::sync::mpsc;
-use leptos::logging::log;
 
 pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: AppState) {
     let pool = app_state.db.pool;
 
-    let listen_songs = tokio::spawn(listen_songs(
-        pool.clone(),
-        id.clone(),
-        sender.clone(),
-    ));
+    let listen_songs = tokio::spawn(listen_songs(pool.clone(), id.clone(), sender.clone()));
 
     let listen_users = tokio::spawn(listen_users(
         pool.clone(),
@@ -44,7 +40,10 @@ async fn listen_songs(
         id.jam_id(),
         sender,
         real_time::Channels::Songs,
-        || {log!("updated songs"); get_songs(&pool, &id)},
+        || {
+            log!("updated songs");
+            get_songs(&pool, &id)
+        },
     )
     .await
 }
@@ -95,7 +94,10 @@ where
         let update: real_time::Update = f().await.into();
         let bin = rmp_serde::to_vec(&update).unwrap();
         let message = ws::Message::Binary(bin);
-        sender.send(message).await.unwrap();
+        if let Err(e) = sender.send(message).await {
+            eprintln!("Error sending message: {:?}", e);
+            break;
+        }
     }
 
     Ok(())

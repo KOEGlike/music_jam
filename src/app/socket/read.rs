@@ -69,9 +69,8 @@ pub async fn read(
                 };
             }
             real_time::Request::RemoveSong { song_id } => {
-                let jam_id = id.jam_id();
-                if let Err(error) = remove_song(&song_id, jam_id, pool).await {
-                    handle_error(error.into(), false, &sender).await;
+                if let Err(error) = remove_song(&song_id, &id, pool).await {
+                    handle_error(error, false, &sender).await;
                 };
             }
             real_time::Request::AddVote { song_id } => {
@@ -86,9 +85,24 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                if let Err(error) = add_vote(&song_id, &id.id, &id.jam_id, pool).await {
-                    handle_error(error.into(), false, &sender).await;
+                if let Err(error) = add_vote(&song_id, id, pool).await {
+                    handle_error(error, false, &sender).await;
                 };
+
+                let votes=match get_users_votes(&id.id, pool).await{
+                    Ok(votes)=>votes,
+                    Err(e)=>{
+                        handle_error(e.into(), false, &sender).await;
+                        continue;
+                    }
+                };
+                let update = real_time::Update::YourVotes(votes);
+                let message = rmp_serde::to_vec(&update).unwrap();
+                let message = ws::Message::Binary(message);
+                if let Err(e) = sender.send(message).await {
+                    eprintln!("Error sending message: {:?}", e);
+                    break;
+                }
             }
             real_time::Request::RemoveVote { song_id } => {
                 let id = match only_host(
@@ -102,9 +116,24 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                if let Err(error) = remove_vote(&song_id, &id.id, &id.jam_id, pool).await {
-                    handle_error(error.into(), false, &sender).await;
+                if let Err(error) = remove_vote(&song_id, id, pool).await {
+                    handle_error(error, false, &sender).await;
                 };
+
+                let votes=match get_users_votes(&id.id, pool).await{
+                    Ok(votes)=>votes,
+                    Err(e)=>{
+                        handle_error(e.into(), false, &sender).await;
+                        continue;
+                    }
+                };
+                let update = real_time::Update::YourVotes(votes);
+                let message = rmp_serde::to_vec(&update).unwrap();
+                let message = ws::Message::Binary(message);
+                if let Err(e) = sender.send(message).await {
+                    eprintln!("Error sending message: {:?}", e);
+                    break;
+                }
             }
             real_time::Request::Update => {
                 if let Err(e) = notify_all(id.jam_id(), pool).await {

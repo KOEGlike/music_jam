@@ -1,11 +1,13 @@
 use crate::app::general;
-use crate::components::{Song, SongAction};
+use crate::components::{Song, SongAction, SongVoteState};
 use leptos::{logging::log, prelude::*, *};
+use std::collections::HashMap;
 
 #[component]
 pub fn SongList<F>(
     #[prop(into)] songs: Signal<Option<Vec<general::Song>>>,
     #[prop(into)] votes: Signal<general::Votes>,
+    #[prop(into)]#[prop(optional)] user_votes: Option<Signal<HashMap<String, Signal<SongVoteState>>>>,
     request_update: F,
     song_action: SongAction,
 ) -> impl IntoView
@@ -36,19 +38,13 @@ where
     };
     let songs = Signal::derive(songs);
 
-
-    
     view! {
         <div class="song-list">
             {move || {
                 if songs.with(|songs| { songs.is_none() }) {
                     let mut vec = Vec::new();
                     for _ in 0..5 {
-                        vec.push(
-                            view! {
-                                <Song song=None song_action=song_action/>
-                            },
-                        );
+                        vec.push(view! { <Song song=None song_action=song_action/> });
                     }
                     vec.into_view()
                 } else {
@@ -57,13 +53,27 @@ where
             }}
             <For
                 each=move || songs().unwrap_or_default().into_iter().enumerate()
-                key=|(_,song)| song.id.clone()
+                key=|(_, song)| song.id.clone()
                 children=move |(index, song)| {
-                    let votes=create_memo(move|_|songs.with(|songs|{songs.as_ref().map(|songs|songs.get(index).map(|s|s.votes).unwrap_or(0))}.unwrap_or(0) as u32));
-                    
-                    view! {
-                        <Song song=Some(song) song_action=song_action votes=votes/>
+                    let votes = create_memo(move |_| {
+                        songs
+                            .with(|songs| {
+                                {
+                                    songs
+                                        .as_ref()
+                                        .map(|songs| songs.get(index).map(|s| s.votes).unwrap_or(0))
+                                }
+                                    .unwrap_or(0) as u32
+                            })
+                    });
+                    let mut song_action = song_action;
+                    if let SongAction::Vote { current_state, .. } = &mut song_action {
+                        *current_state = match user_votes().get(&song.id) {
+                            Some(state) => state.clone(),
+                            None => Signal::derive(move || SongVoteState::Loading),
+                        };
                     }
+                    view! { <Song song=Some(song) song_action=song_action votes=votes/> }
                 }
             />
 
