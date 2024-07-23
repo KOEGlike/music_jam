@@ -109,8 +109,11 @@ pub fn Player(
         );
     };
 
+    let can_go_to_next_song = create_memo(move |_| {
+        (song_position() as f32 / song_length() as f32) > 0.995
+    });
     create_effect(move |_| {
-        if song_position() as f32 / song_length() as f32 > 0.99 {
+        if can_go_to_next_song() {
             if let Some(song_id) = top_song_id.get() {
                 play_song.dispatch(song_id);
             } else {

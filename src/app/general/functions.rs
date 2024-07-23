@@ -530,9 +530,10 @@ pub async fn add_vote(
     pool: &sqlx::PgPool,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        "INSERT INTO votes (song_id, user_id) VALUES ($1, $2);",
+        "INSERT INTO votes (song_id, user_id, id) VALUES ($1, $2, $3);",
         song_id,
         user_id,
+        format!("{}{}", song_id, user_id)
     )
     .execute(pool)
     .await?;

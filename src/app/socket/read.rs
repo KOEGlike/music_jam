@@ -27,7 +27,7 @@ pub async fn read(
                 Ok(m) => m,
                 Err(e) => {
                     use Error;
-                    let error = Error::Decode(e.to_string());
+                    let error = Error::Decode(format!("Error decoding message sent in ws: {:?}", e));
                     handle_error(error, true, &sender).await;
                     break;
                 }
