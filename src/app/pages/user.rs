@@ -116,7 +116,7 @@ pub fn UserPage() -> impl IntoView {
                     songs=songs
                     votes=votes
                     request_update=request_update
-                    song_action=SongAction::Vote(vote)
+                    song_list_action=SongAction::Vote(vote)
                 />
             }
         }

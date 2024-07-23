@@ -104,7 +104,7 @@ pub fn HostPage() -> impl IntoView {
                 songs=songs
                 votes=votes
                 request_update=request_update
-                song_action=SongAction::Remove(remove_song)
+                song_list_action=SongAction::Remove(remove_song)
             />
             <UsersBar users=users kick_user=kick_user/>
         }

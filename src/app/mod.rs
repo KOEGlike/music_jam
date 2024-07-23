@@ -72,5 +72,5 @@ pub fn SongListTest() -> impl IntoView {
     let (songs, _) = create_signal(songs);
     let (votes, _) = create_signal(general::Votes::new());
 
-    view! { <SongList songs=songs votes=votes song_action=song_action request_update=move||{leptos::logging::log!("requested update.....")}/> }
+    view! { <SongList songs=songs votes=votes song_list_action=song_action request_update=move||{leptos::logging::log!("requested update.....")}/> }
 }

@@ -3,13 +3,23 @@ use crate::components::{Song, SongAction, SongVoteState};
 use leptos::{logging::log, prelude::*, *};
 use std::collections::HashMap;
 
+#[derive(Clone, Debug, Copy)]
+pub enum SongListAction {
+    Vote {
+        add_vote: Callback<String>,
+        remove_vote: Callback<String>,
+        user_votes: Signal<HashMap<String, Signal<SongVoteState>>>,
+    },
+    Remove(Callback<String>),
+    Add(Callback<String>),
+}
+
 #[component]
 pub fn SongList<F>(
     #[prop(into)] songs: Signal<Option<Vec<general::Song>>>,
     #[prop(into)] votes: Signal<general::Votes>,
-    #[prop(into)]#[prop(optional)] user_votes: Option<Signal<HashMap<String, Signal<SongVoteState>>>>,
     request_update: F,
-    song_action: SongAction,
+    song_list_action: SongListAction,
 ) -> impl IntoView
 where
     F: Fn() + 'static,
@@ -44,7 +54,11 @@ where
                 if songs.with(|songs| { songs.is_none() }) {
                     let mut vec = Vec::new();
                     for _ in 0..5 {
-                        vec.push(view! { <Song song=None song_action=song_action/> });
+                        vec.push(
+                            view! {
+                                <Song song=None song_action=SongAction::Add(Callback::new(|_| {}))/>
+                            },
+                        );
                     }
                     vec.into_view()
                 } else {
@@ -66,13 +80,21 @@ where
                                     .unwrap_or(0) as u32
                             })
                     });
-                    let mut song_action = song_action;
-                    if let SongAction::Vote { current_state, .. } = &mut song_action {
-                        *current_state = match user_votes().get(&song.id) {
-                            Some(state) => state.clone(),
-                            None => Signal::derive(move || SongVoteState::Loading),
-                        };
-                    }
+                    let song_action = match song_list_action {
+                        SongListAction::Vote { add_vote, remove_vote, user_votes } => {
+                            let song_id = song.id.clone();
+                            SongAction::Vote {
+                                add_vote,
+                                remove_vote,
+                                current_state: user_votes()
+                                    .get(&song_id)
+                                    .cloned()
+                                    .unwrap_or(Signal::derive(move || SongVoteState::Loading)),
+                            }
+                        }
+                        SongListAction::Remove(cb) => SongAction::Remove(cb),
+                        SongListAction::Add(cb) => SongAction::Add(cb),
+                    };
                     view! { <Song song=Some(song) song_action=song_action votes=votes/> }
                 }
             />

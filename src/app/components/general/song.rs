@@ -12,7 +12,7 @@ pub enum SongVoteState{
 #[derive(Clone, Debug, Copy)]
 pub enum SongAction {
     Vote{
-        vote: Callback<String>,
+        add_vote: Callback<String>,
         remove_vote: Callback<String>,
         current_state: Signal<SongVoteState>
     },
@@ -36,9 +36,9 @@ pub fn Song(
                     let song_id = song.id.clone();
                     move |_| {
                         match song_action {
-                            SongAction::Vote{vote, remove_vote, current_state} => match current_state(){
+                            SongAction::Vote{add_vote, remove_vote, current_state} => match current_state(){
                                 SongVoteState::Voted => remove_vote(song_id.clone()),
-                                SongVoteState::NotVoted => vote(song_id.clone()),
+                                SongVoteState::NotVoted => add_vote(song_id.clone()),
                                 SongVoteState::Loading => {},
                             },
                             SongAction::Remove(remove) => remove(song_id.clone()),
