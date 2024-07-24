@@ -106,6 +106,7 @@ pub struct Jam {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Song {
     pub id: String,
+    ///Some if requested by the user who added the song, none if requested by the host or a user who didn't add the song
     pub user_id: Option<String>,
     pub name: String,
     pub artists: Vec<String>,

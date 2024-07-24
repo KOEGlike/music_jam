@@ -369,19 +369,18 @@ pub async fn get_votes(pool: &sqlx::PgPool, id: &IdType) -> Result<Votes, sqlx::
     .fetch_all(pool)
     .await?;
     let votes = match id {
-        IdType::Host(_) => {
-            vec.into_iter()
-                .map(|v| {
-                    (
-                        v.song_id,
-                        Vote {
-                            votes: v.votes_nr.unwrap_or(0) as u64,
-                            have_you_voted: None,
-                        },
-                    )
-                })
-                .collect()
-        }
+        IdType::Host(_) => vec
+            .into_iter()
+            .map(|v| {
+                (
+                    v.song_id,
+                    Vote {
+                        votes: v.votes_nr.unwrap_or(0) as u64,
+                        have_you_voted: None,
+                    },
+                )
+            })
+            .collect(),
         IdType::User(id) => {
             let votes = sqlx::query!("SELECT song_id FROM votes WHERE user_id=$1;", id.id)
                 .fetch_all(pool)
@@ -391,7 +390,7 @@ pub async fn get_votes(pool: &sqlx::PgPool, id: &IdType) -> Result<Votes, sqlx::
                 .collect::<Vec<String>>();
             vec.into_iter()
                 .map(|v| {
-                    let contains=votes.contains(&v.song_id);
+                    let contains = votes.contains(&v.song_id);
                     (
                         v.song_id,
                         Vote {
@@ -539,7 +538,10 @@ pub async fn search(
                 album: track.album.name.clone(),
                 duration: track.duration.num_seconds() as u16,
                 image: track.album.images[0].clone(),
-                votes: Vote{votes:0, have_you_voted:None},
+                votes: Vote {
+                    votes: 0,
+                    have_you_voted: None,
+                },
             }
         })
         .collect::<Vec<Song>>();
@@ -614,20 +616,20 @@ pub async fn add_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Resul
     .fetch_optional(pool)
     .await?;
 
-    if vote_exists.is_none() {
-        sqlx::query!(
-            "INSERT INTO votes (song_id, user_id, id) VALUES ($1, $2, $3);",
-            song_id,
-            user_id.id,
-            format!("{}{}", song_id, user_id.id)
-        )
-        .execute(pool)
-        .await?;
-    } else {
+    if vote_exists.is_some() {
         return Err(Error::Forbidden(
             "user has already voted for this song".to_string(),
         ));
     }
+
+    sqlx::query!(
+        "INSERT INTO votes (song_id, user_id, id) VALUES ($1, $2, $3);",
+        song_id,
+        user_id.id,
+        format!("{}{}", song_id, user_id.id)
+    )
+    .execute(pool)
+    .await?;
 
     notify(real_time::Channels::Votes, &user_id.jam_id, pool).await?;
     Ok(())
@@ -647,6 +649,14 @@ pub async fn remove_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Re
             "user has not voted for this song".to_string(),
         ));
     }
+
+    sqlx::query!(
+        "DELETE FROM votes WHERE song_id=$1 AND user_id=$2;",
+        song_id,
+        user_id.id
+    )
+    .execute(pool)
+    .await?;
 
     notify(real_time::Channels::Votes, &user_id.jam_id, pool).await?;
     Ok(())

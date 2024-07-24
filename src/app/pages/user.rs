@@ -5,6 +5,7 @@ use gloo::{storage::*, timers::callback::Interval};
 use leptos::{logging::*, prelude::*, *};
 use leptos_router::*;
 use leptos_use::{use_websocket, UseWebsocketReturn};
+use web_sys::console::log;
 
 #[component]
 pub fn UserPage() -> impl IntoView {
@@ -89,12 +90,14 @@ pub fn UserPage() -> impl IntoView {
             let add_song= Callback::new(add_song);
 
             let add_vote = move |song_id: String| {
+                log!("Adding vote for song: {}", song_id);
                 let request = general::real_time::Request::AddVote { song_id };
                 send_request(request);
             };
             let add_vote = Callback::new(add_vote);
 
             let remove_vote = move |song_id: String| {
+                log!("Removing vote for song: {}", song_id);
                 let request = general::real_time::Request::RemoveVote { song_id };
                 send_request(request);
             };

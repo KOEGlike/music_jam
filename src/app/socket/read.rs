@@ -17,7 +17,7 @@ pub async fn read(
         let message = match message {
             Ok(m) => m,
             Err(e) => {
-                eprintln!("Error receiving message: {:?}", e);
+                eprintln!("Error receiving ws message: {:?}", e);
                 break;
             }
         };

@@ -1,6 +1,6 @@
 use crate::app::general::types::*;
 use icondata::IoClose;
-use leptos::{prelude::*, *};
+use leptos::{prelude::*, *, logging::*};
 
 #[derive(Clone, Debug, Copy)]
 pub enum SongAction {
@@ -31,9 +31,12 @@ pub fn Song(
                         match song_type {
                             SongAction::Vote { add_vote, remove_vote, vote } => {
                                 if let Some(vote) = vote().have_you_voted {
+                                    
                                     if vote {
+                                        log!("Removing vote");
                                         remove_vote(song_id.clone())
                                     } else {
+                                        log!("Adding vote");
                                         add_vote(song_id.clone())
                                     }
                                 }

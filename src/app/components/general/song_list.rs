@@ -31,6 +31,7 @@ where
             }
             let songs = songs
                 .iter()
+                .filter(|song|song.user_id.is_none())
                 .map(|song| {
                     let votes = votes.get(&song.id).copied().unwrap_or(Vote {
                         votes: 0,
@@ -48,6 +49,9 @@ where
         }
     };
     let songs = Signal::derive(songs);
+    create_effect(move|_|{
+        log!("votes: {:#?}",votes());
+    });
 
     view! {
         <div class="song-list">
