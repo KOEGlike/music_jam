@@ -4,14 +4,12 @@ use icondata::AiSearchOutlined;
 use leptos::{logging::log, prelude::*, *};
 
 #[component]
-pub fn Search<F1, F2>(
+pub fn Search(
     #[prop(into)] search_result: Signal<Option<Vec<Song>>>,
-    search: F1,
-    add_song: F2,
+    search: Callback<String>,
+    add_song: Callback<String>,
 ) -> impl IntoView
-where
-    F1: Fn(String) + 'static,
-    F2: Fn(String) + 'static,
+
 {
     let add_song = Callback::new(add_song);
     let search = Callback::new(search);
@@ -39,7 +37,7 @@ where
                             view! {
                                 <Song
                                     song=Some(song.clone())
-                                    song_action=SongAction::Add(add_song)
+                                    song_type=SongAction::Add(add_song)
                                 />
                             }
                         }

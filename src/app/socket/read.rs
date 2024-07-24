@@ -91,7 +91,7 @@ pub async fn read(
 
             }
             real_time::Request::RemoveVote { song_id } => {
-                let id = match only_host(
+                let id = match only_user(
                     &id,
                     "Only users can remove votes, this is a bug, terminating socket connection",
                     &sender,

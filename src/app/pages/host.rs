@@ -1,4 +1,4 @@
-use crate::app::components::{host_only::Player, Share, SongAction, SongList, UsersBar};
+use crate::app::components::{host_only::Player, Share, SongListAction, SongList, UsersBar};
 use crate::app::general::types::*;
 use crate::components::create;
 use gloo::storage::{LocalStorage, Storage};
@@ -9,7 +9,6 @@ use leptos::{
 };
 use leptos_router::{use_navigate, NavigateOptions};
 use leptos_use::{use_websocket, UseWebsocketReturn};
-use rspotify::model::user;
 
 #[component]
 pub fn HostPage() -> impl IntoView {
@@ -30,7 +29,7 @@ pub fn HostPage() -> impl IntoView {
         let UseWebsocketReturn {
             ready_state,
             message_bytes,
-            open,
+            
             close,
             send_bytes,
             ..
@@ -108,7 +107,7 @@ pub fn HostPage() -> impl IntoView {
                 songs=songs
                 votes=votes
                 request_update=request_update
-                song_list_action=SongAction::Remove(remove_song)
+                song_list_action=SongListAction::Remove(remove_song)
             />
             <UsersBar users=users kick_user=kick_user/>
         }

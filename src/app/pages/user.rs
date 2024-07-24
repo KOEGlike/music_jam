@@ -1,5 +1,6 @@
-use crate::app::components::{Search, SongAction, SongList};
+use crate::app::components::{Search, SongList, SongListAction};
 use crate::app::general;
+use crate::components::search;
 use gloo::{storage::*, timers::callback::Interval};
 use leptos::{logging::*, prelude::*, *};
 use leptos_router::*;
@@ -30,17 +31,21 @@ pub fn UserPage() -> impl IntoView {
             let UseWebsocketReturn {
                 ready_state,
                 message_bytes,
-                open,
                 close,
                 send_bytes,
                 ..
             } = use_websocket(&format!("/socket?id={}", user_id.get_untracked()));
 
-            let send_bytes = Callback::new(send_bytes);
             let (search_result, set_search_result) = create_signal(None);
             let (songs, set_songs) = create_signal(None);
             let (votes, set_votes) = create_signal(general::Votes::new());
             let (users, set_users) = create_signal(None);
+
+            let send_request = move |request: general::real_time::Request| {
+                let bin = rmp_serde::to_vec(&request).unwrap();
+                send_bytes(bin);
+            };
+            let send_request = Callback::new(send_request);
 
             let update = move || {
                 use general::real_time;
@@ -73,27 +78,31 @@ pub fn UserPage() -> impl IntoView {
 
             let search = move |query: String| {
                 let request = general::real_time::Request::Search { query };
-                let bin = rmp_serde::to_vec(&request).unwrap();
-                send_bytes(bin);
+                send_request(request);
             };
-            
+            let search = Callback::new(search);
+
             let add_song = move |song_id: String| {
                 let request = general::real_time::Request::AddSong { song_id };
-                let bin = rmp_serde::to_vec(&request).unwrap();
-                send_bytes(bin);
+                send_request(request);
             };
+            let add_song= Callback::new(add_song);
 
-            let vote = move |song_id: String| {
+            let add_vote = move |song_id: String| {
                 let request = general::real_time::Request::AddVote { song_id };
-                let bin = rmp_serde::to_vec(&request).unwrap();
-                send_bytes(bin);
+                send_request(request);
             };
-            let vote = Callback::new(vote);
+            let add_vote = Callback::new(add_vote);
+
+            let remove_vote = move |song_id: String| {
+                let request = general::real_time::Request::RemoveVote { song_id };
+                send_request(request);
+            };
+            let remove_vote = Callback::new(remove_vote);
 
             let request_update = move || {
                 let request = general::real_time::Request::Update;
-                let bin = rmp_serde::to_vec(&request).unwrap();
-                send_bytes(bin);
+                send_request(request);
                 log!("Sent update request");
             };
             let request_update_interval = Interval::new(60 * 1000, request_update);
@@ -114,7 +123,10 @@ pub fn UserPage() -> impl IntoView {
                     songs=songs
                     votes=votes
                     request_update=request_update
-                    song_list_action=SongAction::Vote(vote)
+                    song_list_action=SongListAction::Vote {
+                        add_vote,
+                        remove_vote,
+                    }
                 />
             }
         }

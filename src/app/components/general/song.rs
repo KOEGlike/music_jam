@@ -3,30 +3,23 @@ use icondata::IoClose;
 use leptos::{prelude::*, *};
 
 #[derive(Clone, Debug, Copy)]
-pub enum SongVoteState{
-    Voted,
-    NotVoted,   
-    Loading,
-}
-
-#[derive(Clone, Debug, Copy)]
 pub enum SongAction {
-    Vote{
+    Vote {
         add_vote: Callback<String>,
         remove_vote: Callback<String>,
-        current_state: Signal<SongVoteState>
+        vote: MaybeSignal<Vote>,
     },
-    Remove(Callback<String>),
+    Remove{
+        remove: Callback<String>,
+        vote: MaybeSignal<Vote>,
+    },
     Add(Callback<String>),
 }
 
 #[component]
 pub fn Song(
     #[prop(optional_no_strip)] song: Option<Song>,
-    #[prop(into)]
-    #[prop(optional)]
-    votes: Option<MaybeSignal<u32>>,
-    song_action: SongAction,
+    song_type: SongAction,
 ) -> impl IntoView {
     let loaded = move |song: Song| {
         view! {
@@ -35,18 +28,23 @@ pub fn Song(
                 on:click={
                     let song_id = song.id.clone();
                     move |_| {
-                        match song_action {
-                            SongAction::Vote{add_vote, remove_vote, current_state} => match current_state(){
-                                SongVoteState::Voted => remove_vote(song_id.clone()),
-                                SongVoteState::NotVoted => add_vote(song_id.clone()),
-                                SongVoteState::Loading => {},
-                            },
-                            SongAction::Remove(remove) => remove(song_id.clone()),
+                        match song_type {
+                            SongAction::Vote { add_vote, remove_vote, vote } => {
+                                if let Some(vote) = vote().have_you_voted {
+                                    if vote {
+                                        remove_vote(song_id.clone())
+                                    } else {
+                                        add_vote(song_id.clone())
+                                    }
+                                }
+                            }
+                            SongAction::Remove{remove,..} => remove(song_id.clone()),
                             SongAction::Add(add) => add(song_id.clone()),
                         }
                     }
                 }
             >
+
                 <div class="info">
                     <img
                         src=&song.image.url
@@ -64,18 +62,13 @@ pub fn Song(
                 </div>
 
                 <div class="action">
+
                     {
-                        let song = song.clone();
-                        match song_action {
-                            SongAction::Vote{..} => {
-                                let votes = if let Some(votes) = votes {
-                                    votes()
-                                } else {
-                                    song.votes as u32
-                                };
+                        match song_type {
+                            SongAction::Vote { vote, .. } => {
                                 view! {
                                     <div class="votes">
-                                        {votes}
+                                        {move || vote().votes}
                                         <svg viewBox=IoClose.view_box inner_html=IoClose.data></svg>
                                     </div>
                                 }
@@ -91,8 +84,9 @@ pub fn Song(
                                 }
                                     .into_view()
                             }
-                            SongAction::Remove(_) => {
+                            SongAction::Remove{vote,..} => {
                                 view! {
+                                    {move || vote().votes}
                                     <svg
                                         class="remove"
                                         viewBox=IoClose.view_box

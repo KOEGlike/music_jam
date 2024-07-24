@@ -1,14 +1,12 @@
-use crate::app::general;
-use crate::components::{Song, SongAction, SongVoteState};
+use crate::app::general::{self, Vote};
+use crate::components::{Song, SongAction};
 use leptos::{logging::log, prelude::*, *};
-use std::collections::HashMap;
 
 #[derive(Clone, Debug, Copy)]
 pub enum SongListAction {
     Vote {
         add_vote: Callback<String>,
         remove_vote: Callback<String>,
-        user_votes: Signal<HashMap<String, Signal<SongVoteState>>>,
     },
     Remove(Callback<String>),
     Add(Callback<String>),
@@ -34,7 +32,10 @@ where
             let songs = songs
                 .iter()
                 .map(|song| {
-                    let votes = votes.get(&song.id).copied().unwrap_or(0);
+                    let votes = votes.get(&song.id).copied().unwrap_or(Vote {
+                        votes: 0,
+                        have_you_voted: None,
+                    });
                     general::Song {
                         votes,
                         ..song.clone()
@@ -56,7 +57,7 @@ where
                     for _ in 0..5 {
                         vec.push(
                             view! {
-                                <Song song=None song_action=SongAction::Add(Callback::new(|_| {}))/>
+                                <Song song=None song_type=SongAction::Add(Callback::new(|_| {}))/>
                             },
                         );
                     }
@@ -75,27 +76,25 @@ where
                                 {
                                     songs
                                         .as_ref()
-                                        .map(|songs| songs.get(index).map(|s| s.votes).unwrap_or(0))
+                                        .map(|songs| {
+                                            songs.get(index).map(|s| s.votes).unwrap_or_default()
+                                        })
                                 }
-                                    .unwrap_or(0) as u32
+                                    .unwrap_or_default()
                             })
                     });
                     let song_action = match song_list_action {
-                        SongListAction::Vote { add_vote, remove_vote, user_votes } => {
-                            let song_id = song.id.clone();
+                        SongListAction::Vote { add_vote, remove_vote } =>
                             SongAction::Vote {
                                 add_vote,
                                 remove_vote,
-                                current_state: user_votes()
-                                    .get(&song_id)
-                                    .cloned()
-                                    .unwrap_or(Signal::derive(move || SongVoteState::Loading)),
-                            }
-                        }
-                        SongListAction::Remove(cb) => SongAction::Remove(cb),
+                                vote: votes.into(),
+                            },
+
+                        SongListAction::Remove(cb) => SongAction::Remove{remove:cb, vote:votes.into()},
                         SongListAction::Add(cb) => SongAction::Add(cb),
                     };
-                    view! { <Song song=Some(song) song_action=song_action votes=votes/> }
+                    view! { <Song song=Some(song) song_type=song_action/> }
                 }
             />
 

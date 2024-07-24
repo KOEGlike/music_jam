@@ -19,7 +19,7 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
 
     let listen_votes = tokio::spawn(listen_votes(
         pool.clone(),
-        id.jam_id().into(),
+        id.clone(),
         sender.clone(),
     ));
 
@@ -61,11 +61,11 @@ async fn listen_users(
 
 async fn listen_votes(
     pool: sqlx::PgPool,
-    jam_id: String,
+    id:IdType,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), Error> {
-    listen(&pool, &jam_id, sender, real_time::Channels::Votes, || {
-        get_votes(&pool, &jam_id)
+    listen(&pool, id.jam_id(), sender, real_time::Channels::Votes, || {
+        get_votes(&pool, &id)
     })
     .await
 }
