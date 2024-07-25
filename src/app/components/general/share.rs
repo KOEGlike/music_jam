@@ -30,6 +30,8 @@ pub fn Share(
     #[prop(into)]
     jam_id: String
 ) -> impl IntoView {
+    
+    
     let url = format!("https://jam.leptos.dev/jam/{}", jam_id);
     let qr = QrCode::with_version(url.clone(), Version::Normal(15), EcLevel::Q).unwrap();
     let qr = qr
