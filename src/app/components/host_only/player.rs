@@ -170,13 +170,13 @@ pub fn Player(
                     <div class="bar">
                         <div
                             class="position"
-                            style=move || {
+                            style:width=move || {
                                 let percentage = if song_length() == 0 {
                                     0.0
                                 } else {
                                     (song_position() as f64 / song_length() as f64) * 100.0
                                 };
-                                format!("width:{}%;", percentage)
+                                format!("{}%", percentage)
                             }
                         >
                         </div>

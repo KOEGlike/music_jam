@@ -31,7 +31,7 @@ pub fn App() -> impl IntoView {
                     <Route path="/create-user/:id" view=pages::CreateUserPage/>
                     <Route path="/jam/host/:id" view=pages::HostPage/>
                     <Route path="/jam/:id" view=pages::UserPage/>
-                    <Route path="/test" view=SongListTest/>
+                    <Route path="/test" view=UserBartTest/>
                 </Routes>
             </main>
         </Router>
@@ -39,39 +39,29 @@ pub fn App() -> impl IntoView {
 }
 
 #[component]
-pub fn SongListTest() -> impl IntoView {
-    use components::{SongListAction, SongList};
-    let cb = Callback::new(move |id| {
-        leptos::logging::log!("Add song with id: {}", id);
-    });
-    let song_action = SongListAction::Add(cb);
-
-    let song = general::Song {
-        id: "lol".to_string(),
-        user_id: None,
-        name: "Yesterday".to_string(),
-        artists: vec!["Beatles".to_string()],
-        album: "Help!".to_string(),
-        duration: 240,
-        image: general::Image {
-            height: Some(64),
-            url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
-            width: Some(64),
+pub fn UserBartTest() -> impl IntoView {
+    use crate::app::{components::UsersBar, general::User};
+    let users = vec![
+        User {
+            id: "tb0k2ujdagg6bvvqeqlx2qgq".to_string(),
+            jam_id: "niggaa".to_string(),
+            name: "kaka".to_string(),
         },
-        votes: Vote{votes: 0, have_you_voted:None},
-    };
+        User {
+            id: "coe7474an5pkiptmjls2bq0w".to_string(),
+            jam_id: "niggaa".to_string(),
+            name: "kakamaka".to_string(),
+        },
+        User {
+            id: "bl0m5ktr6bs51hnbmkp8bs0c".to_string(),
+            jam_id: "niggaa".to_string(),
+            name: "kakamakanaka".to_string(),
+        },
+    ];
+    let (users, set_users) = create_signal(Some(users));
 
-    let songs = {
-        let mut songs = Vec::new();
-        for _ in 0..10 {
-            songs.push(song.clone());
-        }
-        Some(songs)
-    };
-
-    
-    let (songs, _) = create_signal(songs);
-    let (votes, _) = create_signal(general::Votes::new());
-
-    view! { <SongList songs=songs votes=votes song_list_action=song_action request_update=move||{leptos::logging::log!("requested update.....")}/> }
+    view! {
+        <UsersBar users=users/>
+        <button on:click=move |_| { set_users(None) }>"loading"</button>
+    }
 }

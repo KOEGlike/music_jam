@@ -1,14 +1,12 @@
-use std::{borrow::Borrow, collections::HashMap};
+use std::collections::HashMap;
 
-use crate::app::{general::types::*, pages::user};
-use http::{HeaderMap, HeaderValue};
+use crate::app::general::types::*;
 use leptos::logging::*;
 use rspotify::{
     clients::{BaseClient, OAuthClient},
-    model::{device, Image, SearchResult, TrackId},
+    model::{Image, SearchResult, TrackId},
     AuthCodeSpotify,
 };
-use web_sys::ReadableStreamByobRequest;
 
 pub async fn notify(
     channel: real_time::Channels,
@@ -196,7 +194,9 @@ pub async fn create_user(
             )))
         }
     };
-    let image = image.resize(256, 256, image::imageops::FilterType::Lanczos3);
+    let image = image
+        .resize(256, 256, image::imageops::FilterType::Lanczos3)
+        .crop_imm(0, 0, 256, 256);
 
     let user_id = cuid2::create_id();
     let image_path = format!("./public/uploads/{}.webp", user_id);

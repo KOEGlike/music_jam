@@ -1,0 +1,30 @@
+@use '../defaults' as *;
+
+.text-input {
+	@extend .glass-element;
+	border-radius: map-get($border-radiuses, "medium");
+	width: 100%;
+	display: inline-block;
+	$side-padding: map-get($border-radiuses, medium);
+	padding: 15px $side-padding 15px $side-padding;
+	resize: none;
+	font-size: 45px;
+	line-height: 55px;
+	overflow: hidden;
+}
+
+.text-input:focus {
+	outline: none;
+	background-color: rgba(map-get($colors, "font"), map-get($opacities, "selected"));
+}
+
+.input-with-label {
+	display: flex;
+	flex-direction: column;
+	row-gap: 7px;
+
+	>label {
+		font-size: 20px;
+		margin-left: calc(map-get($border-radiuses, "medium") / 3);
+	}
+}

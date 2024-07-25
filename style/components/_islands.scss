@@ -1,0 +1,17 @@
+@use '../defaults' as *;
+.standard-island {
+	@extend .glass;
+	display: flex;
+	flex-direction: column;
+	justify-content: start;
+	align-items: center;
+	border-radius: map-get($border-radiuses, "large");
+	width: 350px;
+	height: 600px;
+}
+
+.big-space-island {
+	@extend .standard-island;
+	row-gap: 50px;
+	padding: 50px;
+}

@@ -1,4 +1,6 @@
 @use '../defaults';
+@use 'islands' as *;
+
 
 .share {
     @extend .standard-island;

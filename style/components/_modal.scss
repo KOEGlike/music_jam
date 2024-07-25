@@ -1,0 +1,23 @@
+@use '../defaults' as *;
+
+
+.modal{
+	@extend .glass;
+	position: fixed;
+	z-index: 100;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	border-radius: map-get($border-radiuses, "medium");
+	width: 600px;
+	height: 350px;
+
+	>div {
+		height: 100%;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+}

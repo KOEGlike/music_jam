@@ -1,4 +1,5 @@
 @use '../defaults' as *;
+@use 'islands' as *;
 
 .song-list {
     @extend .standard-island;

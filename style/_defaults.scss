@@ -43,7 +43,10 @@ $blur: blur(12px);
 	font-family: $font-stack;
 }
 
-
+body {
+	background-color: map-get($colors, "bg");
+	color: map-get($colors, "white");
+}
 
 .glass {
 	box-sizing: border-box;
@@ -95,86 +98,3 @@ $blur: blur(12px);
 	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "selected"));
 }
 
-
-
-body {
-	background-color: map-get($colors, "bg");
-	color: map-get($colors, "white");
-}
-
-.button {
-	@extend .glass-element;
-	border-radius: map-get($border-radiuses, "medium");
-	height: map-get($element-heights, "medium");
-	width: 100%;
-	font-size: 40px;
-}
-
-.text-input {
-	@extend .glass-element;
-	border-radius: map-get($border-radiuses, "medium");
-	width: 100%;
-	display: inline-block;
-	$side-padding: map-get($border-radiuses, medium);
-	padding: 15px $side-padding 15px $side-padding;
-	resize: none;
-	font-size: 45px;
-	line-height: 55px;
-	overflow: hidden;
-}
-
-.text-input:focus {
-	outline: none;
-	background-color: rgba(map-get($colors, "font"), map-get($opacities, "selected"));
-}
-
-.input-with-label {
-	display: flex;
-	flex-direction: column;
-	row-gap: 7px;
-
-	label {
-		font-size: 20px;
-		margin-left: calc(map-get($border-radiuses, "medium") / 3);
-	}
-}
-
-
-.standard-island {
-	@extend .glass;
-	display: flex;
-	flex-direction: column;
-	justify-content: start;
-	align-items: center;
-	border-radius: map-get($border-radiuses, "large");
-	width: 350px;
-	height: 600px;
-}
-
-.big-space-island {
-	@extend .standard-island;
-	row-gap: 50px;
-	padding: 50px;
-}
-
-
-.modal{
-	@extend .glass;
-	position: fixed;
-	z-index: 100;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	border-radius: map-get($border-radiuses, "medium");
-	width: 600px;
-	height: 350px;
-
-	>div {
-		height: 100%;
-		width: 100%;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-	}
-}

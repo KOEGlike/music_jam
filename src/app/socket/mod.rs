@@ -100,4 +100,7 @@ async fn send(
             break;
         }
     }
+    if let Err(e)=sender.close().await{
+        eprintln!("Error closing ws connection: {:?}", e);
+    };
 }

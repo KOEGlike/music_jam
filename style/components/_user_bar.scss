@@ -1,1 +1,30 @@
-@use '../defaults'
+@use '../defaults' ;
+
+.user-bar{
+    @extend .glass;
+    display: flex;
+    flex-direction: row;
+    height: auto;
+    width: calc();
+    padding: 10px;
+    gap: 10px;
+    border-radius: 40px;
+    overflow-x: scroll;
+    overflow-y: hidden;
+
+    
+}
+
+.user{
+    height: 60px;
+    width:60px;
+    border-radius: 50%;
+    overflow: hidden;
+
+    >img{
+        height: 100%;
+        width: 100%;
+        object-fit: cover;
+        object-position: left;
+    }
+}

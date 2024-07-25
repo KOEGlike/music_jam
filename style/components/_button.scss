@@ -1,0 +1,9 @@
+@use '../defaults' as *;
+
+.button {
+	@extend .glass-element;
+	border-radius: map-get($border-radiuses, "medium");
+	height: map-get($element-heights, "medium");
+	width: 100%;
+	font-size: 40px;
+}
