@@ -7,4 +7,10 @@
     padding-top: 25px;
     padding-bottom: 25px;
     overflow: scroll;
+    white-space: nowrap; // Ensure elements don't wrap
+    flex-shrink: 0; // Prevent 
+
+    >.song{
+        flex-shrink: 0;
+    }
 }

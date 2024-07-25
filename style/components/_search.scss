@@ -1,0 +1,55 @@
+@use '../defaults' as *;
+@use 'text_input' as *;
+@use 'islands' as *;
+@use 'button' as *;
+
+.search{
+    @extend .standard-island;
+    padding: 25px;
+    padding-bottom: 0px;
+    gap: 10px;
+    overflow:hidden;
+
+    >.search-input{
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        //flex-shrink: 0;
+        width: 100%;
+        gap: 10px;
+        >input{
+            @extend .text-input;
+            //width: auto;
+            flex-grow: 1;
+        }
+        >button{
+            @extend .button;
+            width: 75px;
+            height: 75px;
+            padding: 15px;
+            border-radius: calc(75px / 2);
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            >svg{
+                width: 25px;
+                height: 25px;
+                fill:white;
+                flex-shrink: 0;
+            }
+        }
+    }
+    >.search-result{
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow: scroll;
+
+        >.song{
+            flex-shrink: 0;
+        }
+    }
+}

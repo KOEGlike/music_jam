@@ -11,12 +11,13 @@ pub fn Search(
 ) -> impl IntoView
 
 {
+    
     let add_song = Callback::new(add_song);
     let search = Callback::new(search);
     view! {
         <Show when=move || search_result.with(Option::is_some) fallback=move || "loading.s.....">
             <div class="search">
-                <div>
+                <div class="search-input">
                     <input
                         type="text"
                         placeholder="Search for a song"
@@ -26,10 +27,10 @@ pub fn Search(
                     />
 
                     <button>
-                        <svg></svg>
+                        <svg inner_html=AiSearchOutlined.data viewBox=AiSearchOutlined.view_box></svg>
                     </button>
                 </div>
-                <div>
+                <div class="search-result">
                     <For
                         each=move || search_result().unwrap_or_default()
                         key=|song| song.id.clone()
