@@ -41,7 +41,38 @@ pub fn App() -> impl IntoView {
 #[component]
 pub fn UserBartTest() -> impl IntoView {
     use crate::app::{components::UsersBar, general::User};
+    use leptos::logging::*;
     let users = vec![
+        User {
+            id: "tb0k2ujdagg6bvvqeqlx2qgq".to_string(),
+            jam_id: "niggaa".to_string(),
+            name: "kaka".to_string(),
+        },
+        User {
+            id: "coe7474an5pkiptmjls2bq0w".to_string(),
+            jam_id: "niggaa".to_string(),
+            name: "kakamaka".to_string(),
+        },
+        User {
+            id: "bl0m5ktr6bs51hnbmkp8bs0c".to_string(),
+            jam_id: "niggaa".to_string(),
+            name: "kakamakanaka".to_string(),
+        },
+        User {
+            id: "tb0k2ujdagg6bvvqeqlx2qgq".to_string(),
+            jam_id: "niggaa".to_string(),
+            name: "kaka".to_string(),
+        },
+        User {
+            id: "coe7474an5pkiptmjls2bq0w".to_string(),
+            jam_id: "niggaa".to_string(),
+            name: "kakamaka".to_string(),
+        },
+        User {
+            id: "bl0m5ktr6bs51hnbmkp8bs0c".to_string(),
+            jam_id: "niggaa".to_string(),
+            name: "kakamakanaka".to_string(),
+        },
         User {
             id: "tb0k2ujdagg6bvvqeqlx2qgq".to_string(),
             jam_id: "niggaa".to_string(),
@@ -59,9 +90,13 @@ pub fn UserBartTest() -> impl IntoView {
         },
     ];
     let (users, set_users) = create_signal(Some(users));
+    let kick_user=|id| {
+        log!("kicking user {}", id);
+    };
+    let kick_user=Callback::from(kick_user);
 
     view! {
-        <UsersBar users=users/>
+        <UsersBar users=users kick_user=kick_user/>
         <button on:click=move |_| { set_users(None) }>"loading"</button>
     }
 }
