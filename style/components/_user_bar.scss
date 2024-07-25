@@ -14,13 +14,16 @@ $gap: 10px;
     border-radius: 40px;
     overflow-x: scroll;
     overflow-y: hidden;
+    white-space: nowrap; // Ensure elements don't wrap
+    flex-shrink: 0; // Prevent shrinking
 }
 
 .user {
     height: $icon-size;
     width: $icon-size;
-    border-radius: $icon-size/2;
+    border-radius: $icon-size / 2;
     overflow: hidden;
+    flex-shrink: 0; // Prevent shrinking
 
     >* {
         width: $icon-size;

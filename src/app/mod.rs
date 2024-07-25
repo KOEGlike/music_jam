@@ -42,7 +42,7 @@ pub fn App() -> impl IntoView {
 pub fn UserBartTest() -> impl IntoView {
     use crate::app::{components::UsersBar, general::User};
     use leptos::logging::*;
-    log!("loc: {}",leptos_router::use_router().base().path());
+    
     let users = vec![
         User {
             id: "tb0k2ujdagg6bvvqeqlx2qgq".to_string(),
