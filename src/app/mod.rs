@@ -31,7 +31,8 @@ pub fn App() -> impl IntoView {
                     <Route path="/create-user/:id" view=pages::CreateUserPage/>
                     <Route path="/jam/host/:id" view=pages::HostPage/>
                     <Route path="/jam/:id" view=pages::UserPage/>
-                    <Route path="/test" view=UserBartTest/>
+                    <Route path="/test-bar" view=UserBartTest/>
+                    <Route path="/test-share" view=ShareTest/>
                 </Routes>
             </main>
         </Router>
@@ -99,5 +100,15 @@ pub fn UserBartTest() -> impl IntoView {
     view! {
         <UsersBar users=users kick_user=kick_user/>
         <button on:click=move |_| { set_users(None) }>"loading"</button>
+    }
+}
+
+#[component]
+fn ShareTest() -> impl IntoView {
+    use leptos::logging::*;
+    use crate::app::components::Share;
+    let jam_id = "niggaa".to_string();
+    view! {
+        <Share jam_id="5Y8FXC"/>
     }
 }

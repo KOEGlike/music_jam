@@ -4,6 +4,17 @@
 
 .share {
     @extend .standard-island;
-    
+    justify-content: space-between;
+    padding-top: 50px;
+    padding-bottom: 50px;
+    font-size: 70px;
+    line-height: 80px;
 
+    >div{
+        display: inline-block;
+        >svg{
+            width: auto;
+            height: 250px;
+        }
+    }
 }

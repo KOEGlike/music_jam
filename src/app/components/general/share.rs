@@ -26,22 +26,18 @@ async fn save_to_clipboard(text: &str) {
 }
 
 #[component]
-pub fn Share(
-    #[prop(into)]
-    jam_id: String
-) -> impl IntoView {
-    
-    
+pub fn Share(#[prop(into)] jam_id: String) -> impl IntoView {
     let url = format!("https://jam.leptos.dev/jam/{}", jam_id);
-    let qr = QrCode::with_version(url.clone(), Version::Normal(15), EcLevel::Q).unwrap();
+    let qr = QrCode::with_version(url.clone(), Version::Normal(10), EcLevel::Q).unwrap();
     let qr = qr
         .render()
+        .quiet_zone(false)
         .min_dimensions(400, 400)
         .dark_color(svg::Color("#ffffff"))
         .light_color(svg::Color("#00000000"))
         .build();
 
-    let copy_to_clipboard = create_action(move |text:&String| {
+    let copy_to_clipboard = create_action(move |text: &String| {
         let text = text.clone();
         async move {
             save_to_clipboard(&text).await;
@@ -50,9 +46,11 @@ pub fn Share(
 
     view! {
         <div class="share">
-            <svg viewBox="" inner_html=qr></svg>
+            <div inner_html=qr></div>
             {jam_id}
-            <button on:click=move |_| copy_to_clipboard.dispatch(url.clone())>"COPY"</button>
+            <button class="button" on:click=move |_| copy_to_clipboard.dispatch(url.clone())>
+                "COPY"
+            </button>
         </div>
     }
 }
