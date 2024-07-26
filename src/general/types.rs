@@ -1,8 +1,8 @@
 #[cfg(feature = "ssr")]
 use axum::extract::FromRef;
+pub use rspotify::model::image::Image;
 use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
-pub use rspotify::model::image::Image;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpotifyCredentials {
@@ -34,7 +34,13 @@ impl AppState {
         let spotify_id = std::env::var("SPOTIFY_ID")?;
         let spotify_secret = std::env::var("SPOTIFY_SECRET")?;
         let db_url = std::env::var("DATABASE_URL")?;
-        let db_pool = sqlx::PgPool::connect(&db_url).await?;
+        let db_pool = sqlx::postgres::PgPoolOptions::new()
+            .idle_timeout(Some(std::time::Duration::from_secs(60 * 15)))
+            .max_connections(5)
+            .min_connections(3)
+            .max_lifetime(Some(std::time::Duration::from_secs(60 * 60 * 24)))
+            .connect(&db_url)
+            .await?;
 
         let spotify_credentials = SpotifyCredentials {
             id: spotify_id,
@@ -129,98 +135,94 @@ impl ToVotes for Vec<Song> {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-    pub enum Error {
-        Database(String),
-        Spotify(String),
-        Decode(String),
-        Encode(String),
-        WebSocket(String),
-        Forbidden(String),
-        FileSystem(String),
-    }
+pub enum Error {
+    Database(String),
+    Spotify(String),
+    Decode(String),
+    Encode(String),
+    WebSocket(String),
+    Forbidden(String),
+    FileSystem(String),
+}
 
-    impl Error {
-        pub fn to_code(&self) -> u16 {
-            match *self {
-                Error::Database(_) => 4500,
-                Error::Decode(_) => 4500,
-                Error::Encode(_) => 4500,
-                Error::WebSocket(_) => 4500,
-                Error::Forbidden(_) => 4403,
-                Error::Spotify(_) => 4500,
-                Error::FileSystem(_) => 4500,
-            }
+impl Error {
+    pub fn to_code(&self) -> u16 {
+        match *self {
+            Error::Database(_) => 4500,
+            Error::Decode(_) => 4500,
+            Error::Encode(_) => 4500,
+            Error::WebSocket(_) => 4500,
+            Error::Forbidden(_) => 4403,
+            Error::Spotify(_) => 4500,
+            Error::FileSystem(_) => 4500,
         }
     }
+}
 
-    impl From<Error> for String {
-        fn from(val: Error) -> Self {
-            match val {
-                Error::Database(s) => s,
-                Error::Decode(s) => s,
-                Error::Encode(s) => s,
-                Error::WebSocket(s) => s,
-                Error::Forbidden(s) => s,
-                Error::Spotify(s) => s,
-                Error::FileSystem(s) => s,
-            }
+impl From<Error> for String {
+    fn from(val: Error) -> Self {
+        match val {
+            Error::Database(s) => s,
+            Error::Decode(s) => s,
+            Error::Encode(s) => s,
+            Error::WebSocket(s) => s,
+            Error::Forbidden(s) => s,
+            Error::Spotify(s) => s,
+            Error::FileSystem(s) => s,
         }
     }
+}
 
-    use rspotify::model::idtypes::IdError;
-    use rspotify::ClientError;
+use rspotify::model::idtypes::IdError;
+use rspotify::ClientError;
 
-    impl From<ClientError> for Error {
-        fn from(e: ClientError) -> Self {
-            Error::Spotify(e.to_string())
+impl From<ClientError> for Error {
+    fn from(e: ClientError) -> Self {
+        Error::Spotify(e.to_string())
+    }
+}
+
+impl From<IdError> for Error {
+    fn from(e: IdError) -> Self {
+        Error::Spotify(e.to_string())
+    }
+}
+
+#[cfg(feature = "ssr")]
+use axum::extract::ws::CloseFrame;
+#[cfg(feature = "ssr")]
+impl Error {
+    pub fn to_close_frame(self) -> CloseFrame<'static> {
+        use std::borrow::Cow;
+
+        let code = self.to_code();
+        let message: String = self.into();
+        CloseFrame {
+            code,
+            reason: Cow::Owned(message),
         }
     }
+}
 
-    impl From<IdError> for Error {
-        fn from(e: IdError) -> Self {
-            Error::Spotify(e.to_string())
-        }
+#[cfg(feature = "ssr")]
+impl From<sqlx::Error> for Error {
+    fn from(e: sqlx::Error) -> Self {
+        Error::Database(e.to_string())
     }
-
-    #[cfg(feature = "ssr")]
-    use axum::extract::ws::CloseFrame;
-    #[cfg(feature = "ssr")]
-    impl Error {
-        pub fn to_close_frame(self) -> CloseFrame<'static> {
-            use std::borrow::Cow;
-
-            let code = self.to_code();
-            let message: String = self.into();
-            CloseFrame {
-                code,
-                reason: Cow::Owned(message),
-            }
-        }
-    }
-
-    #[cfg(feature = "ssr")]
-    impl From<sqlx::Error> for Error {
-        fn from(e: sqlx::Error) -> Self {
-            Error::Database(e.to_string())
-        }
-    }
-
+}
 
 use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct Vote{
+pub struct Vote {
     pub votes: u64,
     ///none if requested by the host, or a unknown person
     pub have_you_voted: Option<bool>,
-
 }
 
-
-pub type Votes = HashMap<String,Vote>;
+pub type Votes = HashMap<String, Vote>;
 
 pub mod real_time {
     use super::*;
-
 
     pub enum Channels {
         Users,
@@ -284,10 +286,8 @@ pub mod real_time {
         RemoveSong { song_id: String },
         AddVote { song_id: String },
         RemoveVote { song_id: String },
-        Search{ query: String },
+        Search { query: String },
         ResetVotes,
         Update,
     }
-
-    
 }

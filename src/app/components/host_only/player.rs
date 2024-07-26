@@ -252,7 +252,7 @@ fn millis_to_min_sec(millis: u32) -> String {
 
 #[server]
 async fn play_song(song_id: String, host_id: String) -> Result<(), ServerFnError> {
-    use crate::app::general::*;
+    use crate::general::*;
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     let credentials = app_state.spotify_credentials;
@@ -268,7 +268,7 @@ async fn play_song(song_id: String, host_id: String) -> Result<(), ServerFnError
         Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
     };
 
-    if let Err(e) = play_song(&song_id, &jam_id, pool, credentials).await {
+    if let Err(e) = crate::general::play_song(&song_id, &jam_id, pool, credentials).await {
         return Err(ServerFnError::ServerError(e.into()));
     };
 
@@ -277,7 +277,7 @@ async fn play_song(song_id: String, host_id: String) -> Result<(), ServerFnError
 
 #[server]
 async fn change_playback_device(device_id: String, host_id: String) -> Result<(), ServerFnError> {
-    use crate::app::general::*;
+    use crate::general::*;
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     let credentials = app_state.spotify_credentials;
@@ -302,7 +302,7 @@ async fn change_playback_device(device_id: String, host_id: String) -> Result<()
 
 #[server]
 async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnError> {
-    use crate::app::general::*;
+    use crate::general::*;
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     let credentials = app_state.spotify_credentials;
@@ -326,7 +326,7 @@ async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnEr
         }
     };
 
-    let token = match get_access_token(pool, &jam_id, credentials).await {
+    let token = match crate::general::get_access_token(pool, &jam_id, credentials).await {
         Ok(token) => token,
         Err(e) => return Err(ServerFnError::ServerError(e.into())),
     };

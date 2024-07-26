@@ -1,5 +1,5 @@
 use super::{handle_error, IdType};
-use crate::app::general::*;
+use crate::general::*;
 use axum::extract::ws;
 use leptos::logging::log;
 use sqlx::postgres::PgListener;
@@ -39,7 +39,7 @@ async fn listen_songs(
         &pool,
         id.jam_id(),
         sender,
-        real_time::Channels::Songs,
+        types::real_time::Channels::Songs,
         || {
             log!("updated songs");
             get_songs(&pool, &id)
@@ -53,7 +53,7 @@ async fn listen_users(
     jam_id: String,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), Error> {
-    listen(&pool, &jam_id, sender, real_time::Channels::Users, || {
+    listen(&pool, &jam_id, sender, types::real_time::Channels::Users, || {
         get_users(&pool, &jam_id)
     })
     .await
@@ -64,7 +64,7 @@ async fn listen_votes(
     id:IdType,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), Error> {
-    listen(&pool, id.jam_id(), sender, real_time::Channels::Votes, || {
+    listen(&pool, id.jam_id(), sender, types::real_time::Channels::Votes, || {
         get_votes(&pool, &id)
     })
     .await
@@ -74,11 +74,11 @@ async fn listen<'a, T, Fu, F>(
     pool: &'a sqlx::PgPool,
     jam_id: &'a str,
     sender: mpsc::Sender<ws::Message>,
-    channel: real_time::Channels,
+    channel: types::real_time::Channels,
     f: F,
 ) -> Result<(), Error>
 where
-    T: Into<real_time::Update>,
+    T: Into<types::real_time::Update>,
     Fu: Future<Output = T> + 'a,
     F: Fn() -> Fu,
 {
@@ -91,7 +91,7 @@ where
             continue;
         }
 
-        let update: real_time::Update = f().await.into();
+        let update: types::real_time::Update = f().await.into();
         let bin = rmp_serde::to_vec(&update).unwrap();
         let message = ws::Message::Binary(bin);
         if let Err(e) = sender.send(message).await {
@@ -106,7 +106,7 @@ where
 async fn create_listener(
     pool: &sqlx::PgPool,
     jam_id: &str,
-    channel: real_time::Channels,
+    channel: types::real_time::Channels,
 ) -> Result<PgListener, Error> {
     let mut listener = match PgListener::connect_with(pool).await {
         Ok(listener) => listener,

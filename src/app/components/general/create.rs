@@ -1,5 +1,5 @@
 use crate::components::Modal;
-use crate::app::general::*;
+use crate::general::*;
 use leptos::{logging::log, prelude::*, *};
 use leptos_router::*;
 

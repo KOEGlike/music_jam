@@ -4,4 +4,10 @@ pub use types::*;
 #[cfg(feature = "ssr")]
 pub mod functions;
 #[cfg(feature = "ssr")]
-pub use functions::*;
+pub use functions::{
+    real_time::*,
+    song::*,
+    spotify::*,
+    user::*,
+    vote::*,
+};

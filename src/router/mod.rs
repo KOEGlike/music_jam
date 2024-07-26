@@ -1,7 +1,7 @@
 pub mod fileserv;
 pub use fileserv::*;
 
-use crate::app::general::AppState;
+use crate::general::AppState;
 use axum::{routing::get, Router};
 
 use leptos::*;
@@ -21,7 +21,7 @@ pub fn new(leptos_routes: Vec<RouteListing>, app_state: AppState) -> Router {
             },
             App,
         )
-        .route("/socket", get(crate::app::socket::socket))
+        .route("/socket", get(crate::socket::socket))
         .fallback(file_and_error_handler)
         .with_state(app_state.clone())
 }

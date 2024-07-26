@@ -1,13 +1,10 @@
-use general::Vote;
+use crate::general;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 pub mod components;
-pub mod general;
 pub mod pages;
 
-#[cfg(feature = "ssr")]
-pub mod socket;
 
 use components::error_template::*;
 
@@ -42,7 +39,7 @@ pub fn App() -> impl IntoView {
 
 #[component]
 pub fn UserBartTest() -> impl IntoView {
-    use crate::app::{components::UsersBar, general::User};
+    use crate::{general::User,app::components::UsersBar};
     use leptos::logging::*;
     
     let users = vec![
@@ -130,7 +127,7 @@ fn SearchTest() -> impl IntoView {
             url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
             width: Some(64),
         },
-        votes: Vote{votes: 0, have_you_voted:None},
+        votes: general::Vote{votes: 0, have_you_voted:None},
     };
 
     let songs = {

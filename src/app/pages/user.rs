@@ -1,5 +1,5 @@
 use crate::app::components::{Search, SongList, SongListAction};
-use crate::app::general;
+use crate::general;
 use gloo::{storage::*, timers::callback::Interval};
 use leptos::{logging::*, prelude::*, *};
 use leptos_router::*;

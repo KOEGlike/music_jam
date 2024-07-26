@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::app::general::*;
+use crate::general::*;
 use axum::{
     extract::{
         ws::{self, WebSocket, WebSocketUpgrade},
@@ -56,7 +56,7 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
         id.clone(),
         app_state.clone(),
     ));
-    let tokio::spawn(occasional_notify(app_state.db.pool.clone(), jam_id));
+    let notify_task= tokio::spawn(occasional_notify(app_state.db.pool.clone(), id.jam_id().to_string()));
 
     if let Err(e) = notify_all(id.jam_id(), &app_state.db.pool).await {
         handle_error(e.into(), false, &mpsc_sender).await;
@@ -65,6 +65,7 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
     bridge_task.await.unwrap();
     send_task.abort();
     recv_task.abort();
+    notify_task.abort();
 }
 
 async fn handle_error(error: Error, close: bool, sender: &mpsc::Sender<ws::Message>) {
@@ -77,7 +78,7 @@ async fn handle_error(error: Error, close: bool, sender: &mpsc::Sender<ws::Messa
             .await
             .unwrap();
     } else {
-        let update = real_time::Update::Error(error);
+        let update = types::real_time::Update::Error(error);
         let bin = rmp_serde::to_vec(&update).unwrap();
         sender.send(ws::Message::Binary(bin)).await.unwrap();
     }
@@ -107,10 +108,10 @@ async fn send(
     };
 }
 
-async fn occasional_notify(pool: sqlx::PgPool, jam_id: &str) -> Result<(), Error> {
+async fn occasional_notify(pool: sqlx::PgPool, jam_id: String) -> Result<(), Error> {
     loop {
-        if let Err(e) = notify_all(jam_id, &pool).await {
-            eprint!("Error notifying all, in occasional notify: {:?}", e);
+        if let Err(e) = notify_all(&jam_id, &pool).await {
+            eprintln!("Error notifying all, in occasional notify: {:?}", e);
         };
         tokio::time::sleep(Duration::from_secs(30)).await;
     }

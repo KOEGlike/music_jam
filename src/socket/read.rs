@@ -1,5 +1,5 @@
 use super::handle_error;
-use crate::app::general::*;
+use crate::general::*;
 use axum::extract::ws::{self, WebSocket};
 use futures_util::{stream::SplitStream, StreamExt};
 use tokio::sync::mpsc;
@@ -23,7 +23,7 @@ pub async fn read(
             }
         };
 
-        let message: real_time::Request =
+        let message: types::real_time::Request =
             match rmp_serde::from_slice(message.into_data().as_slice()) {
                 Ok(m) => m,
                 Err(e) => {
@@ -35,7 +35,7 @@ pub async fn read(
             };
 
         match message {
-            real_time::Request::KickUser { user_id } => {
+            types::real_time::Request::KickUser { user_id } => {
                 let host_id = match only_host(
                     &id,
                     "Only hosts can kick users, this is a bug, terminating socket connection",
@@ -51,7 +51,7 @@ pub async fn read(
                     handle_error(error.into(), false, &sender).await;
                 };
             }
-            real_time::Request::AddSong { song_id } => {
+            types::real_time::Request::AddSong { song_id } => {
                 let id = match only_user(
                     &id,
                     "Only users can add songs, this is a bug, terminating socket connection",
@@ -69,12 +69,12 @@ pub async fn read(
                     handle_error(error, false, &sender).await;
                 };
             }
-            real_time::Request::RemoveSong { song_id } => {
+            types::real_time::Request::RemoveSong { song_id } => {
                 if let Err(error) = remove_song(&song_id, &id, pool).await {
                     handle_error(error, false, &sender).await;
                 };
             }
-            real_time::Request::AddVote { song_id } => {
+            types::real_time::Request::AddVote { song_id } => {
                 let id = match only_user(
                     &id,
                     "Only users can vote, this is a bug, terminating socket connection",
@@ -91,7 +91,7 @@ pub async fn read(
                 };
 
             }
-            real_time::Request::RemoveVote { song_id } => {
+            types::real_time::Request::RemoveVote { song_id } => {
                 let id = match only_user(
                     &id,
                     "Only users can remove votes, this is a bug, terminating socket connection",
@@ -108,12 +108,12 @@ pub async fn read(
                 };
              
             }
-            real_time::Request::Update => {
+            types::real_time::Request::Update => {
                 if let Err(e) = notify_all(id.jam_id(), pool).await {
                     handle_error(e.into(), false, &sender).await;
                 }
             }
-            real_time::Request::Search { query } => {
+            types::real_time::Request::Search { query } => {
                 let id= match only_user(
                     &id,
                     "Only users can search, this is a bug, terminating socket connection",
@@ -133,7 +133,7 @@ pub async fn read(
                     }
                 };
 
-                let update = real_time::Update::Search(songs);
+                let update = types::real_time::Update::Search(songs);
                 let message = rmp_serde::to_vec(&update).unwrap();
                 let message = ws::Message::Binary(message);
                 if let Err(e) = sender.send(message).await {
@@ -141,7 +141,7 @@ pub async fn read(
                     break;
                 }
             }
-            real_time::Request::ResetVotes => {
+            types::real_time::Request::ResetVotes => {
                 let id = match only_host(
                     &id,
                     "Only hosts can reset votes, this is a bug, terminating socket connection",
