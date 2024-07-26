@@ -10,7 +10,8 @@ pub async fn read(
     id: IdType,
     app_state: AppState,
 ) {
-    let pool = &app_state.db.pool;
+    let pool = &app_state.db.pool.clone();
+    
     let credentials=app_state.spotify_credentials;
 
     while let Some(message) = receiver.next().await {
@@ -136,7 +137,7 @@ pub async fn read(
                 let message = rmp_serde::to_vec(&update).unwrap();
                 let message = ws::Message::Binary(message);
                 if let Err(e) = sender.send(message).await {
-                    eprintln!("Error sending message: {:?}", e);
+                    eprintln!("Error sending ws message: {:?}", e);
                     break;
                 }
             }

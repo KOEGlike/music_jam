@@ -116,8 +116,7 @@ pub fn UserPage() -> impl IntoView {
             }
         });
 
-        let request_update_interval = Interval::new(60 * 1000, request_update);
-        request_update_interval.forget();
+        
 
         let message_is_null = create_memo(move |_| message_bytes.with(Option::is_none));
         create_effect(move |_| {

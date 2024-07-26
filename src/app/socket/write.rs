@@ -95,7 +95,7 @@ where
         let bin = rmp_serde::to_vec(&update).unwrap();
         let message = ws::Message::Binary(bin);
         if let Err(e) = sender.send(message).await {
-            eprintln!("Error sending message: {:?}", e);
+            eprintln!("Error sending ws listen message: {:?}", e);
             break;
         }
     }

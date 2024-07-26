@@ -8,7 +8,11 @@ use leptos_use::{use_websocket, UseWebsocketReturn};
 #[component]
 pub fn HostPage() -> impl IntoView {
     let (host_id, set_host_id) = create_signal(String::new());
-    let host_id = create_memo(move |_| host_id());
+    let host_id = create_memo(move |_| if host_id.with(String::is_empty){
+        None
+    } else {
+        Some(host_id.get_untracked())
+    });
     create_effect(move |_| {
         let host_id: String = LocalStorage::get("host_id").unwrap_or_default();
         if host_id.is_empty() {
@@ -67,12 +71,15 @@ pub fn HostPage() -> impl IntoView {
     };
     let reset_votes = Callback::new(reset_votes);
 
-    log!("host_id: {}", host_id.get_untracked());
+    create_effect(move|_|log!("host_id:{:?}",host_id()));
 
     create_effect(move |_| {
-        if host_id.with(String::is_empty) {
-            return;
-        }
+        let host_id=match host_id() {
+            Some(host_id) => {
+                host_id
+            },
+            None => return,
+        };
 
         let UseWebsocketReturn {
             ready_state,
@@ -80,7 +87,7 @@ pub fn HostPage() -> impl IntoView {
             close,
             send_bytes,
             ..
-        } = use_websocket(&format!("/socket?id={}", host_id.get_untracked()));
+        } = use_websocket(&format!("/socket?id={}", host_id));
         let send_request = move |request: real_time::Request| {
             let bin = rmp_serde::to_vec(&request).unwrap();
             send_bytes(bin);
@@ -117,13 +124,13 @@ pub fn HostPage() -> impl IntoView {
     });
 
     view! {
-        <Player host_id=host_id.get_untracked() top_song_id=top_song_id reset_votes=reset_votes/>
+        <Player host_id top_song_id reset_votes/>
         <SongList
-            songs=songs
-            votes=votes
-            request_update=request_update
+            songs
+            votes
+            request_update
             song_list_action=SongListAction::Remove(remove_song)
         />
-        <UsersBar users=users kick_user=kick_user/>
+        <UsersBar users kick_user/>
     }
 }

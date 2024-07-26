@@ -91,7 +91,7 @@ async fn send(
         match sender.send(msg).await {
             Ok(_) => (),
             Err(e) => {
-                eprintln!("Error sending message: {:?}", e);
+                eprintln!("Error sending ws send message: {:?}", e);
                 break;
             }
         }
