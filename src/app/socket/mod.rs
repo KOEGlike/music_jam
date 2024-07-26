@@ -1,3 +1,4 @@
+use std::time::Duration;
 
 use crate::app::general::*;
 use axum::{
@@ -49,14 +50,15 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
         id.clone(),
         app_state.clone(),
     ));
-    
+
     let send_task = tokio::spawn(write::write(
         mpsc_sender.clone(),
         id.clone(),
         app_state.clone(),
     ));
+    let tokio::spawn(occasional_notify(app_state.db.pool.clone(), jam_id));
 
-    if let Err(e)=notify_all(id.jam_id(), &app_state.db.pool).await {
+    if let Err(e) = notify_all(id.jam_id(), &app_state.db.pool).await {
         handle_error(e.into(), false, &mpsc_sender).await;
     }
 
@@ -100,7 +102,16 @@ async fn send(
             break;
         }
     }
-    if let Err(e)=sender.close().await{
+    if let Err(e) = sender.close().await {
         eprintln!("Error closing ws connection: {:?}", e);
     };
+}
+
+async fn occasional_notify(pool: sqlx::PgPool, jam_id: &str) -> Result<(), Error> {
+    loop {
+        if let Err(e) = notify_all(jam_id, &pool).await {
+            eprint!("Error notifying all, in occasional notify: {:?}", e);
+        };
+        tokio::time::sleep(Duration::from_secs(30)).await;
+    }
 }
