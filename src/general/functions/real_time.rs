@@ -1,4 +1,6 @@
 use crate::general::types::*;
+use strum::IntoEnumIterator;
+
 
 pub async fn notify(
     channel: real_time::Channels,
@@ -13,16 +15,33 @@ pub async fn notify(
     Ok(())
 }
 
-pub async fn notify_all(jam_id: &str, pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
-    let err = tokio::join!(
-        notify(real_time::Channels::Songs, jam_id, pool),
-        notify(real_time::Channels::Users, jam_id, pool),
-        notify(real_time::Channels::Votes, jam_id, pool)
-    );
+pub async fn notify_all(jam_id: &str, pool: &sqlx::PgPool) -> Result<(), Error> {
+    use std::sync::Arc;
+    
+    let jam_id = Arc::new(jam_id.to_string());
+    let pool = Arc::new(pool.clone());
+    let mut futures = Vec::new();
+    for channel in real_time::Channels::iter() {
+        let jam_id = Arc::clone(&jam_id);
+        let pool = Arc::clone(&pool);
+        futures.push(tokio::spawn(notify(channel, jam_id, pool)));
+    }
+    
+    let mut errors = Vec::new();
+    for future in futures {
+        match future.await {
+            Ok(fut) => {
+                if let Err(e) = fut {
+                    errors.push(e.to_string())
+                }
+            },
+            Err(e) => errors.push(e.to_string()),
+        };
+    }
 
-    err.0?;
-    err.1?;
-    err.2?;
+    if !errors.is_empty() {
+        return Err(Error::Database(errors.join("\n")));
+    }
 
     Ok(())
 }

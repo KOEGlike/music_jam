@@ -68,6 +68,8 @@ qrcode = { version = "0.13" }
 data-url = {version = "0.3", optional = true}
 base64 = {version = "0.22", optional = true}
 image = {version = "0.25.1", optional = true}
+strum = {version = "0.26", optional = true}
+strum_macros = {version = "0.26", optional = true}
 
 
 [features]
@@ -91,6 +93,8 @@ ssr = [
     "dep:data-url",
     "dep:base64",
     "dep:image",
+    "dep:strum",
+    "dep:strum_macros",
 ]
 
 

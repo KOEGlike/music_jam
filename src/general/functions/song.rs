@@ -3,7 +3,7 @@ use crate::general::types::*;
 use rspotify::model::Image;
 use std::collections::HashMap;
 use leptos::logging::*;
-use rspotify::model::{TrackId, SearchResult};
+use rspotify::model::TrackId;
 
 pub async fn remove_song(song_id: &str, id: &IdType, pool: &sqlx::PgPool) -> Result<(), Error> {
     if let IdType::User(id) = id {

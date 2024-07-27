@@ -10,4 +10,5 @@ pub use functions::{
     spotify::*,
     user::*,
     vote::*,
+    jam::*,
 };

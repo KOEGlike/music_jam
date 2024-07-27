@@ -36,8 +36,9 @@ impl AppState {
         let db_url = std::env::var("DATABASE_URL")?;
         let db_pool = sqlx::postgres::PgPoolOptions::new()
             .idle_timeout(Some(std::time::Duration::from_secs(60 * 15)))
-            .max_connections(5)
-            .min_connections(3)
+            .acquire_timeout(std::time::Duration::from_secs(60 * 5))
+            .max_connections(15)
+            .min_connections(5)
             .max_lifetime(Some(std::time::Duration::from_secs(60 * 60 * 24)))
             .connect(&db_url)
             .await?;
@@ -223,11 +224,14 @@ pub type Votes = HashMap<String, Vote>;
 
 pub mod real_time {
     use super::*;
+    use strum_macros::EnumIter;
 
+    #[derive(EnumIter, Debug, Clone, Copy)]
     pub enum Channels {
         Users,
         Songs,
         Votes,
+        Ended,
     }
 
     impl From<Channels> for String {
@@ -236,6 +240,7 @@ pub mod real_time {
                 Channels::Users => "users".to_string(),
                 Channels::Songs => "songs".to_string(),
                 Channels::Votes => "votes".to_string(),
+                Channels::Ended => "ended".to_string(),
             }
         }
     }
