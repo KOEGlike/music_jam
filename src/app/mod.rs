@@ -94,9 +94,10 @@ pub fn UserBartTest() -> impl IntoView {
         log!("kicking user {}", id);
     };
     let kick_user=Callback::from(kick_user);
+    let close=Callback::new(move|_:()|log!("close"));
 
     view! {
-        <UsersBar users=users kick_user=kick_user/>
+        <UsersBar close users kick_user/>
         <button on:click=move |_| { set_users(None) }>"loading"</button>
     }
 }

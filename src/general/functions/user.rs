@@ -43,18 +43,12 @@ pub async fn check_id_type(id: &str, pool: &sqlx::PgPool) -> Result<IdType, sqlx
 
 pub async fn kick_user(
     user_id: &str,
-    host_id: &str,
     pool: &sqlx::PgPool,
 ) -> Result<(), sqlx::Error> {
-    //check if the jam that the user is in is owned by the host
-    struct JamId {
-        id: String,
-    }
-
-    let jam_id = sqlx::query_as!(JamId, "SELECT id FROM jams WHERE host_id=$1;", host_id)
+    let jam_id = sqlx::query!("SELECT jam_id FROM users WHERE id=$1;", user_id)
         .fetch_one(pool)
         .await?;
-    let jam_id = jam_id.id;
+    let jam_id = jam_id.jam_id;
 
     sqlx::query!(
         "DELETE FROM users WHERE id=$1 AND jam_id=$2; ",

@@ -1,6 +1,6 @@
 use crate::app::components::{Search, SongList, SongListAction};
 use crate::general;
-use gloo::{storage::*, timers::callback::Interval};
+use gloo::{storage::{LocalStorage, Storage}, timers::callback::Interval};
 use leptos::{logging::*, prelude::*, *};
 use leptos_router::*;
 use leptos_use::{use_websocket, UseWebsocketReturn};
@@ -34,6 +34,9 @@ pub fn UserPage() -> impl IntoView {
         create_signal(Callback::new(|_: general::real_time::Request| {
             warn!("wanted to send a message to ws, but the ws is not ready yet");
         }));
+    let (close, set_close) = create_signal(Callback::new(|_: ()| {
+        warn!("wanted to close ws, but the ws is not ready yet");
+    }));
 
     let search = move |query: String| {
         let request = general::real_time::Request::Search { query };
@@ -75,7 +78,7 @@ pub fn UserPage() -> impl IntoView {
         let UseWebsocketReturn {
             ready_state,
             message_bytes,
-            close,
+            close:close_ws,
             send_bytes,
             ..
         } = use_websocket(&format!("/socket?id={}", user_id.get_untracked()));
@@ -116,8 +119,6 @@ pub fn UserPage() -> impl IntoView {
             }
         });
 
-        
-
         let message_is_null = create_memo(move |_| message_bytes.with(Option::is_none));
         create_effect(move |_| {
             if message_is_null() {
@@ -140,4 +141,12 @@ pub fn UserPage() -> impl IntoView {
             }
         />
     }
+}
+
+#[server]
+async fn delete_user(id: String) -> Result<(), ServerFnError> {
+    use crate::general::{AppState, kick_user};
+    let app_state=expect_context::<AppState>();
+    kick_user(&id, &app_state.db.pool).await?;
+    Ok(())
 }

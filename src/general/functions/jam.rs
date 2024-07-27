@@ -1,6 +1,8 @@
 use crate::general::{functions::notify_all, types::*};
 use leptos::logging::*;
 
+use super::notify;
+
 pub async fn create_host(
     code: String,
     host_id: String,
@@ -103,6 +105,15 @@ pub async fn create_host(
 
 
 
+    Ok(())
+}
+
+pub async fn delete_jam(jam_id: &str, pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    sqlx::query!("DELETE FROM jams WHERE id = $1", jam_id)
+        .execute(pool)
+        .await?;
+    notify(real_time::Channels::Ended, jam_id, pool).await?;
     Ok(())
 }
 

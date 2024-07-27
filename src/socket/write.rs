@@ -17,17 +17,52 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
         sender.clone(),
     ));
 
-    let listen_votes = tokio::spawn(listen_votes(
+    let listen_votes = tokio::spawn(listen_votes(pool.clone(), id.clone(), sender.clone()));
+    let listen_ended = tokio::spawn(listen_ended(
         pool.clone(),
-        id.clone(),
+        id.jam_id().into(),
         sender.clone(),
     ));
 
-    tokio::select! {
-        _ = listen_songs => {},
-        _ = listen_users => {},
-        _ = listen_votes => {},
+    match id {
+        IdType::Host(_) => {
+            tokio::select! {
+                _ = listen_songs => {},
+                _ = listen_users => {},
+                _ = listen_votes => {},
+                _ = listen_ended => {},
+            }
+        }
+        IdType::User(_) => {
+            let listen_position = tokio::spawn(listen_position(
+                pool.clone(),
+                id.jam_id().into(),
+                sender.clone(),
+            ));
+            tokio::select! {
+                _ = listen_songs => {},
+                _ = listen_users => {},
+                _ = listen_votes => {},
+                _ = listen_ended => {},
+                _ = listen_position => {},
+            }
+        }
     }
+}
+
+async fn listen_ended(
+    pool: sqlx::PgPool,
+    jam_id: String,
+    sender: mpsc::Sender<ws::Message>,
+) -> Result<(), Error> {
+    listen(
+        &pool,
+        &jam_id,
+        sender,
+        types::real_time::Channels::Ended,
+        || async { types::real_time::Update::Ended },
+    )
+    .await
 }
 
 async fn listen_songs(
@@ -53,21 +88,60 @@ async fn listen_users(
     jam_id: String,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), Error> {
-    listen(&pool, &jam_id, sender, types::real_time::Channels::Users, || {
-        get_users(&pool, &jam_id)
-    })
+    listen(
+        &pool,
+        &jam_id,
+        sender,
+        types::real_time::Channels::Users,
+        || get_users(&pool, &jam_id),
+    )
     .await
 }
 
 async fn listen_votes(
     pool: sqlx::PgPool,
-    id:IdType,
+    id: IdType,
     sender: mpsc::Sender<ws::Message>,
 ) -> Result<(), Error> {
-    listen(&pool, id.jam_id(), sender, types::real_time::Channels::Votes, || {
-        get_votes(&pool, &id)
-    })
+    listen(
+        &pool,
+        id.jam_id(),
+        sender,
+        types::real_time::Channels::Votes,
+        || get_votes(&pool, &id),
+    )
     .await
+}
+
+async fn listen_position(
+    pool: sqlx::PgPool,
+    jam_id: String,
+    sender: mpsc::Sender<ws::Message>,
+) -> Result<(), Error> {
+    let mut listener = create_listener(&pool, &jam_id, real_time::Channels::Position).await?;
+
+    while let Ok(message) = listener.try_recv().await {
+        let message = match message {
+            None => {
+                let error = Error::Database("pool disconnected reconnecting...".to_string());
+                handle_error(error, false, &sender).await;
+                continue;
+            }
+            Some(message) => message,
+        };
+
+        let percentage: f32 = message.payload().parse().unwrap();
+
+        let update: types::real_time::Update = real_time::Update::Position(percentage);
+        let bin = rmp_serde::to_vec(&update).unwrap();
+        let message = ws::Message::Binary(bin);
+        if let Err(e) = sender.send(message).await {
+            eprintln!("Error sending ws listen message: {:?}", e);
+            break;
+        }
+    }
+
+    Ok(())
 }
 
 async fn listen<'a, T, Fu, F>(

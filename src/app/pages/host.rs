@@ -1,17 +1,21 @@
 use crate::app::components::{host_only::Player, Share, SongList, SongListAction, UsersBar};
 use crate::app::general::types::*;
+use axum::extract::Host;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
 use leptos_router::{use_navigate, NavigateOptions};
 use leptos_use::{use_websocket, UseWebsocketReturn};
+use sqlx::pool;
 
 #[component]
 pub fn HostPage() -> impl IntoView {
     let (host_id, set_host_id) = create_signal(String::new());
-    let host_id = create_memo(move |_| if host_id.with(String::is_empty){
-        None
-    } else {
-        Some(host_id.get_untracked())
+    let host_id = create_memo(move |_| {
+        if host_id.with(String::is_empty) {
+            None
+        } else {
+            Some(host_id.get_untracked())
+        }
     });
     create_effect(move |_| {
         let host_id: String = LocalStorage::get("host_id").unwrap_or_default();
@@ -28,6 +32,9 @@ pub fn HostPage() -> impl IntoView {
 
     let (send_request, set_send_request) = create_signal(Callback::new(|_: real_time::Request| {
         warn!("wanted to send a message to ws, but the ws is not ready yet");
+    }));
+    let (close, set_close) = create_signal(Callback::new(|_: ()| {
+        warn!("wanted to close ws, but the ws is not ready yet");
     }));
 
     let top_song_id = move || match songs() {
@@ -71,20 +78,18 @@ pub fn HostPage() -> impl IntoView {
     };
     let reset_votes = Callback::new(reset_votes);
 
-    create_effect(move|_|log!("host_id:{:?}",host_id()));
+    create_effect(move |_| log!("host_id:{:?}", host_id()));
 
     create_effect(move |_| {
-        let host_id=match host_id() {
-            Some(host_id) => {
-                host_id
-            },
+        let host_id = match host_id() {
+            Some(host_id) => host_id,
             None => return,
         };
 
         let UseWebsocketReturn {
             ready_state,
             message_bytes,
-            close,
+            close:close_ws,
             send_bytes,
             ..
         } = use_websocket(&format!("/socket?id={}", host_id));
@@ -110,6 +115,15 @@ pub fn HostPage() -> impl IntoView {
             Some(update)
         };
 
+        let delete_jam = create_action(move |_: &()| {
+            let host_id = host_id.clone();
+            async move { delete_jam(host_id).await }
+        });
+        let close = Callback::new(move |_: ()| {
+            delete_jam.dispatch(());
+        });
+        set_close(close);
+
         create_effect(move |_| {
             if let Some(update) = update() {
                 match update {
@@ -117,7 +131,15 @@ pub fn HostPage() -> impl IntoView {
                     real_time::Update::Songs(songs) => set_songs(Some(songs)),
                     real_time::Update::Votes(votes) => set_votes(votes),
                     real_time::Update::Error(e) => error!("Error: {:#?}", e),
+                    real_time::Update::Ended => {
+                        close_ws();
+                        let navigator = use_navigate();
+                        navigator("/", NavigateOptions::default());
+                    }
                     real_time::Update::Search(_) => error!("Unexpected search update"),
+                    real_time::Update::Position(_) => {
+                        error!("Unexpected position update")
+                    }
                 }
             }
         });
@@ -125,12 +147,21 @@ pub fn HostPage() -> impl IntoView {
 
     view! {
         <Player host_id top_song_id reset_votes/>
-        <SongList
-            songs
-            votes
-            request_update
-            song_list_action=SongListAction::Remove(remove_song)
-        />
-        <UsersBar users kick_user/>
+        <SongList songs votes request_update song_list_action=SongListAction::Remove(remove_song)/>
+        <UsersBar close=close() users kick_user/>
     }
+}
+
+#[server]
+async fn delete_jam(host_id: String) -> Result<(), ServerFnError> {
+    use crate::general::{self, check_id_type, AppState};
+    let app_state = expect_context::<AppState>();
+    let pool = &app_state.db.pool;
+    let id = check_id_type(&host_id, pool).await?;
+    let id = match id {
+        IdType::Host(id) => id,
+        _ => return Err(ServerFnError::Request("id is not a host id".to_string())),
+    };
+    general::delete_jam(&id.jam_id, pool).await?;
+    Ok(())
 }

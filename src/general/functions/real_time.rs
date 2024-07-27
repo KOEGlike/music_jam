@@ -24,7 +24,9 @@ pub async fn notify_all(jam_id: &str, pool: &sqlx::PgPool) -> Result<(), Error> 
     for channel in real_time::Channels::iter() {
         let jam_id = Arc::clone(&jam_id);
         let pool = Arc::clone(&pool);
-        futures.push(tokio::spawn(notify(channel, jam_id, pool)));
+        futures.push(tokio::spawn(async move{
+            notify(channel, &jam_id, &pool).await
+        }));
     }
     
     let mut errors = Vec::new();
