@@ -1,9 +1,9 @@
-use crate::general::functions::{notify, get_access_token};
+use crate::general::functions::{get_access_token, notify};
 use crate::general::types::*;
-use rspotify::model::Image;
-use std::collections::HashMap;
 use leptos::logging::*;
+use rspotify::model::Image;
 use rspotify::model::TrackId;
+use std::collections::HashMap;
 
 pub async fn remove_song(song_id: &str, id: &IdType, pool: &sqlx::PgPool) -> Result<(), Error> {
     if let IdType::User(id) = id {
@@ -37,20 +37,17 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sq
         pub duration: i32,
         pub votes: Option<i64>,
         pub artists: Option<Vec<String>>,
-        pub image_width: Option<i64>,
-        pub image_height: Option<i64>,
         pub image_url: String,
     }
+
     let vec = sqlx::query_as!(
         SongDb,
-        "SELECT s.id, s.user_id, s.name, s.album, s.duration, i.url AS image_url, i.width AS image_width, i.height AS image_height, COUNT(v.id) AS votes, ARRAY_AGG(a.name) AS artists
+        "SELECT s.id, s.artists, s.image_url, s.user_id, s.name, s.album, s.duration, COUNT(v.id) AS votes
         FROM songs s
         JOIN users u ON s.user_id = u.id
         LEFT JOIN votes v ON s.id = v.song_id
-        LEFT JOIN artists a ON s.id = a.song_id
-        LEFT JOIN images i ON i.song_id = s.id
         WHERE u.jam_id = $1
-        GROUP BY s.id, i.id
+        GROUP BY s.id
         ORDER BY votes DESC, s.id DESC;",
         &id.jam_id()
     )
@@ -119,17 +116,12 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sq
                 .unwrap_or(vec!["no artist found in cache, this is a bug".to_string()]),
             album: song.album,
             duration: song.duration as u16,
-            image: Image {
-                url: song.image_url,
-                width: song.image_width.map(|width| width as u32),
-                height: song.image_height.map(|height| height as u32),
-            },
+            image_url: song.image_url,
         })
         .collect::<Vec<_>>();
 
     Ok(songs)
 }
-
 
 pub async fn add_song(
     song_id: &str,
@@ -147,58 +139,70 @@ pub async fn add_song(
     let track_id = TrackId::from_id(song_id)?;
     let song = client.track(track_id, None).await?;
 
-    let mut transaction = pool.begin().await?;
-    let image_id = cuid2::create_id();
-
     sqlx::query!(
-        "INSERT INTO songs (id, user_id, name, album, duration) VALUES ($1, $2, $3, $4, $5);",
+        "INSERT INTO songs 
+            (id, user_id, name, album, duration, image_url, artists) 
+        VALUES 
+            ($1, $2, $3, $4, $5, $6, $7);",
         song_id,
         user_id,
         song.name,
         song.album.name,
         song.duration.num_milliseconds() as i32,
+        song.album.images[0].url,
+        &song
+            .artists
+            .into_iter()
+            .map(|a| a.name)
+            .collect::<Vec<String>>()
     )
-    .execute(&mut *transaction)
+    .execute(pool)
     .await?;
-
-    if let Some(width) = song.album.images[0].width {
-        if let Some(height) = song.album.images[0].height {
-            sqlx::query!(
-                "INSERT INTO images (id, url, width, height, song_id) VALUES ($1, $2, $3, $4, $5);",
-                &image_id,
-                &song.album.images[0].url,
-                width as i32,
-                height as i32,
-                &song_id
-            )
-            .execute(&mut *transaction)
-            .await?;
-        }
-    } else {
-        sqlx::query!(
-            "INSERT INTO images (id, url, song_id) VALUES ($1, $2, $3);",
-            &image_id,
-            &song.album.images[0].url,
-            &song_id
-        )
-        .execute(&mut *transaction)
-        .await?;
-    }
-
-    for artist in song.artists {
-        sqlx::query!(
-            "INSERT INTO artists (song_id, name, id) VALUES ($1, $2, $3);",
-            song_id,
-            artist.name,
-            artist.id.unwrap().id().to_owned()
-        )
-        .execute(&mut *transaction)
-        .await?;
-    }
-
-    transaction.commit().await?;
 
     notify(real_time::Channels::Songs, jam_id, pool).await?;
     Ok(())
 }
 
+pub async fn get_current_song(
+    jam_id: &str,
+    pool: &sqlx::PgPool,
+) -> Result<Option<Song>, sqlx::Error> {
+    struct SongDb {
+        pub id: String,
+        pub user_id: String,
+        pub name: String,
+        pub album: String,
+        pub duration: i32,
+        pub artists: Option<Vec<String>>,
+        pub image_url: String,
+    }
+
+    let song = sqlx::query_as!(
+        SongDb,
+        "SELECT * FROM current_songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1)",
+        jam_id
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    let song = match song {
+        Some(song) => song,
+        None => return Ok(None),
+    };
+
+    Ok(Some(Song {
+        votes: Vote {
+            votes: 0,
+            have_you_voted: None,
+        },
+        id: song.id,
+        user_id: None,
+        name: song.name,
+        artists: song
+            .artists
+            .unwrap_or(vec!["no artist found in cache, this is a bug".to_string()]),
+        album: song.album,
+        duration: song.duration as u16,
+        image_url: song.image_url,
+    }))
+}

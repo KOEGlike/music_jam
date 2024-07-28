@@ -118,7 +118,7 @@ pub fn UserPage() -> impl IntoView {
                     real_time::Update::Songs(songs) => set_songs(Some(songs)),
                     real_time::Update::Votes(votes) => set_votes(votes),
                     real_time::Update::Users(users) => set_users(Some(users)),
-                    real_time::Update::Position(percentage) => set_position(percentage),
+                    real_time::Update::Position{percentage} => set_position(percentage),
                     real_time::Update::Ended => {
                         close_ws(());
                         let navigator = use_navigate();

@@ -137,7 +137,7 @@ pub fn HostPage() -> impl IntoView {
                         navigator("/", NavigateOptions::default());
                     }
                     real_time::Update::Search(_) => error!("Unexpected search update"),
-                    real_time::Update::Position(_) => {
+                    real_time::Update::Position{..} => {
                         error!("Unexpected position update")
                     }
                 }

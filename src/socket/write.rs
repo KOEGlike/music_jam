@@ -15,39 +15,80 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
     let mut futures = JoinSet::new();
 
     for channel in real_time::Channels::iter() {
-        let pool = pool.clone();
         let id = Arc::clone(&id);
         let sender = sender.clone();
 
-        let f = match channel {
-            real_time::Channels::Songs => |_| get_songs,
-            real_time::Channels::Votes => |_| get_votes,
-            real_time::Channels::Users => |_| get_users,
-            real_time::Channels::Ended => |_| async { real_time::Update::Ended },
+        match channel {
+            real_time::Channels::Songs => {
+                let f = |_| {
+                    let pool = pool.clone();
+                    let id = Arc::clone(&id);
+                    async move { get_songs(&pool, &id).await }
+                };
+
+                futures.spawn(listen(pool.clone(), id.jam_id(), sender, channel, f));
+            }
+            real_time::Channels::Votes => {
+                let f = |_| {
+                    let pool = pool.clone();
+                    let id = Arc::clone(&id);
+                    async move { get_votes(&pool, &id).await }
+                };
+                futures.spawn(listen(pool.clone(), id.jam_id(), sender, channel, f));
+            }
+            real_time::Channels::Users => {
+                let f =  |_| {
+                    let pool = pool.clone();
+                    let id = Arc::clone(&id);
+                    async move { get_users(&pool, id.jam_id()).await }
+                };
+                futures.spawn(listen(pool.clone(), id.jam_id(), sender, channel, f));
+            }
+            real_time::Channels::Ended => {
+                let f = |_| async { real_time::Update::Ended };
+                futures.spawn(listen(pool.clone(), id.jam_id(), sender, channel, f));
+            }
             real_time::Channels::Position { .. } => {
-                if id.is_host(){
+                if id.is_host() {
                     continue;
                 }
-                |m| async move {
+                let f = |m: sqlx::postgres::PgNotification| async move {
                     real_time::Update::Position {
                         percentage: m.payload().parse().unwrap(),
                     }
-                }
-            },
-            real_time::Channels::CurrentSong =>  {
-                if id.is_host(){
+                };
+                //futures.spawn(listen(&pool, id.jam_id(), sender, channel, f));
+            }
+            real_time::Channels::CurrentSong => {
+                if id.is_host() {
                     continue;
                 }
-                |_|get_current_song
-            },
+                let pool = pool.clone();
+                let id = Arc::clone(&id);
+                let f = move |_| {
+                    let pool = pool.clone();
+                    let id = Arc::clone(&id);
+                    async move {
+                        let song = match get_current_song(id.jam_id(), &pool).await {
+                            Ok(song) => song,
+                            Err(e) => {
+                                return real_time::Update::Error(Error::Database(format!(
+                                    "error getting current song: {:?}",
+                                    e
+                                )));
+                            }
+                        };
+                        real_time::Update::CurrentSong(song)
+                    }
+                };
+                futures.spawn(listen(pool.clone(), id.jam_id(), sender, channel, f));
+            }
         };
-
-        futures.spawn(listen(&pool, id.jam_id(), sender.clone(), channel, f));
     }
 }
 
 async fn listen<'a, T, Fu, F>(
-    pool: &'a sqlx::PgPool,
+    pool: sqlx::PgPool,
     jam_id: &'a str,
     sender: mpsc::Sender<ws::Message>,
     channel: types::real_time::Channels,
@@ -58,7 +99,7 @@ where
     Fu: Future<Output = T> + 'a,
     F: Fn(sqlx::postgres::PgNotification) -> Fu,
 {
-    let mut listener = create_listener(pool, jam_id, channel).await?;
+    let mut listener = create_listener(&pool, jam_id, channel).await?;
 
     while let Ok(m) = listener.try_recv().await {
         match m {

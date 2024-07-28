@@ -12,7 +12,7 @@ async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
 
     let host_id = cuid2::create_id();
     let query = query!(
-        "INSERT INTO hosts(id, access_token) VALUES ($1, NULL)",
+        "INSERT INTO hosts(id) VALUES ($1)",
         &host_id
     );
     let pool = app_state.db.pool;

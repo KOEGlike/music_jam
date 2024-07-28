@@ -17,8 +17,7 @@ CREATE TABLE jams (
   id varchar(6) NOT NULL UNIQUE PRIMARY KEY,
   max_song_count smallint NOT NULL,
   host_id char(24) UNIQUE NOT NULL REFERENCES hosts (id) ON DELETE CASCADE,
-  name varchar(30) NOT NULL,
-  current_song_id varchar(22)
+  name varchar(30) NOT NULL
 );
 
 CREATE TABLE users (
@@ -31,23 +30,22 @@ CREATE TABLE songs (
   user_id char(24) NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   id varchar(22) UNIQUE PRIMARY KEY NOT NULL,
   name varchar(50) NOT NULL,
-  album varchar(50) NOT NULL,
-  duration int NOT NULL
+  album varchar NOT NULL,
+  duration int NOT NULL,
+  artists varchar[] NOT NULL,
+  image_url varchar NOT NULL
 );
 
-CREATE TABLE images (
-  song_id varchar(22) NOT NULL REFERENCES songs (id) ON DELETE CASCADE,
-  id char(24) UNIQUE PRIMARY KEY NOT NULL,
-  url varchar(255) NOT NULL,
-  width bigint,
-  height bigint
-);
-
-CREATE TABLE artists (
+CREATE TABLE current_songs (
   id varchar(22) UNIQUE PRIMARY KEY NOT NULL,
-  song_id varchar(22) NOT NULL REFERENCES songs (id) ON DELETE CASCADE,
-  name varchar(50) NOT NULL
+  user_id char(24) UNIQUE NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  name varchar(50) NOT NULL,
+  album varchar(50) NOT NULL,
+  duration int NOT NULL,
+  artists varchar[] NOT NULL,
+  image_url varchar NOT NULL
 );
+
 
 
 
@@ -56,7 +54,3 @@ CREATE TABLE votes (
   user_id char(24) NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   song_id varchar(22) NOT NULL REFERENCES songs (id) ON DELETE CASCADE
 );
-
-ALTER TABLE jams
-ADD CONSTRAINT fk_current_song_id
-FOREIGN KEY (current_song_id) REFERENCES songs (id) ON DELETE SET NULL;

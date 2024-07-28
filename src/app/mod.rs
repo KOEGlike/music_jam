@@ -5,7 +5,6 @@ use leptos_router::*;
 pub mod components;
 pub mod pages;
 
-
 use components::error_template::*;
 
 #[component]
@@ -39,9 +38,9 @@ pub fn App() -> impl IntoView {
 
 #[component]
 pub fn UserBartTest() -> impl IntoView {
-    use crate::{general::User,app::components::UsersBar};
+    use crate::{app::components::UsersBar, general::User};
     use leptos::logging::*;
-    
+
     let users = vec![
         User {
             id: "tb0k2ujdagg6bvvqeqlx2qgq".to_string(),
@@ -90,11 +89,11 @@ pub fn UserBartTest() -> impl IntoView {
         },
     ];
     let (users, set_users) = create_signal(Some(users));
-    let kick_user=|id| {
+    let kick_user = |id| {
         log!("kicking user {}", id);
     };
-    let kick_user=Callback::from(kick_user);
-    let close=Callback::new(move|_:()|log!("close"));
+    let kick_user = Callback::from(kick_user);
+    let close = Callback::new(move |_: ()| log!("close"));
 
     view! {
         <UsersBar close users kick_user/>
@@ -105,15 +104,13 @@ pub fn UserBartTest() -> impl IntoView {
 #[component]
 fn ShareTest() -> impl IntoView {
     use crate::app::components::Share;
-    view! {
-        <Share jam_id="5Y8FXC"/>
-    }
+    view! { <Share jam_id="5Y8FXC"/> }
 }
 
 #[component]
 fn SearchTest() -> impl IntoView {
-    use leptos::logging::*;
     use crate::app::components::Search;
+    use leptos::logging::*;
 
     let song = general::Song {
         id: "lol".to_string(),
@@ -122,12 +119,11 @@ fn SearchTest() -> impl IntoView {
         artists: vec!["Beatles".to_string()],
         album: "Help!".to_string(),
         duration: 240,
-        image: general::Image {
-            height: Some(64),
-            url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
-            width: Some(64),
+        image_url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
+        votes: general::Vote {
+            votes: 0,
+            have_you_voted: None,
         },
-        votes: general::Vote{votes: 0, have_you_voted:None},
     };
 
     let songs = {
@@ -138,12 +134,10 @@ fn SearchTest() -> impl IntoView {
         songs
     };
     let (songs, _) = create_signal(Some(songs));
-    let search=move|id|log!("search with id:{}", id);
-    let search=Callback::from(search);
+    let search = move |id| log!("search with id:{}", id);
+    let search = Callback::from(search);
 
-    let add_song=move|id|log!("add with id:{}", id);
-    let add_song=Callback::from(add_song);
-    view! {
-        <Search search_result=songs search add_song/>
-    }
+    let add_song = move |id| log!("add with id:{}", id);
+    let add_song = Callback::from(add_song);
+    view! { <Search search_result=songs search add_song/> }
 }

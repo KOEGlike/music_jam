@@ -119,7 +119,7 @@ pub struct Song {
     pub artists: Vec<String>,
     pub album: String,
     pub duration: u16,
-    pub image: Image,
+    pub image_url: String,
     pub votes: Vote,
 }
 
@@ -260,7 +260,7 @@ pub mod real_time {
         Ended,
         ///the percentage of the current song
         Position{percentage:f32},
-        CurrentSong(Song)
+        CurrentSong(Option<Song>)
     }
 
     impl From<Votes> for Update {

@@ -34,7 +34,7 @@ where
                                 remove_song(&song.id);
                             }>
                                 <img
-                                    src=&song.image.url
+                                    src=&song.image_url
                                     alt=format!("This is the album cover of {}", &song.name)
                                     title=&song.name
                                 />
