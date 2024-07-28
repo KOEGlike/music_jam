@@ -232,7 +232,8 @@ pub mod real_time {
         Songs,
         Votes,
         Ended,
-        Position,
+        Position{percentage:f32},
+        CurrentSong
     }
 
     impl From<Channels> for String {
@@ -242,7 +243,9 @@ pub mod real_time {
                 Channels::Songs => "songs".to_string(),
                 Channels::Votes => "votes".to_string(),
                 Channels::Ended => "ended".to_string(),
-                Channels::Position => "position".to_string(),
+                Channels::Position{..} => "position".to_string(),
+                Channels::CurrentSong => "current_song".to_string(),
+
             }
         }
     }
@@ -256,7 +259,8 @@ pub mod real_time {
         Search(Vec<Song>),
         Ended,
         ///the percentage of the current song
-        Position(f32)
+        Position{percentage:f32},
+        CurrentSong(Song)
     }
 
     impl From<Votes> for Update {
@@ -299,5 +303,6 @@ pub mod real_time {
         Search { query: String },
         ResetVotes,
         Update,
+        Position{percentage:f32},
     }
 }

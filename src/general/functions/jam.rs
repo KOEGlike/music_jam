@@ -87,23 +87,17 @@ pub async fn create_host(
 
     let access_token_id = cuid2::create_id();
     sqlx::query!(
-        "INSERT INTO access_tokens (access_token, expires_at, scope, refresh_token,id) VALUES ($1, $2, $3, $4,$5)",
+        "INSERT INTO access_tokens 
+            (access_token, expires_at, scope, refresh_token,id, host_id) 
+        VALUES 
+            ($1, $2, $3, $4,$5,$6)",
         token.access_token,
         expires_at,
         token.scope,
         token.refresh_token,
-        access_token_id
-    ).execute(pool).await?;
-
-    sqlx::query!(
-        "UPDATE hosts SET access_token = $1 WHERE id = $2",
         access_token_id,
         host_id
-    )
-    .execute(pool)
-    .await?;
-
-
+    ).execute(pool).await?;
 
     Ok(())
 }
@@ -117,24 +111,23 @@ pub async fn delete_jam(jam_id: &str, pool: &sqlx::PgPool) -> Result<(), sqlx::E
     Ok(())
 }
 
-
 pub async fn create_jam(
     name: String,
     host_id: String,
     max_song_count: i16,
     pool: &sqlx::PgPool,
 ) -> Result<JamId, Error> {
-    
-
     let jam_id = cuid2::CuidConstructor::new().with_length(6).create_id();
 
-     sqlx::query!(
+    sqlx::query!(
         "INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)",
         &jam_id,
         &max_song_count,
         &host_id,
         &name
-    ).execute(pool).await?;
+    )
+    .execute(pool)
+    .await?;
 
     tokio::spawn(occasional_notify(pool.clone(), jam_id.clone()));
 

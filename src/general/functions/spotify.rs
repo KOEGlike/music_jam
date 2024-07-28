@@ -33,6 +33,7 @@ struct AccessTokenDb {
     pub expires_at: i64,
     pub scope: String,
     pub id: String,
+    pub host_id: String,
 }
 
 async fn get_maybe_expired_access_token(

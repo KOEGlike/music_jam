@@ -104,7 +104,6 @@ pub fn UserBartTest() -> impl IntoView {
 
 #[component]
 fn ShareTest() -> impl IntoView {
-    use leptos::logging::*;
     use crate::app::components::Share;
     view! {
         <Share jam_id="5Y8FXC"/>

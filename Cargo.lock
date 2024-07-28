@@ -2459,6 +2459,7 @@ dependencies = [
  "cuid2",
  "data-url",
  "dotenvy",
+ "futures",
  "futures-util",
  "gloo",
  "http 1.1.0",

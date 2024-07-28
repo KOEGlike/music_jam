@@ -1,21 +1,24 @@
+
+
+CREATE TABLE hosts (
+  id char(24) NOT NULL UNIQUE PRIMARY KEY
+);
+
 CREATE TABLE access_tokens  (
   id char(24) UNIQUE PRIMARY KEY NOT NULL,
   access_token varchar NOT NULL UNIQUE,
   expires_at BIGINT NOT NULL,
   scope varchar NOT NULL,
-  refresh_token varchar NOT NULL
-);
-
-CREATE TABLE hosts (
-  id char(24) NOT NULL UNIQUE PRIMARY KEY,
-  access_token char(24) UNIQUE REFERENCES access_tokens (id) ON DELETE CASCADE
+  refresh_token varchar NOT NULL,
+  host_id char(24) NOT NULL REFERENCES hosts (id) ON DELETE CASCADE
 );
 
 CREATE TABLE jams (
   id varchar(6) NOT NULL UNIQUE PRIMARY KEY,
   max_song_count smallint NOT NULL,
   host_id char(24) UNIQUE NOT NULL REFERENCES hosts (id) ON DELETE CASCADE,
-  name varchar(30) NOT NULL
+  name varchar(30) NOT NULL,
+  current_song_id varchar(22)
 );
 
 CREATE TABLE users (
@@ -53,3 +56,7 @@ CREATE TABLE votes (
   user_id char(24) NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   song_id varchar(22) NOT NULL REFERENCES songs (id) ON DELETE CASCADE
 );
+
+ALTER TABLE jams
+ADD CONSTRAINT fk_current_song_id
+FOREIGN KEY (current_song_id) REFERENCES songs (id) ON DELETE SET NULL;

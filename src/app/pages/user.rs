@@ -1,6 +1,6 @@
 use crate::app::components::{Search, SongList, SongListAction};
 use crate::general;
-use gloo::{storage::{LocalStorage, Storage}, timers::callback::Interval};
+use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
 use leptos_router::*;
 use leptos_use::{use_websocket, UseWebsocketReturn};
@@ -29,6 +29,7 @@ pub fn UserPage() -> impl IntoView {
     let (songs, set_songs) = create_signal(None);
     let (votes, set_votes) = create_signal(general::Votes::new());
     let (users, set_users) = create_signal(None);
+    let (position, set_position) = create_signal(0.0);
 
     let (send_request, set_send_request) =
         create_signal(Callback::new(|_: general::real_time::Request| {
@@ -90,6 +91,8 @@ pub fn UserPage() -> impl IntoView {
         let send_request = Callback::new(send_request);
         set_send_request(send_request);
 
+        let close_ws = Callback::new(move|_:()|close_ws());
+
         let update = move || {
             use general::real_time;
             let bin = match message_bytes() {
@@ -115,6 +118,12 @@ pub fn UserPage() -> impl IntoView {
                     real_time::Update::Songs(songs) => set_songs(Some(songs)),
                     real_time::Update::Votes(votes) => set_votes(votes),
                     real_time::Update::Users(users) => set_users(Some(users)),
+                    real_time::Update::Position(percentage) => set_position(percentage),
+                    real_time::Update::Ended => {
+                        close_ws(());
+                        let navigator = use_navigate();
+                        navigator("/", NavigateOptions::default());
+                    }
                 }
             }
         });
@@ -127,6 +136,18 @@ pub fn UserPage() -> impl IntoView {
                 set_search_result(Some(vec![]));
             };
         });
+
+        let delete_user = create_action(move |_: &()| {
+            async move {
+                let id = user_id.get_untracked();
+                delete_user(id).await
+            }
+        });
+        let close = Callback::new(move |_: ()| {
+            delete_user.dispatch(());
+            close_ws(());
+        });
+        set_close(close);
     });
 
     view! {
