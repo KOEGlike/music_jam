@@ -52,7 +52,7 @@ web-sys = { version = "0.3", features = [
 wasm-bindgen-futures = { version = "0.4" }
 js-sys = { version = "0.3" }
 nestify = "0.3"
-rust_spotify_web_playback_sdk = { path = "C:/Users/lenovo/documents/hacker_man/projects/rust_spotify_web_playback_sdk" }
+rust_spotify_web_playback_sdk = { path = "C:/Users/lenovo/documents/men/hacker_man/projects/rust_spotify_web_playback_sdk" }
 gloo = { version = "0.11", features = ["storage"] }
 cuid2 = "0.1"
 sqlx = { version = "0.7.2", features = [

@@ -11,8 +11,8 @@ pub async fn read(
     app_state: AppState,
 ) {
     let pool = &app_state.db.pool.clone();
-    
-    let credentials=app_state.spotify_credentials;
+
+    let credentials = app_state.spotify_credentials;
 
     while let Some(message) = receiver.next().await {
         let message = match message {
@@ -28,14 +28,15 @@ pub async fn read(
                 Ok(m) => m,
                 Err(e) => {
                     use Error;
-                    let error = Error::Decode(format!("Error decoding message sent in ws: {:?}", e));
+                    let error =
+                        Error::Decode(format!("Error decoding message sent in ws: {:?}", e));
                     handle_error(error, true, &sender).await;
                     break;
                 }
             };
 
         match message {
-            types::real_time::Request::KickUser { user_id } => {
+            real_time::Request::KickUser { user_id } => {
                 let host_id = match only_host(
                     &id,
                     "Only hosts can kick users, this is a bug, terminating socket connection",
@@ -51,7 +52,7 @@ pub async fn read(
                     handle_error(error.into(), false, &sender).await;
                 };
             }
-            types::real_time::Request::AddSong { song_id } => {
+            real_time::Request::AddSong { song_id } => {
                 let id = match only_user(
                     &id,
                     "Only users can add songs, this is a bug, terminating socket connection",
@@ -64,17 +65,17 @@ pub async fn read(
                 };
 
                 if let Err(error) =
-                    add_song(&song_id, &id.id, &id.jam_id, pool,credentials.clone()).await
+                    add_song(&song_id, &id.id, &id.jam_id, pool, credentials.clone()).await
                 {
                     handle_error(error, false, &sender).await;
                 };
             }
-            types::real_time::Request::RemoveSong { song_id } => {
+            real_time::Request::RemoveSong { song_id } => {
                 if let Err(error) = remove_song(&song_id, &id, pool).await {
                     handle_error(error, false, &sender).await;
                 };
             }
-            types::real_time::Request::AddVote { song_id } => {
+            real_time::Request::AddVote { song_id } => {
                 let id = match only_user(
                     &id,
                     "Only users can vote, this is a bug, terminating socket connection",
@@ -89,9 +90,8 @@ pub async fn read(
                 if let Err(error) = add_vote(&song_id, id, pool).await {
                     handle_error(error, false, &sender).await;
                 };
-
             }
-            types::real_time::Request::RemoveVote { song_id } => {
+            real_time::Request::RemoveVote { song_id } => {
                 let id = match only_user(
                     &id,
                     "Only users can remove votes, this is a bug, terminating socket connection",
@@ -106,15 +106,14 @@ pub async fn read(
                 if let Err(error) = remove_vote(&song_id, id, pool).await {
                     handle_error(error, false, &sender).await;
                 };
-             
             }
-            types::real_time::Request::Update => {
+            real_time::Request::Update => {
                 if let Err(e) = notify_all(id.jam_id(), pool).await {
                     handle_error(e.into(), false, &sender).await;
                 }
             }
-            types::real_time::Request::Search { query } => {
-                let id= match only_user(
+            real_time::Request::Search { query } => {
+                let id = match only_user(
                     &id,
                     "Only users can search, this is a bug, terminating socket connection",
                     &sender,
@@ -124,8 +123,8 @@ pub async fn read(
                     Ok(id) => id,
                     Err(_) => break,
                 };
-                
-                let songs = match search(&query, pool, &id.jam_id,credentials.clone()).await {
+
+                let songs = match search(&query, pool, &id.jam_id, credentials.clone()).await {
                     Ok(songs) => songs,
                     Err(e) => {
                         handle_error(e, false, &sender).await;
@@ -141,7 +140,7 @@ pub async fn read(
                     break;
                 }
             }
-            types::real_time::Request::ResetVotes => {
+            real_time::Request::ResetVotes => {
                 let id = match only_host(
                     &id,
                     "Only hosts can reset votes, this is a bug, terminating socket connection",
@@ -153,10 +152,26 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                if let Err(error)=reset_votes(&id.jam_id, pool).await{
-                    let error=Error::Database(format!("Error resetting votes: {}", error));
+                if let Err(error) = reset_votes(&id.jam_id, pool).await {
+                    let error = Error::Database(format!("Error resetting votes: {}", error));
                     handle_error(error, false, &sender).await;
                 };
+            }
+            real_time::Request::Position { percentage } => {
+                let id = match only_host(
+                    &id,
+                    "Only a host can update the current position of a song",
+                    &sender,
+                )
+                .await
+                {
+                    Ok(id) => id,
+                    Err(_) => break,
+                };
+
+                
+
+                
             }
         }
     }

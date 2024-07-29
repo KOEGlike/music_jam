@@ -143,3 +143,32 @@ async fn occasional_notify(pool: sqlx::PgPool, jam_id: String) -> Result<(), Err
         tokio::time::sleep(Duration::from_secs(10)).await;
     }
 }
+
+pub async fn set_current_song_position(
+    jam_id: &str,
+    percentage: f32,
+    pool: &sqlx::PgPool,
+) -> Result<(), Error> {
+    if percentage>1.0 || percentage<0.0 {
+        return Err(Error::InvalidRequest("Percentage must be between 0 and 1".to_string()));
+    }
+    sqlx::query!(
+        "UPDATE jams SET song_position = $1 WHERE id = $2",
+        percentage,
+        jam_id
+    )
+    .execute(pool)
+    .await?;
+    notify(real_time::Channels::Position , jam_id, pool).await?;
+    Ok(())
+}
+
+pub async fn get_current_song_position(jam_id: &str, pool: &sqlx::PgPool) -> Result<f32, Error> {
+    let row = sqlx::query!(
+        "SELECT song_position FROM jams WHERE id = $1",
+        jam_id
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(row.song_position)
+}

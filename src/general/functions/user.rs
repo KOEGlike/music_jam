@@ -101,7 +101,7 @@ pub async fn create_user(
         .crop_imm(0, 0, 256, 256);
 
     let user_id = cuid2::create_id();
-    let image_path = format!("./public/uploads/{}.webp", user_id);
+    let image_path = format!("./target/site/uploads/{}.webp", user_id);
 
     match image.save(image_path) {
         Ok(_) => (),

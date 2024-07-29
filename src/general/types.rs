@@ -40,6 +40,7 @@ impl AppState {
             .max_connections(15)
             .min_connections(5)
             .max_lifetime(Some(std::time::Duration::from_secs(60 * 60 * 24)))
+            .acquire_timeout(std::time::Duration::from_secs(60 * 5))
             .connect(&db_url)
             .await?;
 
@@ -144,6 +145,7 @@ pub enum Error {
     WebSocket(String),
     Forbidden(String),
     FileSystem(String),
+    InvalidRequest(String),
 }
 
 impl Error {
@@ -156,6 +158,7 @@ impl Error {
             Error::Forbidden(_) => 4403,
             Error::Spotify(_) => 4500,
             Error::FileSystem(_) => 4500,
+            Error::InvalidRequest(_) => 4400,
         }
     }
 }
@@ -170,6 +173,7 @@ impl From<Error> for String {
             Error::Forbidden(s) => s,
             Error::Spotify(s) => s,
             Error::FileSystem(s) => s,
+            Error::InvalidRequest(s) => s,
         }
     }
 }
@@ -232,7 +236,7 @@ pub mod real_time {
         Songs,
         Votes,
         Ended,
-        Position{percentage:f32},
+        Position,
         CurrentSong
     }
 
