@@ -1,7 +1,6 @@
 use crate::general::functions::{get_access_token, notify};
 use crate::general::types::*;
 use leptos::logging::*;
-use rspotify::model::Image;
 use rspotify::model::TrackId;
 use std::collections::HashMap;
 
@@ -163,46 +162,3 @@ pub async fn add_song(
     Ok(())
 }
 
-pub async fn get_current_song(
-    jam_id: &str,
-    pool: &sqlx::PgPool,
-) -> Result<Option<Song>, sqlx::Error> {
-    struct SongDb {
-        pub id: String,
-        pub user_id: String,
-        pub name: String,
-        pub album: String,
-        pub duration: i32,
-        pub artists: Option<Vec<String>>,
-        pub image_url: String,
-    }
-
-    let song = sqlx::query_as!(
-        SongDb,
-        "SELECT * FROM current_songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1)",
-        jam_id
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    let song = match song {
-        Some(song) => song,
-        None => return Ok(None),
-    };
-
-    Ok(Some(Song {
-        votes: Vote {
-            votes: 0,
-            have_you_voted: None,
-        },
-        id: song.id,
-        user_id: None,
-        name: song.name,
-        artists: song
-            .artists
-            .unwrap_or(vec!["no artist found in cache, this is a bug".to_string()]),
-        album: song.album,
-        duration: song.duration as u16,
-        image_url: song.image_url,
-    }))
-}

@@ -30,6 +30,7 @@ pub fn UserPage() -> impl IntoView {
     let (votes, set_votes) = create_signal(general::Votes::new());
     let (users, set_users) = create_signal(None);
     let (position, set_position) = create_signal(0.0);
+    let (current_song, set_current_song) = create_signal(None);
 
     let (send_request, set_send_request) =
         create_signal(Callback::new(|_: general::real_time::Request| {
@@ -119,6 +120,7 @@ pub fn UserPage() -> impl IntoView {
                     real_time::Update::Votes(votes) => set_votes(votes),
                     real_time::Update::Users(users) => set_users(Some(users)),
                     real_time::Update::Position{percentage} => set_position(percentage),
+                    real_time::Update::CurrentSong(song) => set_current_song(song),
                     real_time::Update::Ended => {
                         close_ws(());
                         let navigator = use_navigate();

@@ -1,11 +1,9 @@
 use crate::app::components::{host_only::Player, Share, SongList, SongListAction, UsersBar};
 use crate::app::general::types::*;
-use axum::extract::Host;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
 use leptos_router::{use_navigate, NavigateOptions};
 use leptos_use::{use_websocket, UseWebsocketReturn};
-use sqlx::pool;
 
 #[component]
 pub fn HostPage() -> impl IntoView {
@@ -139,7 +137,10 @@ pub fn HostPage() -> impl IntoView {
                     real_time::Update::Search(_) => error!("Unexpected search update"),
                     real_time::Update::Position{..} => {
                         error!("Unexpected position update")
-                    }
+                    },
+                    real_time::Update::CurrentSong(_) => {
+                        error!("Unexpected current song update")
+                    },
                 }
             }
         });

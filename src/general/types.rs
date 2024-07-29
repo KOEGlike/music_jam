@@ -29,7 +29,7 @@ pub struct Db {
 #[cfg(feature = "ssr")]
 impl AppState {
     pub async fn new(leptos_options: leptos::LeptosOptions) -> Result<Self, Box<dyn StdError>> {
-        dotenvy::dotenv().unwrap();
+        dotenvy::dotenv()?;
         let reqwest_client = reqwest::Client::new();
         let spotify_id = std::env::var("SPOTIFY_ID")?;
         let spotify_secret = std::env::var("SPOTIFY_SECRET")?;
@@ -228,8 +228,10 @@ pub type Votes = HashMap<String, Vote>;
 
 pub mod real_time {
     use super::*;
+    #[cfg(feature = "ssr")]
     use strum_macros::EnumIter;
 
+    #[cfg(feature = "ssr")]
     #[derive(EnumIter, Debug, Clone, Copy)]
     pub enum Channels {
         Users,

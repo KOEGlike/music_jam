@@ -37,17 +37,6 @@ pub async fn read(
 
         match message {
             real_time::Request::KickUser { user_id } => {
-                let host_id = match only_host(
-                    &id,
-                    "Only hosts can kick users, this is a bug, terminating socket connection",
-                    &sender,
-                )
-                .await
-                {
-                    Ok(id) => &id.id,
-                    Err(_) => break,
-                };
-
                 if let Err(error) = kick_user(&user_id, pool).await {
                     handle_error(error.into(), false, &sender).await;
                 };
@@ -109,7 +98,7 @@ pub async fn read(
             }
             real_time::Request::Update => {
                 if let Err(e) = notify_all(id.jam_id(), pool).await {
-                    handle_error(e.into(), false, &sender).await;
+                    handle_error(e, false, &sender).await;
                 }
             }
             real_time::Request::Search { query } => {
@@ -169,7 +158,9 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                
+                if let Err(e)=set_current_song_position(&id.jam_id, percentage, pool).await {
+                    handle_error(e, false, &sender).await;
+                }
 
                 
             }
