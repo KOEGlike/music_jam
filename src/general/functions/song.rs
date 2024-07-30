@@ -4,7 +4,7 @@ use leptos::logging::*;
 use rspotify::model::TrackId;
 use std::collections::HashMap;
 
-pub async fn remove_song(song_id: &str, id: &IdType, pool: &sqlx::PgPool) -> Result<(), Error> {
+pub async fn remove_song(song_id: &str, id: &IdType, pool: &sqlx::PgPool) -> Result<real_time::Changed, Error> {
     if let IdType::User(id) = id {
         let song_user_id = sqlx::query!(
             "SELECT * FROM songs WHERE id=$1 AND user_id=$2",
@@ -23,8 +23,7 @@ pub async fn remove_song(song_id: &str, id: &IdType, pool: &sqlx::PgPool) -> Res
     sqlx::query!("DELETE FROM songs WHERE id=$1;", song_id)
         .execute(pool)
         .await?;
-    notify(real_time::Channels::Songs, id.jam_id(), pool).await?;
-    Ok(())
+    Ok(real_time::Changed::new().songs())
 }
 
 pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sqlx::Error> {
@@ -128,7 +127,7 @@ pub async fn add_song(
     jam_id: &str,
     pool: &sqlx::PgPool,
     credentials: SpotifyCredentials,
-) -> Result<(), Error> {
+) -> Result<real_time::Changed, Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
     log!("adding song, with id: {}", song_id);
@@ -158,7 +157,6 @@ pub async fn add_song(
     .execute(pool)
     .await?;
 
-    notify(real_time::Channels::Songs, jam_id, pool).await?;
-    Ok(())
+    Ok(real_time::Changed::new().songs())
 }
 

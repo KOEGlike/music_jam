@@ -17,7 +17,7 @@ CREATE TABLE jams (
   id varchar(6) NOT NULL UNIQUE PRIMARY KEY,
   max_song_count smallint NOT NULL,
   host_id char(24) UNIQUE NOT NULL REFERENCES hosts (id) ON DELETE CASCADE,
-  song_position real NOT NULL,
+  song_position real NOT NULL DEFAULT 0,
   name varchar(30) NOT NULL
 );
 

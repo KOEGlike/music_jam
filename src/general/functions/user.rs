@@ -1,7 +1,8 @@
-use crate::general::{notify, types::*};
+use crate::general::types::*;
 
-pub async fn get_users(pool: &sqlx::PgPool, jam_id: &str) -> Result<Vec<User>, sqlx::Error> {
-    sqlx::query_as!(User, "SELECT * FROM users WHERE jam_id=$1", jam_id)
+///only the jam is is used from the id
+pub async fn get_users(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<User>, sqlx::Error> {
+    sqlx::query_as!(User, "SELECT * FROM users WHERE jam_id=$1", id.jam_id())
         .fetch_all(pool)
         .await
 }
@@ -44,7 +45,7 @@ pub async fn check_id_type(id: &str, pool: &sqlx::PgPool) -> Result<IdType, sqlx
 pub async fn kick_user(
     user_id: &str,
     pool: &sqlx::PgPool,
-) -> Result<(), sqlx::Error> {
+) -> Result<real_time::Changed, sqlx::Error> {
     let jam_id = sqlx::query!("SELECT jam_id FROM users WHERE id=$1;", user_id)
         .fetch_one(pool)
         .await?;
@@ -58,15 +59,16 @@ pub async fn kick_user(
     .execute(pool)
     .await?;
 
-    Ok(())
+    Ok(real_time::Changed::new().users())
 }
 
+///returns id of the created user
 pub async fn create_user(
     jam_id: &str,
     image_url: &str,
     name: &str,
     pool: &sqlx::PgPool,
-) -> Result<String, Error> {
+) -> Result<(String, real_time::Changed), Error> {
     use data_url::DataUrl;
 
     let data_url = match DataUrl::process(image_url) {
@@ -122,7 +124,5 @@ pub async fn create_user(
     .execute(pool)
     .await?;
 
-    notify(real_time::Channels::Users, jam_id, pool).await?;
-
-    Ok(user_id)
+    Ok((user_id, real_time::Changed::new().users()))
 }

@@ -1,17 +1,17 @@
 pub mod spotify;
 pub use spotify::*;
 
-pub mod song;
+mod song;
 pub use song::*;
 
-pub mod vote;
+mod vote;
 pub use vote::*;
 
-pub mod user;
+mod user;
 pub use user::*;
 
-pub mod real_time;
+mod real_time;
 pub use real_time::*;
 
-pub mod jam;
+mod jam;
 pub use jam::*;

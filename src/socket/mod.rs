@@ -1,4 +1,3 @@
-
 use crate::general::*;
 use axum::{
     extract::{
@@ -75,7 +74,7 @@ async fn handle_error(error: Error, close: bool, sender: &mpsc::Sender<ws::Messa
             .await
             .unwrap();
     } else {
-        let update = types::real_time::Update::Error(error);
+        let update = real_time::Update::new().error(error);
         let bin = rmp_serde::to_vec(&update).unwrap();
         sender.send(ws::Message::Binary(bin)).await.unwrap();
     }
@@ -104,5 +103,3 @@ async fn send(
         eprintln!("Error closing ws connection: {:?}", e);
     };
 }
-
-

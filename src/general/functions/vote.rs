@@ -1,7 +1,8 @@
-use crate::general::functions::notify;
+
 use crate::general::types::*;
 
-pub async fn add_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Result<(), Error> {
+
+pub async fn add_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Result<real_time::Changed, Error> {
     let vote_exists = sqlx::query!(
         "SELECT * FROM votes WHERE song_id=$1 AND user_id=$2;",
         song_id,
@@ -25,11 +26,10 @@ pub async fn add_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Resul
     .execute(pool)
     .await?;
 
-    notify(real_time::Channels::Votes, &user_id.jam_id, pool).await?;
-    Ok(())
+    Ok(real_time::Changed::new().votes())
 }
 
-pub async fn remove_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Result<(), Error> {
+pub async fn remove_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Result<real_time::Changed, Error> {
     let vote_exists = sqlx::query!(
         "SELECT * FROM votes WHERE song_id=$1 AND user_id=$2;",
         song_id,
@@ -52,8 +52,7 @@ pub async fn remove_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Re
     .execute(pool)
     .await?;
 
-    notify(real_time::Channels::Votes, &user_id.jam_id, pool).await?;
-    Ok(())
+    Ok(real_time::Changed::new().votes())
 }
 
 pub async fn get_votes(pool: &sqlx::PgPool, id: &IdType) -> Result<Votes, sqlx::Error> {
@@ -110,4 +109,12 @@ pub async fn get_votes(pool: &sqlx::PgPool, id: &IdType) -> Result<Votes, sqlx::
     };
 
     Ok(votes)
+}
+
+pub async fn reset_votes(jam_id: &str, pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query!("DELETE FROM votes WHERE song_id IN (SELECT id FROM songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1));", jam_id)
+        .execute(pool)
+        .await?;
+    
+    Ok(())
 }
