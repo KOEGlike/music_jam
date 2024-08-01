@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Changed {
     pub users: bool,
@@ -82,7 +83,7 @@ impl Changed {
 
 
     /// This function sets all the fields to true except for ended
-    pub fn all(self) -> Self {
+    pub fn all() -> Self {
         Self {
             users: true,
             songs: true,

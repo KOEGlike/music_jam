@@ -1,4 +1,4 @@
-use crate::general::types::*;
+use crate::general::{functions::jam, types::*};
 use leptos::logging::*;
 use real_time::Update;
 
@@ -137,7 +137,7 @@ pub async fn create_jam(
 async fn occasional_notify(pool: sqlx::PgPool, jam_id: String) -> Result<(), Error> {
     use std::time::Duration;
     loop {
-        if let Err(e) = notify_all(&jam_id, &pool).await {
+        if let Err(e) = notify(real_time::Changed::all(), &jam_id, &pool).await {
             eprintln!("Error notifying all, in occasional notify: {:?}", e);
         };
         tokio::time::sleep(Duration::from_secs(10)).await;

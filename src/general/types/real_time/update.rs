@@ -154,6 +154,21 @@ impl Update {
         update
     }
 
+    /// this is used when you don't know the users id, just the jam id, so Users, Songs and Votes are not updated
+    pub async fn from_changed_non_specific(changed:real_time::Changed, jam_id: &str, pool: &sqlx::PgPool) -> Self {
+        let mut update = Update::new();
+        if changed.ended {
+            update = update.ended();
+        }
+        if changed.position {
+            update = update.position_from_jam(jam_id, pool).await;
+        }
+        if changed.current_song {
+            update = update.current_song_from_jam(jam_id, pool).await;
+        }
+        update
+    }
+
 }
 
 
