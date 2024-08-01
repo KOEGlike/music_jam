@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-
+/// this struct is used to tell the listening server socket what has changed in the database
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Changed {
     pub users: bool,
@@ -14,6 +14,7 @@ pub struct Changed {
 }
 
 impl Changed {
+    /// This function creates a new instance of the struct with all fields set to false
     pub fn new() -> Self {
         Self {
             users: false,
@@ -25,6 +26,7 @@ impl Changed {
         }
     }
 
+    /// This function merges the current instance with another instance of the struct
     pub fn merge_with_other(self, other: Self) -> Self {
         Self {
             users: self.users || other.users,

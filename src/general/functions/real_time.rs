@@ -1,9 +1,12 @@
+use gloo::storage::errors;
+
 use crate::general::types::*;
 
 /// only the jam id is used form the id
 /// some fields such as songs and votes have different outputs depending on the id type
 pub async fn notify(
     changed: real_time::Changed,
+    errors: Vec<Error>,
     jam_id: &str,
     pool: &sqlx::PgPool,
 ) -> Result<(), sqlx::Error> {

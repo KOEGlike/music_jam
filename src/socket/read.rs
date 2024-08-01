@@ -2,6 +2,7 @@ use super::handle_error;
 use crate::general::*;
 use axum::extract::ws::{self, WebSocket};
 use futures_util::{stream::SplitStream, StreamExt};
+use gloo::storage::errors;
 use tokio::sync::mpsc;
 
 pub async fn read(
@@ -35,10 +36,18 @@ pub async fn read(
                 }
             };
 
+        let mut changed=real_time::Changed::new();
+        let mut errors:Vec<Error> = Vec::new();
+        
         match message {
             real_time::Request::KickUser { user_id } => {
-                if let Err(error) = kick_user(&user_id, pool).await {
-                    handle_error(error.into(), false, &sender).await;
+                match kick_user(&user_id, pool).await {
+                    Ok(changed_new)=>{
+                        changed=changed.merge_with_other(changed_new);
+                    },
+                    Err(e)=>{
+                        errors.push(e.into());
+                    }
                 };
             }
             real_time::Request::AddSong { song_id } => {
@@ -53,10 +62,13 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                if let Err(error) =
-                    add_song(&song_id, &id.id, &id.jam_id, pool, credentials.clone()).await
-                {
-                    handle_error(error, false, &sender).await;
+                match add_song(&song_id, &id.id, &id.jam_id, pool, credentials.clone()).await{
+                    Ok(changed_new)=>{
+                        changed=changed.merge_with_other(changed_new);
+                    },
+                    Err(e)=>{
+                        errors.push(e);
+                    }
                 };
             }
             real_time::Request::RemoveSong { song_id } => {
@@ -98,7 +110,7 @@ pub async fn read(
             }
             real_time::Request::Update => {
                 if let Err(e) = notify(id.jam_id(), pool).await {
-                    handle_error(e, false, &sender).await;
+                    handle_error(e.into(), false, &sender).await;
                 }
             }
             real_time::Request::Search { query } => {
