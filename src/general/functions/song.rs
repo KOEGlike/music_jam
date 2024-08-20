@@ -113,7 +113,7 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sq
                 .artists
                 .unwrap_or(vec!["no artist found in cache, this is a bug".to_string()]),
             album: song.album,
-            duration: song.duration as u16,
+            duration: song.duration as u32,
             image_url: song.image_url,
         })
         .collect::<Vec<_>>();

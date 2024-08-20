@@ -165,7 +165,7 @@ pub async fn search(
                 name: track.name.clone(),
                 artists: track.artists.iter().map(|a| a.name.clone()).collect(),
                 album: track.album.name.clone(),
-                duration: track.duration.num_seconds() as u16,
+                duration: track.duration.num_seconds() as u32,
                 image_url: track.album.images[0].url.clone(),
                 votes: Vote {
                     votes: 0,

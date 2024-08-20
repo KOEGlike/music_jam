@@ -134,9 +134,10 @@ pub async fn create_jam(
     Ok(jam_id)
 }
 
-async fn occasional_notify(pool: sqlx::PgPool, jam_id: String) -> Result<(), Error> {
+pub async fn occasional_notify(pool: sqlx::PgPool, jam_id: String) -> Result<(), Error> {
     use std::time::Duration;
     loop {
+        log!("Occasional notify");
         if let Err(e) = notify(real_time::Changed::all(), vec![],&jam_id, &pool).await {
             eprintln!("Error notifying all, in occasional notify: {:?}", e);
         };
@@ -211,7 +212,7 @@ pub async fn get_current_song(
             .artists
             .unwrap_or(vec!["no artist found in cache, this is a bug".to_string()]),
         album: song.album,
-        duration: song.duration as u16,
+        duration: song.duration as u32,
         image_url: song.image_url,
     }))
 }

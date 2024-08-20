@@ -243,7 +243,7 @@ pub fn Player(
     }
 }
 
-fn millis_to_min_sec(millis: u32) -> String {
+pub fn millis_to_min_sec(millis: u32) -> String {
     let seconds = millis / 1000;
     let minutes = seconds / 60;
     let seconds = seconds % 60;

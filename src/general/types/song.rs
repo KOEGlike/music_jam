@@ -9,7 +9,7 @@ pub struct Song {
     pub name: String,
     pub artists: Vec<String>,
     pub album: String,
-    pub duration: u16,
+    pub duration: u32,
     pub image_url: String,
     pub votes: Vote,
 }

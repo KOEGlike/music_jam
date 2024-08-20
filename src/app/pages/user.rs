@@ -1,10 +1,12 @@
 use crate::app::components::{Search, SongList, SongListAction};
-use crate::general::{*, self};
+use codee::string::JsonSerdeWasmCodec;
+use crate::general::{self, *};
+use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
 use leptos_router::*;
+use leptos_use::core::ConnectionReadyState;
 use leptos_use::{use_websocket, UseWebSocketReturn};
-use codee::binary::MsgpackSerdeCodec;
 
 #[component]
 pub fn UserPage() -> impl IntoView {
@@ -33,10 +35,9 @@ pub fn UserPage() -> impl IntoView {
     let (position, set_position) = create_signal(0.0);
     let (current_song, set_current_song) = create_signal(None);
 
-    let (send_request, set_send_request) =
-        create_signal(Callback::new(|_: real_time::Request| {
-            warn!("wanted to send a message to ws, but the ws is not ready yet");
-        }));
+    let (send_request, set_send_request) = create_signal(Callback::new(|_: real_time::Request| {
+        warn!("wanted to send a message to ws, but the ws is not ready yet");
+    }));
     let (close, set_close) = create_signal(Callback::new(|_: ()| {
         warn!("wanted to close ws, but the ws is not ready yet");
     }));
@@ -81,23 +82,32 @@ pub fn UserPage() -> impl IntoView {
         let UseWebSocketReturn {
             ready_state,
             message,
-            close:close_ws,
+            close: close_ws,
             send,
             ..
-        } = use_websocket::<real_time::Message, MsgpackSerdeCodec>(&format!("/socket?id={}", user_id.get_untracked()));
+        } = use_websocket::<real_time::Message, JsonSerdeWasmCodec>(&format!(
+            "/socket?id={}",
+            user_id.get_untracked()
+        ));
 
         let send_request = move |request: real_time::Request| {
-            
             send(&real_time::Message::Request(request));
         };
         let send_request = Callback::new(send_request);
         set_send_request(send_request);
 
-        let close_ws = Callback::new(move|_:()|close_ws());
-
-        
+        let close_ws = Callback::new(move |_: ()| close_ws());
 
         create_effect(move |_| {
+            if let ConnectionReadyState::Open = ready_state() {
+                let request = real_time::Request::Update;
+                send_request(request);
+                set_search_result(Some(vec![]));
+            }
+        });
+
+        create_effect(move |_| {
+            log!("Update: {:#?}", message());
             if let Some(real_time::Message::Update(update)) = message() {
                 
                 if let Some(result) = update.search {
@@ -126,24 +136,12 @@ pub fn UserPage() -> impl IntoView {
                 if !update.errors.is_empty() {
                     error!("Errors: {:#?}", update.errors);
                 }
-
             }
         });
 
-        let message_is_null = create_memo(move |_| message.with(Option::is_none));
-        create_effect(move |_| {
-            if message_is_null() {
-                request_update();
-            } else {
-                set_search_result(Some(vec![]));
-            };
-        });
-
-        let delete_user = create_action(move |_: &()| {
-            async move {
-                let id = user_id.get_untracked();
-                delete_user(id).await
-            }
+        let delete_user = create_action(move |_: &()| async move {
+            let id = user_id.get_untracked();
+            delete_user(id).await
         });
         let close = Callback::new(move |_: ()| {
             delete_user.dispatch(());
@@ -153,7 +151,7 @@ pub fn UserPage() -> impl IntoView {
     });
 
     view! {
-        <Search search_result=search_result search=search add_song=add_song/>
+        <Search search_result search add_song=add_song/>
         <SongList
             songs=songs
             votes=votes
@@ -168,8 +166,8 @@ pub fn UserPage() -> impl IntoView {
 
 #[server]
 async fn delete_user(id: String) -> Result<(), ServerFnError> {
-    use crate::general::{AppState, kick_user};
-    let app_state=expect_context::<AppState>();
+    use crate::general::{kick_user, AppState};
+    let app_state = expect_context::<AppState>();
     kick_user(&id, &app_state.db.pool).await?;
     Ok(())
 }

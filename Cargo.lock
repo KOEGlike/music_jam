@@ -518,9 +518,13 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af40247be877a1e3353fb406aa27ab3ef4bd3ff18cef91e75e667bfa3fde701d"
 dependencies = [
+ "js-sys",
  "rmp-serde",
  "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
  "thiserror",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -2544,7 +2548,6 @@ dependencies = [
  "serde_json",
  "sqlx",
  "strum",
- "strum_macros",
  "thiserror",
  "tokio",
  "tower",

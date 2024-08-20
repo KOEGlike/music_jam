@@ -5,6 +5,7 @@ use leptos::{logging::*, prelude::*, *};
 use leptos_router::{use_navigate, NavigateOptions};
 use leptos_use::{use_websocket, UseWebSocketReturn};
 use codee::binary::MsgpackSerdeCodec;
+use codee::string::JsonSerdeWasmCodec;
 
 #[component]
 pub fn HostPage() -> impl IntoView {
@@ -91,7 +92,7 @@ pub fn HostPage() -> impl IntoView {
             close:close_ws,
             send,
             ..
-        } = use_websocket::<real_time::Message, MsgpackSerdeCodec>(&format!("/socket?id={}", host_id));
+        } = use_websocket::<real_time::Message, JsonSerdeWasmCodec>(&format!("/socket?id={}", host_id));
        
         let send_request = move |request: real_time::Request| {
             send(&real_time::Message::Request(request));
@@ -112,24 +113,6 @@ pub fn HostPage() -> impl IntoView {
 
         create_effect(move |_| {
             if let Some(real_time::Message::Update(update)) = message() {
-                // match update {
-                //     real_time::Update::Users(users) => set_users(Some(users)),
-                //     real_time::Update::Songs(songs) => set_songs(Some(songs)),
-                //     real_time::Update::Votes(votes) => set_votes(votes),
-                //     real_time::Update::Error(e) => error!("Error: {:#?}", e),
-                //     real_time::Update::Ended => {
-                //         close_ws();
-                //         let navigator = use_navigate();
-                //         navigator("/", NavigateOptions::default());
-                //     }
-                //     real_time::Update::Search(_) => error!("Unexpected search update"),
-                //     real_time::Update::Position{..} => {
-                //         error!("Unexpected position update")
-                //     },
-                //     real_time::Update::CurrentSong(_) => {
-                //         error!("Unexpected current song update")
-                //     },
-                // }
                 if let Some(users) = update.users {
                     set_users(Some(users));
                 }

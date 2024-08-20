@@ -1,6 +1,7 @@
 use crate::app::general::types::*;
 use icondata::IoClose;
 use leptos::{prelude::*, *, logging::*};
+use crate::app::components::host_only::millis_to_min_sec;
 
 #[derive(Clone, Debug, Copy)]
 pub enum SongAction {
@@ -58,7 +59,7 @@ pub fn Song(
                         <div>
                             {&song.artists.join(", ")} <span class="bullet-point">"•"</span>
                             <span class="song-duration">
-                                {song.duration % 60} "." {song.duration / 60}
+                                {millis_to_min_sec(song.duration)}
                             </span>
                         </div>
                     </div>

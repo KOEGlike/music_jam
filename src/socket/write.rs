@@ -17,7 +17,7 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
     while let Ok(m) = listener.try_recv().await {
         match m {
             None => {
-                let error = Error::Database("pool disconnected reconnecting...".to_string());
+                let error = Error::Database("pool disconnected on listener, reconnecting...".to_string());
                 handle_error(error, false, &sender).await;
                 continue;
             }
@@ -26,19 +26,20 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
                 let update:real_time::ChannelUpdate = match serde_json::from_str(update) {
                     Ok(update) => update,
                     Err(e) => {
-                        let error = Error::Decode(format!("Error decoding message sent in ws: {:?}", e));
+                        let error = Error::Decode(format!("Error decoding message sent in listen/notify: {:#?}", e));
                         handle_error(error, true, &sender).await;
                         break;
                     }
                 };
+                println!("update: {:#?}", update);
 
                 let changed=update.changed;
                 let errors=update.errors;
 
                 let update = real_time::Update::from_changed(changed, &id, &pool).await.error_vec(errors);
+                let message = real_time::Message::Update(update);
 
-
-                let bin = match rmp_serde::to_vec(&update) {
+                let bin = match serde_json::to_string(&message) {
                     Ok(bin) => bin,
                     Err(e) => {
                         let error = Error::Decode(format!("Error encoding message sent in ws: {:?}", e));
@@ -47,7 +48,7 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
                     }
                 };
 
-                match sender.send(ws::Message::Binary(bin)).await {
+                match sender.send(ws::Message::Text(bin)).await {
                     Ok(_) => (),
                     Err(e) => {
                         eprintln!("Error sending ws send message: {:?}", e);
@@ -69,13 +70,8 @@ async fn create_listener(
             return Err(Error::Database(e.to_string()));
         }
     };
-
-    let channel: String = match id{
-        IdType::Host(_)=>"host".to_string(),
-        IdType::User(_)=>"user".to_string(),
-    };
-    let channel = format!("{}_{}", id.jam_id(), channel);
-    match listener.listen(&channel).await {
+    
+    match listener.listen(id.jam_id()).await {
         Ok(_) => Ok(listener),
         Err(e) => Err(Error::Database(e.to_string())),
     }
