@@ -11,18 +11,12 @@ async fn save_to_clipboard(text: &str) {
             return;
         }
     };
-    let nav = window.navigator().clipboard();
-    match nav {
-        Some(clip) => {
-            let promise = clip.write_text(text);
-            if wasm_bindgen_futures::JsFuture::from(promise).await.is_err() {
-                log!("failed to copy to clipboard");
-            }
-        }
-        None => {
-            log!("failed to copy, clipboard not available");
-        }
-    };
+    let clip = window.navigator().clipboard();
+
+    let promise = clip.write_text(text);
+    if wasm_bindgen_futures::JsFuture::from(promise).await.is_err() {
+        log!("failed to copy to clipboard");
+    }
 }
 
 #[component]

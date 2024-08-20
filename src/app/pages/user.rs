@@ -1,9 +1,10 @@
 use crate::app::components::{Search, SongList, SongListAction};
-use crate::general;
+use crate::general::{*, self};
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
 use leptos_router::*;
-use leptos_use::{use_websocket, UseWebsocketReturn};
+use leptos_use::{use_websocket, UseWebSocketReturn};
+use codee::binary::MsgpackSerdeCodec;
 
 #[component]
 pub fn UserPage() -> impl IntoView {
@@ -33,7 +34,7 @@ pub fn UserPage() -> impl IntoView {
     let (current_song, set_current_song) = create_signal(None);
 
     let (send_request, set_send_request) =
-        create_signal(Callback::new(|_: general::real_time::Request| {
+        create_signal(Callback::new(|_: real_time::Request| {
             warn!("wanted to send a message to ws, but the ws is not ready yet");
         }));
     let (close, set_close) = create_signal(Callback::new(|_: ()| {
@@ -41,33 +42,33 @@ pub fn UserPage() -> impl IntoView {
     }));
 
     let search = move |query: String| {
-        let request = general::real_time::Request::Search { query };
+        let request = real_time::Request::Search { query };
         send_request()(request);
     };
     let search = Callback::new(search);
 
     let add_song = move |song_id: String| {
-        let request = general::real_time::Request::AddSong { song_id };
+        let request = real_time::Request::AddSong { song_id };
         send_request()(request);
     };
     let add_song = Callback::new(add_song);
 
     let add_vote = move |song_id: String| {
         log!("Adding vote for song: {}", song_id);
-        let request = general::real_time::Request::AddVote { song_id };
+        let request = real_time::Request::AddVote { song_id };
         send_request()(request);
     };
     let add_vote = Callback::new(add_vote);
 
     let remove_vote = move |song_id: String| {
         log!("Removing vote for song: {}", song_id);
-        let request = general::real_time::Request::RemoveVote { song_id };
+        let request = real_time::Request::RemoveVote { song_id };
         send_request()(request);
     };
     let remove_vote = Callback::new(remove_vote);
 
     let request_update = move || {
-        let request = general::real_time::Request::Update;
+        let request = real_time::Request::Update;
         send_request()(request);
         log!("Sent update request");
     };
@@ -77,41 +78,27 @@ pub fn UserPage() -> impl IntoView {
             return;
         }
 
-        let UseWebsocketReturn {
+        let UseWebSocketReturn {
             ready_state,
-            message_bytes,
+            message,
             close:close_ws,
-            send_bytes,
+            send,
             ..
-        } = use_websocket(&format!("/socket?id={}", user_id.get_untracked()));
+        } = use_websocket::<real_time::Message, MsgpackSerdeCodec>(&format!("/socket?id={}", user_id.get_untracked()));
 
-        let send_request = move |request: general::real_time::Request| {
-            let bin = rmp_serde::to_vec(&request).unwrap();
-            send_bytes(bin);
+        let send_request = move |request: real_time::Request| {
+            
+            send(&real_time::Message::Request(request));
         };
         let send_request = Callback::new(send_request);
         set_send_request(send_request);
 
         let close_ws = Callback::new(move|_:()|close_ws());
 
-        let update = move || {
-            use general::real_time;
-            let bin = match message_bytes() {
-                Some(bin) => bin,
-                None => return None,
-            };
-            let update = match rmp_serde::from_slice::<real_time::Update>(&bin) {
-                Ok(update) => update,
-                Err(e) => real_time::Update::new().error(general::Error::Decode(format!(
-                    "Error deserializing update: {:?}",
-                    e
-                ))),
-            };
-            Some(update)
-        };
+        
 
         create_effect(move |_| {
-            if let Some(update) = update() {
+            if let Some(real_time::Message::Update(update)) = message() {
                 
                 if let Some(result) = update.search {
                     set_search_result(Some(result));
@@ -143,7 +130,7 @@ pub fn UserPage() -> impl IntoView {
             }
         });
 
-        let message_is_null = create_memo(move |_| message_bytes.with(Option::is_none));
+        let message_is_null = create_memo(move |_| message.with(Option::is_none));
         create_effect(move |_| {
             if message_is_null() {
                 request_update();
