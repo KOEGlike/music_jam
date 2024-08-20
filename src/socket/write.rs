@@ -23,7 +23,7 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
             }
             Some(message) => {
                 let update=message.payload();
-                let update:real_time::ChannelUpdate = match serde_json::from_str(&update) {
+                let update:real_time::ChannelUpdate = match serde_json::from_str(update) {
                     Ok(update) => update,
                     Err(e) => {
                         let error = Error::Decode(format!("Error decoding message sent in ws: {:?}", e));
@@ -33,17 +33,10 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
                 };
 
                 let changed=update.changed;
-                let mut update=update.update;
+                let errors=update.errors;
 
-                if changed.users && update.users.is_none() {
-                    update=update.songs_from_jam(&id, &pool).await;
-                }
-                if changed.votes && update.votes.is_none() {
-                    update=update.votes_from_jam(&id, &pool).await;
-                }
-                if changed.songs && update.songs.is_none() {
-                    update=update.users_from_jam(&id, &pool).await;
-                }
+                let update = real_time::Update::from_changed(changed, &id, &pool).await.error_vec(errors);
+
 
                 let bin = match rmp_serde::to_vec(&update) {
                     Ok(bin) => bin,

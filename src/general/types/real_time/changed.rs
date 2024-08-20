@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 /// this struct is used to tell the listening server socket what has changed in the database
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default)]
 pub struct Changed {
     pub users: bool,
     ///this has to be re-fetched on the clients WS thread because every user can vote on songs and thus has a different result of for songs
@@ -16,14 +16,7 @@ pub struct Changed {
 impl Changed {
     /// This function creates a new instance of the struct with all fields set to false
     pub fn new() -> Self {
-        Self {
-            users: false,
-            songs: false,
-            votes: false,
-            ended: false,
-            position: false,
-            current_song: false,
-        }
+        Self::default()
     }
 
     /// This function merges the current instance with another instance of the struct

@@ -1,3 +1,4 @@
+#[cfg(feature = "ssr")]
 use crate::general::functions;
 use crate::general::types::*;
 use serde::{Deserialize, Serialize};
@@ -9,7 +10,7 @@ use serde::{Deserialize, Serialize};
 pub struct Update {
     pub users: Option<Vec<User>>,
     pub songs: Option<Vec<Song>>,
-    pub error: Vec<Error>,
+    pub errors: Vec<Error>,
     pub votes: Option<Votes>,
     pub search: Option<Vec<Song>>,
     pub ended: Option<()>,
@@ -31,6 +32,7 @@ impl Update {
         }
     }
 
+    #[cfg(feature = "ssr")]
     ///only the jam id id used from the id
     pub async fn users_from_jam(self, id: &IdType, pool: &sqlx::PgPool) -> Self {
         match functions::get_users(pool, id).await {
@@ -46,6 +48,7 @@ impl Update {
         }
     }
 
+    #[cfg(feature = "ssr")]
     pub async fn songs_from_jam(self, id: &IdType, pool: &sqlx::PgPool) -> Self {
         match functions::get_songs(pool, id).await {
             Ok(songs) => self.songs(songs),
@@ -54,7 +57,12 @@ impl Update {
     }
 
     pub fn error(mut self, error: Error) -> Self {
-        self.error.push(error);
+        self.errors.push(error);
+        self
+    }
+
+    pub fn error_vec(mut self, errors: Vec<Error>) -> Self {
+        self.errors.extend(errors);
         self
     }
 
@@ -65,6 +73,7 @@ impl Update {
         }
     }
 
+    #[cfg(feature = "ssr")]
     pub async fn votes_from_jam(self, id: &IdType, pool: &sqlx::PgPool) -> Self {
         match functions::get_votes(pool, id).await {
             Ok(votes) => self.votes(votes),
@@ -93,10 +102,11 @@ impl Update {
         }
     }
 
+    #[cfg(feature = "ssr")]
     pub async fn position_from_jam(self, jam_id: &str, pool: &sqlx::PgPool) -> Self {
         match functions::get_current_song_position(jam_id, pool).await {
             Ok(percentage) => self.position(percentage),
-            Err(e) => self.error(e.into()),
+            Err(e) => self.error(e),
         }
     }
 
@@ -107,6 +117,7 @@ impl Update {
         }
     }
 
+    #[cfg(feature = "ssr")]
     pub async fn current_song_from_jam(self, jam_id: &str, pool: &sqlx::PgPool) -> Self {
         match functions::get_current_song(jam_id, pool).await {
             Ok(song) => self.current_song(song),
@@ -118,10 +129,10 @@ impl Update {
         Self {
             users: other.users.or(self.users),
             songs: other.songs.or(self.songs),
-            error: self
-                .error
+            errors: self
+                .errors
                 .into_iter()
-                .chain(other.error.into_iter())
+                .chain(other.errors)
                 .collect(),
             votes: other.votes.or(self.votes),
             search: other.search.or(self.search),
@@ -131,6 +142,7 @@ impl Update {
         }
     }
 
+    #[cfg(feature = "ssr")]
     pub async fn from_changed(changed:real_time::Changed, id: &IdType, pool: &sqlx::PgPool) -> Self {
         let mut update = Update::new();
         if changed.users {
@@ -150,21 +162,6 @@ impl Update {
         }
         if changed.current_song {
             update = update.current_song_from_jam(id.jam_id(), pool).await;
-        }
-        update
-    }
-
-    /// this is used when you don't know the users id, just the jam id, so Users, Songs and Votes are not updated
-    pub async fn from_changed_non_specific(changed:real_time::Changed, jam_id: &str, pool: &sqlx::PgPool) -> Self {
-        let mut update = Update::new();
-        if changed.ended {
-            update = update.ended();
-        }
-        if changed.position {
-            update = update.position_from_jam(jam_id, pool).await;
-        }
-        if changed.current_song {
-            update = update.current_song_from_jam(jam_id, pool).await;
         }
         update
     }

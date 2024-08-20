@@ -105,7 +105,7 @@ pub fn HostPage() -> impl IntoView {
             };
             let update = match rmp_serde::from_slice::<real_time::Update>(&bin) {
                 Ok(update) => update,
-                Err(e) => real_time::Update::Error(Error::Decode(format!(
+                Err(e) => real_time::Update::new().error(Error::Decode(format!(
                     "Error deserializing update: {:?}",
                     e
                 ))),
@@ -124,24 +124,51 @@ pub fn HostPage() -> impl IntoView {
 
         create_effect(move |_| {
             if let Some(update) = update() {
-                match update {
-                    real_time::Update::Users(users) => set_users(Some(users)),
-                    real_time::Update::Songs(songs) => set_songs(Some(songs)),
-                    real_time::Update::Votes(votes) => set_votes(votes),
-                    real_time::Update::Error(e) => error!("Error: {:#?}", e),
-                    real_time::Update::Ended => {
-                        close_ws();
-                        let navigator = use_navigate();
-                        navigator("/", NavigateOptions::default());
-                    }
-                    real_time::Update::Search(_) => error!("Unexpected search update"),
-                    real_time::Update::Position{..} => {
-                        error!("Unexpected position update")
-                    },
-                    real_time::Update::CurrentSong(_) => {
-                        error!("Unexpected current song update")
-                    },
+                // match update {
+                //     real_time::Update::Users(users) => set_users(Some(users)),
+                //     real_time::Update::Songs(songs) => set_songs(Some(songs)),
+                //     real_time::Update::Votes(votes) => set_votes(votes),
+                //     real_time::Update::Error(e) => error!("Error: {:#?}", e),
+                //     real_time::Update::Ended => {
+                //         close_ws();
+                //         let navigator = use_navigate();
+                //         navigator("/", NavigateOptions::default());
+                //     }
+                //     real_time::Update::Search(_) => error!("Unexpected search update"),
+                //     real_time::Update::Position{..} => {
+                //         error!("Unexpected position update")
+                //     },
+                //     real_time::Update::CurrentSong(_) => {
+                //         error!("Unexpected current song update")
+                //     },
+                // }
+                if let Some(users) = update.users {
+                    set_users(Some(users));
                 }
+                if let Some(songs) = update.songs {
+                    set_songs(Some(songs));
+                }
+                if let Some(votes) = update.votes {
+                    set_votes(votes);
+                }
+                if !update.errors.is_empty() {
+                    error!("Errors: {:#?}", update.errors);
+                }
+                if update.ended.is_some() {
+                    close_ws();
+                    let navigator = use_navigate();
+                    navigator("/", NavigateOptions::default());
+                }
+                if update.search.is_some() {
+                    error!("Unexpected search update");
+                }
+                if update.position.is_some() {
+                    error!("Unexpected position update");
+                }
+                if update.current_song.is_some() {
+                    error!("Unexpected current song update");
+                }
+
             }
         });
     });

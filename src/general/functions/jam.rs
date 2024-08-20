@@ -1,6 +1,6 @@
 use crate::general::{functions::jam, types::*};
 use leptos::logging::*;
-use real_time::Update;
+use real_time::Changed;
 
 use super::notify;
 
@@ -103,12 +103,12 @@ pub async fn create_host(
     Ok(())
 }
 
-pub async fn delete_jam(jam_id: &str, pool: &sqlx::PgPool) -> Result<Update, sqlx::Error> {
+pub async fn delete_jam(jam_id: &str, pool: &sqlx::PgPool) -> Result<real_time::Changed, sqlx::Error> {
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     sqlx::query!("DELETE FROM jams WHERE id = $1", jam_id)
         .execute(pool)
         .await?;
-    Ok(real_time::Update::new().ended())
+    Ok(real_time::Changed::new().ended())
 }
 
 pub async fn create_jam(
@@ -137,7 +137,7 @@ pub async fn create_jam(
 async fn occasional_notify(pool: sqlx::PgPool, jam_id: String) -> Result<(), Error> {
     use std::time::Duration;
     loop {
-        if let Err(e) = notify(real_time::Changed::all(), &jam_id, &pool).await {
+        if let Err(e) = notify(real_time::Changed::all(), vec![],&jam_id, &pool).await {
             eprintln!("Error notifying all, in occasional notify: {:?}", e);
         };
         tokio::time::sleep(Duration::from_secs(10)).await;
@@ -148,7 +148,7 @@ pub async fn set_current_song_position(
     jam_id: &str,
     percentage: f32,
     pool: &sqlx::PgPool,
-) -> Result<Update, Error> {
+) -> Result<real_time::Changed, Error> {
     if !(0.0..=1.0).contains(&percentage) {
         return Err(Error::InvalidRequest("Percentage must be between 0 and 1".to_string()));
     }
@@ -159,7 +159,7 @@ pub async fn set_current_song_position(
     )
     .execute(pool)
     .await?;
-    Ok(real_time::Update::new().position(percentage))
+    Ok(real_time::Changed::new().position())
 }
 
 pub async fn get_current_song_position(jam_id: &str, pool: &sqlx::PgPool) -> Result<f32, Error> {

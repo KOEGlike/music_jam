@@ -2,7 +2,6 @@ use super::handle_error;
 use crate::general::*;
 use axum::extract::ws::{self, WebSocket};
 use futures_util::{stream::SplitStream, StreamExt};
-use gloo::storage::errors;
 use tokio::sync::mpsc;
 
 pub async fn read(
@@ -72,8 +71,13 @@ pub async fn read(
                 };
             }
             real_time::Request::RemoveSong { song_id } => {
-                if let Err(error) = remove_song(&song_id, &id, pool).await {
-                    handle_error(error, false, &sender).await;
+                match remove_song(&song_id, &id, pool).await{
+                    Ok(changed_new)=>{
+                        changed=changed.merge_with_other(changed_new);
+                    },
+                    Err(e)=>{
+                        errors.push(e);
+                    }
                 };
             }
             real_time::Request::AddVote { song_id } => {
@@ -88,8 +92,13 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                if let Err(error) = add_vote(&song_id, id, pool).await {
-                    handle_error(error, false, &sender).await;
+                match add_vote(&song_id, id, pool).await{
+                    Ok(changed_new)=>{
+                        changed=changed.merge_with_other(changed_new);
+                    },
+                    Err(e)=>{
+                        errors.push(e);
+                    }
                 };
             }
             real_time::Request::RemoveVote { song_id } => {
@@ -109,7 +118,7 @@ pub async fn read(
                 };
             }
             real_time::Request::Update => {
-                if let Err(e) = notify(id.jam_id(), pool).await {
+                if let Err(e) = notify(changed, errors.clone(), id.jam_id(), pool).await {
                     handle_error(e.into(), false, &sender).await;
                 }
             }
@@ -133,7 +142,7 @@ pub async fn read(
                     }
                 };
 
-                let update = types::real_time::Update::Search(songs);
+                let update = types::real_time::Update::new().search(songs);
                 let message = rmp_serde::to_vec(&update).unwrap();
                 let message = ws::Message::Binary(message);
                 if let Err(e) = sender.send(message).await {
@@ -153,9 +162,13 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                if let Err(error) = reset_votes(&id.jam_id, pool).await {
-                    let error = Error::Database(format!("Error resetting votes: {}", error));
-                    handle_error(error, false, &sender).await;
+                match reset_votes(&id.jam_id, pool).await{
+                    Ok(changed_new)=>{
+                        changed=changed.merge_with_other(changed_new);
+                    },
+                    Err(e)=>{
+                        errors.push(e.into());
+                    }
                 };
             }
             real_time::Request::Position { percentage } => {
@@ -176,6 +189,9 @@ pub async fn read(
 
                 
             }
+        }
+        if let Err(e)=notify(changed, errors, id.jam_id(), pool).await{
+            handle_error(e.into(), false, &sender).await;
         }
     }
 }

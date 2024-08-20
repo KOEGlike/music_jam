@@ -55,7 +55,7 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
         app_state.clone(),
     ));
 
-    if let Err(e) = notify_all(id.jam_id(), &app_state.db.pool).await {
+    if let Err(e) = notify(real_time::Changed::all(), vec![], id.jam_id(), &app_state.db.pool).await {
         handle_error(e.into(), false, &mpsc_sender).await;
     }
 

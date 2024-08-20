@@ -1,4 +1,3 @@
-use gloo::storage::errors;
 
 use crate::general::types::*;
 
@@ -10,8 +9,7 @@ pub async fn notify(
     jam_id: &str,
     pool: &sqlx::PgPool,
 ) -> Result<(), sqlx::Error> {
-    let update = real_time::Update::from_changed_non_specific(changed, jam_id, pool).await;
-    let update=real_time::ChannelUpdate{ update, changed };
+    let update=real_time::ChannelUpdate{ errors, changed };
     let update = serde_json::to_string(&update).unwrap();
 
     sqlx::query!("SELECT pg_notify($1,$2)", jam_id, update)

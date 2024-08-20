@@ -111,10 +111,10 @@ pub async fn get_votes(pool: &sqlx::PgPool, id: &IdType) -> Result<Votes, sqlx::
     Ok(votes)
 }
 
-pub async fn reset_votes(jam_id: &str, pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+pub async fn reset_votes(jam_id: &str, pool: &sqlx::PgPool) -> Result<real_time::Changed, sqlx::Error> {
     sqlx::query!("DELETE FROM votes WHERE song_id IN (SELECT id FROM songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1));", jam_id)
         .execute(pool)
         .await?;
     
-    Ok(())
+    Ok(real_time::Changed::new().votes())
 }

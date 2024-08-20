@@ -1,4 +1,3 @@
-use futures_util::future::err;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{
     logging::{error, log, warn},
@@ -8,17 +7,23 @@ use leptos::{
 use leptos_router::*;
 use web_sys::MediaStream;
 
+
+
 #[server]
 async fn create_user(
     jam_id: String,
     name: String,
     pfp_url: String,
 ) -> Result<String, ServerFnError> {
+    use crate::general::notify;
     use crate::app::general::{functions::create_user, types::AppState};
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     match create_user(&jam_id, &pfp_url, &name, pool).await {
-        Ok(user_id) => Ok(user_id),
+        Ok(user_id) => {
+            notify(user_id.1, vec![], &jam_id, pool).await?;
+            Ok(user_id.0)
+        }
         Err(e) => Err(ServerFnError::ServerError(e.into())),
     }
 }
@@ -31,11 +36,13 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
         || (),
         move |_| async move { camera(set_image_url, video_id).await },
     );
-    let take_picture=move||{
-        camera.with(|take_pic|if let Some(take_pic) = take_pic {
-            match take_pic {
-                Ok(take_pic) => take_pic(),
-                Err(e) => error!("Error taking picture: {:?}", e),
+    let take_picture = move || {
+        camera.with(|take_pic| {
+            if let Some(take_pic) = take_pic {
+                match take_pic {
+                    Ok(take_pic) => take_pic(),
+                    Err(e) => error!("Error taking picture: {:?}", e),
+                }
             }
         })
     };
@@ -52,7 +59,6 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
         }
     });
 
-    
     create_effect(move |_| {
         if let Some(res) = create_user.value().get() {
             match res {
@@ -85,10 +91,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
     }
 }
 
-async fn camera(
-    image_url: WriteSignal<String>,
-    video_id: &str,
-) -> Result<impl Fn(), String> {
+async fn camera(image_url: WriteSignal<String>, video_id: &str) -> Result<impl Fn(), String> {
     use wasm_bindgen::prelude::*;
     use wasm_bindgen_futures::JsFuture;
 
@@ -204,7 +207,7 @@ async fn camera(
         }
     };
 
-    let capture=Box::new(move || {
+    let capture = Box::new(move || {
         canvas.set_width(video.video_width());
         canvas.set_height(video.video_height());
         context

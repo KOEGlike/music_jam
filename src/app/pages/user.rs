@@ -102,7 +102,7 @@ pub fn UserPage() -> impl IntoView {
             };
             let update = match rmp_serde::from_slice::<real_time::Update>(&bin) {
                 Ok(update) => update,
-                Err(e) => real_time::Update::Error(general::Error::Decode(format!(
+                Err(e) => real_time::Update::new().error(general::Error::Decode(format!(
                     "Error deserializing update: {:?}",
                     e
                 ))),
@@ -111,22 +111,35 @@ pub fn UserPage() -> impl IntoView {
         };
 
         create_effect(move |_| {
-            use general::real_time;
             if let Some(update) = update() {
-                match update {
-                    real_time::Update::Error(e) => error!("Error: {:#?}", e),
-                    real_time::Update::Search(result) => set_search_result(Some(result)),
-                    real_time::Update::Songs(songs) => set_songs(Some(songs)),
-                    real_time::Update::Votes(votes) => set_votes(votes),
-                    real_time::Update::Users(users) => set_users(Some(users)),
-                    real_time::Update::Position{percentage} => set_position(percentage),
-                    real_time::Update::CurrentSong(song) => set_current_song(song),
-                    real_time::Update::Ended => {
-                        close_ws(());
-                        let navigator = use_navigate();
-                        navigator("/", NavigateOptions::default());
-                    }
+                
+                if let Some(result) = update.search {
+                    set_search_result(Some(result));
                 }
+                if let Some(songs) = update.songs {
+                    set_songs(Some(songs));
+                }
+                if let Some(votes) = update.votes {
+                    set_votes(votes);
+                }
+                if let Some(users) = update.users {
+                    set_users(Some(users));
+                }
+                if let Some(percentage) = update.position {
+                    set_position(percentage);
+                }
+                if let Some(song) = update.current_song {
+                    set_current_song(song);
+                }
+                if update.ended.is_some() {
+                    close_ws(());
+                    let navigator = use_navigate();
+                    navigator("/", NavigateOptions::default());
+                }
+                if !update.errors.is_empty() {
+                    error!("Errors: {:#?}", update.errors);
+                }
+
             }
         });
 
