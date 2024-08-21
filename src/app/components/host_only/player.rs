@@ -6,19 +6,21 @@ use leptos::{
 };
 use rust_spotify_web_playback_sdk::prelude as sp;
 
-use crate::{app::pages::host, components::create};
 
 #[component]
 pub fn Player(
     #[prop(into)] host_id: Signal<Option<String>>,
     #[prop(into)] top_song_id: Signal<Option<String>>,
     #[prop(into)] reset_votes: Callback<()>,
+    #[prop(into)] set_global_song_position: Callback<f32>,
+    #[prop(into)] set_current_song: Callback<String>,
 ) -> impl IntoView {
     let (player_is_connected, set_player_is_connected) = create_signal(false);
 
     let top_song_id = create_memo(move |_| top_song_id());
     //let (current_song_id, set_current_song_id) = create_signal(String::new());
     //let current_song_id = create_memo(move |_| current_song_id());
+
 
     let (image_url, set_image_url) = create_signal(String::new());
     let (song_name, set_song_name) = create_signal(String::new());
@@ -132,6 +134,7 @@ pub fn Player(
             {move || {
                 let host_id = host_id().unwrap();
                 log!("is ready, host_id:{}", host_id);
+                
                 let play_song = {
                     let host_id = host_id.clone();
                     create_action(move |song_id: &String| {
@@ -144,15 +147,18 @@ pub fn Player(
                         }
                     })
                 };
+                
                 let toggle_play = create_action(move |_: &()| async {
                     if let Err(e) = sp::toggle_play().await {
                         error!("Error toggling play: {:?}", e);
                     }
                 });
+                
                 let position_update = create_action(move |_: &()| async move {
                     if is_loaded.get_untracked() {
                         if let Ok(Some(state)) = sp::get_current_state().await {
                             set_song_position(state.position);
+                            set_global_song_position(state.position as f32 / song_length() as f32);
                         }
                     }
                 });
@@ -165,13 +171,16 @@ pub fn Player(
                     );
                     position_update.forget();
                 }
+                
                 let can_go_to_next_song = create_memo(move |_| {
                     (song_position() as f32 / song_length() as f32) > 0.995
                 });
                 create_effect(move |_| {
                     if can_go_to_next_song() {
                         if let Some(song_id) = top_song_id.get() {
-                            play_song.dispatch(song_id);
+                            play_song.dispatch(song_id.clone());
+                            set_current_song(song_id);
+                            reset_votes(());
                         } else {
                             toggle_play.dispatch(());
                         }

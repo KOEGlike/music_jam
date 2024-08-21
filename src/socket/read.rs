@@ -182,7 +182,7 @@ pub async fn read(
             real_time::Request::Position { percentage } => {
                 let id = match only_host(
                     &id,
-                    "Only a host can update the current position of a song",
+                    "Only a host can update the current position of a song, this is a bug, terminating socket connection",
                     &sender,
                 )
                 .await
@@ -196,7 +196,11 @@ pub async fn read(
                 }
             }
             real_time::Request::CurrentSong { song_id } => {
-                if only_host(&id, "Only a host can set the current song", &sender)
+                if only_host(
+                    &id, 
+                "Only a host can set the current song, this is a bug, terminating socket connection", 
+                    &sender
+                )
                     .await
                     .is_err()
                 {

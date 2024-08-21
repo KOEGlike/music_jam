@@ -1,4 +1,4 @@
-use leptos::{*, prelude::*, logging::warn};
+use leptos::{*, logging::warn};
 use leptos_router::*;
 use crate::app::components::CreateUser;
 

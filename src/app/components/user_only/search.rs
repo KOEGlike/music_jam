@@ -1,7 +1,7 @@
 use crate::app::components::{Song, SongAction};
 use crate::general::*;
 use icondata::AiSearchOutlined;
-use leptos::{logging::log, prelude::*, *};
+use leptos::{prelude::*, *};
 
 #[component]
 pub fn Search(

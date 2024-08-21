@@ -1,6 +1,5 @@
 use crate::app::components::{Search, SongList, SongListAction, UsersBar};
 use crate::general::{self, *};
-use codee::binary::MsgpackSerdeCodec;
 use codee::string::JsonSerdeWasmCodec;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};

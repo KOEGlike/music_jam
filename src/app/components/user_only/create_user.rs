@@ -1,6 +1,6 @@
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{
-    logging::{error, log, warn},
+    logging::error,
     prelude::*,
     *,
 };

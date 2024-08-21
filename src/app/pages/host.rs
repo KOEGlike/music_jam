@@ -1,6 +1,5 @@
 use crate::app::components::{host_only::Player, Share, SongList, SongListAction, UsersBar};
 use crate::app::general::types::*;
-use codee::binary::MsgpackSerdeCodec;
 use codee::string::JsonSerdeWasmCodec;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
@@ -26,8 +25,9 @@ pub fn HostPage() -> impl IntoView {
         set_host_id(host_id);
     });
 
-    let jam_id=move||use_params_map().with(|params| params.get("id").cloned().unwrap_or_default());
-    let jam_id=MaybeSignal::derive(jam_id);
+    let jam_id =
+        move || use_params_map().with(|params| params.get("id").cloned().unwrap_or_default());
+    let jam_id = MaybeSignal::derive(jam_id);
 
     let (users, set_users) = create_signal(None);
     let (songs, set_songs) = create_signal(None::<Vec<Song>>);
@@ -80,6 +80,18 @@ pub fn HostPage() -> impl IntoView {
         send_request()(request);
     };
     let reset_votes = Callback::new(reset_votes);
+
+    let set_current_song = move |song_id| {
+        let request = real_time::Request::CurrentSong { song_id };
+        send_request()(request);
+    };
+    let set_current_song = Callback::new(set_current_song);
+
+    let set_song_position = move |percentage| {
+        let request = real_time::Request::Position { percentage };
+        send_request()(request);
+    };
+    let set_song_position = Callback::new(set_song_position);
 
     create_effect(move |_| log!("host_id:{:?}", host_id()));
 
@@ -152,7 +164,13 @@ pub fn HostPage() -> impl IntoView {
         <div id="host-page">
             <UsersBar close=close() users kick_user/>
             <div id="center">
-                <Player host_id top_song_id reset_votes/>
+                <Player
+                    host_id
+                    top_song_id
+                    reset_votes
+                    set_global_song_position=set_song_position
+                    set_current_song
+                />
                 <SongList
                     songs
                     votes

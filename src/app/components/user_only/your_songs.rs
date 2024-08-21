@@ -1,5 +1,5 @@
 use crate::general::*;
-use leptos::{logging::log, prelude::*, *};
+use leptos::{prelude::*, *};
 use std::rc::Rc;
 
 #[component]
