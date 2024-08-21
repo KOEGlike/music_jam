@@ -120,7 +120,7 @@ pub fn Player(
     });
 
     let is_loaded = create_memo(move |_| {
-        player_is_connected() && top_song_id.with(Option::is_some) && host_id.with(Option::is_some)
+        player_is_connected() && host_id.with(Option::is_some)
     });
 
     create_effect(move |_| {

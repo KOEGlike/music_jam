@@ -1,11 +1,11 @@
 use crate::app::components::{host_only::Player, Share, SongList, SongListAction, UsersBar};
 use crate::app::general::types::*;
-use gloo::storage::{LocalStorage, Storage};
-use leptos::{logging::*, prelude::*, *};
-use leptos_router::{use_navigate, NavigateOptions};
-use leptos_use::{use_websocket, UseWebSocketReturn};
 use codee::binary::MsgpackSerdeCodec;
 use codee::string::JsonSerdeWasmCodec;
+use gloo::storage::{LocalStorage, Storage};
+use leptos::{logging::*, prelude::*, *};
+use leptos_router::{use_navigate, use_params_map, NavigateOptions};
+use leptos_use::{use_websocket, UseWebSocketReturn};
 
 #[component]
 pub fn HostPage() -> impl IntoView {
@@ -25,6 +25,9 @@ pub fn HostPage() -> impl IntoView {
         }
         set_host_id(host_id);
     });
+
+    let jam_id=move||use_params_map().with(|params| params.get("id").cloned().unwrap_or_default());
+    let jam_id=MaybeSignal::derive(jam_id);
 
     let (users, set_users) = create_signal(None);
     let (songs, set_songs) = create_signal(None::<Vec<Song>>);
@@ -89,18 +92,20 @@ pub fn HostPage() -> impl IntoView {
         let UseWebSocketReturn {
             ready_state,
             message,
-            close:close_ws,
+            close: close_ws,
             send,
             ..
-        } = use_websocket::<real_time::Message, JsonSerdeWasmCodec>(&format!("/socket?id={}", host_id));
-       
+        } = use_websocket::<real_time::Message, JsonSerdeWasmCodec>(&format!(
+            "/socket?id={}",
+            host_id
+        ));
+
         let send_request = move |request: real_time::Request| {
             send(&real_time::Message::Request(request));
         };
 
         let send_request = Callback::new(send_request);
         set_send_request(send_request);
-
 
         let delete_jam = create_action(move |_: &()| {
             let host_id = host_id.clone();
@@ -139,15 +144,24 @@ pub fn HostPage() -> impl IntoView {
                 if update.current_song.is_some() {
                     error!("Unexpected current song update");
                 }
-
             }
         });
     });
 
     view! {
-        <Player host_id top_song_id reset_votes/>
-        <SongList songs votes request_update song_list_action=SongListAction::Remove(remove_song)/>
-        <UsersBar close=close() users kick_user/>
+        <div id="host-page">
+            <UsersBar close=close() users kick_user/>
+            <div id="center">
+                <Player host_id top_song_id reset_votes/>
+                <SongList
+                    songs
+                    votes
+                    request_update
+                    song_list_action=SongListAction::Remove(remove_song)
+                />
+                <Share jam_id/>
+            </div>
+        </div>
     }
 }
 

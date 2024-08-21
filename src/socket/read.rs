@@ -11,9 +11,8 @@ pub async fn read(
     app_state: AppState,
 ) {
     let pool = &app_state.db.pool.clone();
-
     let credentials = app_state.spotify_credentials;
-    
+
     while let Some(message) = receiver.next().await {
         let message = match message {
             Ok(m) => m,
@@ -150,7 +149,8 @@ pub async fn read(
                     }
                 };
 
-                let update = types::real_time::Message::Update(real_time::Update::new().search(songs));
+                let update =
+                    types::real_time::Message::Update(real_time::Update::new().search(songs));
                 let message = serde_json::to_string(&update).unwrap();
                 let message = ws::Message::Text(message);
                 if let Err(e) = sender.send(message).await {
@@ -194,6 +194,23 @@ pub async fn read(
                 if let Err(e) = set_current_song_position(&id.jam_id, percentage, pool).await {
                     handle_error(e, false, &sender).await;
                 }
+            }
+            real_time::Request::CurrentSong { song_id } => {
+                if only_host(&id, "Only a host can set the current song", &sender)
+                    .await
+                    .is_err()
+                {
+                    break;
+                }
+
+                match set_current_song(song_id, &id, pool).await {
+                    Ok(changed_new) => {
+                        changed = changed.merge_with_other(changed_new);
+                    }
+                    Err(e) => {
+                        errors.push(e);
+                    }
+                };
             }
         }
         if let Err(e) = notify(changed, errors, id.jam_id(), pool).await {

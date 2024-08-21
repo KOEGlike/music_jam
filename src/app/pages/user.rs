@@ -1,7 +1,7 @@
-use crate::app::components::{Search, SongList, SongListAction};
-use codee::string::JsonSerdeWasmCodec;
+use crate::app::components::{Search, SongList, SongListAction, UsersBar};
 use crate::general::{self, *};
 use codee::binary::MsgpackSerdeCodec;
+use codee::string::JsonSerdeWasmCodec;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
 use leptos_router::*;
@@ -68,6 +68,12 @@ pub fn UserPage() -> impl IntoView {
     };
     let remove_vote = Callback::new(remove_vote);
 
+    let remove_song = move |song_id: String| {
+        let request = real_time::Request::RemoveSong { song_id };
+        send_request()(request);
+    };
+    let remove_song = Callback::new(remove_song);
+
     let request_update = move || {
         let request = real_time::Request::Update;
         send_request()(request);
@@ -109,7 +115,6 @@ pub fn UserPage() -> impl IntoView {
         create_effect(move |_| {
             log!("Update: {:#?}", message());
             if let Some(real_time::Message::Update(update)) = message() {
-                
                 if let Some(result) = update.search {
                     set_search_result(Some(result));
                 }
@@ -150,17 +155,27 @@ pub fn UserPage() -> impl IntoView {
         set_close(close);
     });
 
+    let close=Callback::new(move |_| {
+        close()(());
+    });
     view! {
-        <Search search_result search add_song=add_song/>
-        <SongList
-            songs=songs
-            votes=votes
-            request_update=request_update
-            song_list_action=SongListAction::Vote {
-                add_vote,
-                remove_vote,
-            }
-        />
+        <div id="user-page">
+            <UsersBar users close/>
+            <div id="center">
+                <SongList
+                    songs
+                    votes
+                    request_update
+                    song_list_action=SongListAction::Vote {
+                        add_vote,
+                        remove_vote,
+                        remove_song,
+                    }
+                />
+
+                <Search search_result search add_song/>
+            </div>
+        </div>
     }
 }
 

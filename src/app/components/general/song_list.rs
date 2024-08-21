@@ -7,6 +7,7 @@ pub enum SongListAction {
     Vote {
         add_vote: Callback<String>,
         remove_vote: Callback<String>,
+        remove_song: Callback<String>,
     },
     Remove(Callback<String>),
     Add(Callback<String>),
@@ -88,7 +89,7 @@ where
                             })
                     });
                     let song_action = match song_list_action {
-                        SongListAction::Vote { add_vote, remove_vote } =>
+                        SongListAction::Vote { add_vote, remove_vote, .. } =>
                             SongAction::Vote {
                                 add_vote,
                                 remove_vote,

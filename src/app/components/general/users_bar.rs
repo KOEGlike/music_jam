@@ -14,10 +14,20 @@ pub fn UsersBar(
             <button on:click=move |_| {
                 close(());
             }>
-
-                <svg inner_html=IoClose.data viewBox=IoClose.view_box></svg>
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="31"
+                    height="30"
+                    viewBox="0 0 31 30"
+                    fill="none"
+                >
+                    <path
+                        d="M3.5 30L0.5 27L12.5 15L0.5 3L3.5 0L15.5 12L27.5 0L30.5 3L18.5 15L30.5 27L27.5 30L15.5 18L3.5 30Z"
+                        fill="#EBF6E8"
+                    ></path>
+                </svg>
             </button>
-            <div class="user-bar">
+            <div class="users">
                 {move || {
                     if users.with(|users| users.is_none()) {
                         let mut vec = Vec::new();

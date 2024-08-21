@@ -1,1 +1,16 @@
 @use '../defaults' as *;
+
+#host-page {
+    display: flex;
+    padding: 65px 65px 0px 65px;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+
+    >#center {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        align-self: stretch;
+    }
+}

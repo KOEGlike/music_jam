@@ -20,9 +20,13 @@ async fn save_to_clipboard(text: &str) {
 }
 
 #[component]
-pub fn Share(#[prop(into)] jam_id: String) -> impl IntoView {
-    let url = format!("https://jam.leptos.dev/jam/{}", jam_id);
-    let qr = QrCode::with_version(url.clone(), Version::Normal(10), EcLevel::Q).unwrap();
+pub fn Share(#[prop(into)] jam_id: MaybeSignal<String>) -> impl IntoView {
+    let url = {
+        let jam_id = jam_id.clone();
+        move || format!("https://jam.leptos.dev/jam/{}", jam_id())
+    };
+    let url = Signal::derive(url);
+    let qr = QrCode::with_version(url.get_untracked(), Version::Normal(10), EcLevel::Q).unwrap();
     let qr = qr
         .render()
         .quiet_zone(false)
@@ -42,7 +46,7 @@ pub fn Share(#[prop(into)] jam_id: String) -> impl IntoView {
         <div class="share">
             <div inner_html=qr></div>
             {jam_id}
-            <button class="button" on:click=move |_| copy_to_clipboard.dispatch(url.clone())>
+            <button class="button" on:click=move |_| copy_to_clipboard.dispatch(url())>
                 "COPY"
             </button>
         </div>

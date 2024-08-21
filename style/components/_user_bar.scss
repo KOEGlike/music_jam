@@ -1,22 +1,56 @@
 @use '../defaults' as *;
+@use 'button' as *;
 
 $icon-size: 60px;
 $gap: 10px;
 
-.user-bar {
-    @extend .glass;
+.bar {
     display: flex;
-    flex-direction: row;
-    height: auto;
-    width: calc(calc(100% - mod(100%, calc($icon-size + $gap))) + $gap);
-    padding: $gap;
-    gap: $gap;
-    border-radius: 40px;
-    overflow-x: scroll;
-    overflow-y: hidden;
-    white-space: nowrap; // Ensure elements don't wrap
-    flex-shrink: 0; // Prevent shrinking
+    width: 100%;
+    padding: 10px 0px;
+    align-items: start;
+    gap: 60px;
+    flex-shrink: 0;
+
+    >button {
+        @extend .button;
+        
+        display: flex;
+        width: 75px;
+        height: 75px;
+        padding: 6px 5px;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+
+        border-radius: 37.5px;
+
+        >svg{
+            width: 30px;
+            height: 30px;
+            flex-shrink: 0;
+            fill: var(--solid-text, #EBF6E8);
+        }
+    }
+
+    >.users {
+        @extend .glass;
+        display: flex;
+        flex-direction: row;
+        height: auto;
+        width: calc(calc(calc(100% - calc(75pc + 60px)) - mod(100%, calc($icon-size + $gap))) + $gap);
+        padding: $gap;
+        gap: $gap;
+        border-radius: 40px;
+        overflow-x: scroll;
+        overflow-y: hidden;
+        white-space: nowrap; // Ensure elements don't wrap
+        flex-shrink: 0; // Prevent shrinking
+    }
 }
+
+
 
 .user {
     height: $icon-size;
@@ -39,7 +73,7 @@ $gap: 10px;
     }
 
     >svg {
-        fill:map-get($map: $colors, $key:"glass" );
+        fill: map-get($map: $colors, $key: "glass");
         opacity: 0;
         background-color: #00000000;
         transition: background-color 0.2s, opacity 0.2s;

@@ -52,11 +52,14 @@
             $border-rad: 30px;
             border-radius: $border-rad;
             overflow: hidden;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
 
             >.position {
                 @extend .glass;
                 opacity: 0.75;
-                height: 100%;
+                height: 80px;
                 border-radius: 0px $border-rad $border-rad 0px;
             }
         }

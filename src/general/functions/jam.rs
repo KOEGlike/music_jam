@@ -98,12 +98,17 @@ pub async fn create_host(
         token.refresh_token,
         access_token_id,
         host_id
-    ).execute(pool).await?;
+    )
+    .execute(pool)
+    .await?;
 
     Ok(())
 }
 
-pub async fn delete_jam(jam_id: &str, pool: &sqlx::PgPool) -> Result<real_time::Changed, sqlx::Error> {
+pub async fn delete_jam(
+    jam_id: &str,
+    pool: &sqlx::PgPool,
+) -> Result<real_time::Changed, sqlx::Error> {
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     sqlx::query!("DELETE FROM jams WHERE id = $1", jam_id)
         .execute(pool)
@@ -138,7 +143,7 @@ pub async fn occasional_notify(pool: sqlx::PgPool, jam_id: String) -> Result<(),
     use std::time::Duration;
     loop {
         log!("Occasional notify");
-        if let Err(e) = notify(real_time::Changed::all(), vec![],&jam_id, &pool).await {
+        if let Err(e) = notify(real_time::Changed::all(), vec![], &jam_id, &pool).await {
             eprintln!("Error notifying all, in occasional notify: {:?}", e);
         };
         tokio::time::sleep(Duration::from_secs(10)).await;
@@ -151,7 +156,9 @@ pub async fn set_current_song_position(
     pool: &sqlx::PgPool,
 ) -> Result<real_time::Changed, Error> {
     if !(0.0..=1.0).contains(&percentage) {
-        return Err(Error::InvalidRequest("Percentage must be between 0 and 1".to_string()));
+        return Err(Error::InvalidRequest(
+            "Percentage must be between 0 and 1".to_string(),
+        ));
     }
     sqlx::query!(
         "UPDATE jams SET song_position = $1 WHERE id = $2",
@@ -164,12 +171,9 @@ pub async fn set_current_song_position(
 }
 
 pub async fn get_current_song_position(jam_id: &str, pool: &sqlx::PgPool) -> Result<f32, Error> {
-    let row = sqlx::query!(
-        "SELECT song_position FROM jams WHERE id = $1",
-        jam_id
-    )
-    .fetch_one(pool)
-    .await?;
+    let row = sqlx::query!("SELECT song_position FROM jams WHERE id = $1", jam_id)
+        .fetch_one(pool)
+        .await?;
     Ok(row.song_position)
 }
 
@@ -217,3 +221,40 @@ pub async fn get_current_song(
     }))
 }
 
+pub async fn set_current_song(
+    song_id: String,
+    id: &IdType,
+    pool: &sqlx::PgPool,
+) -> Result<real_time::Changed, Error> {
+    use crate::general::functions::song::get_songs;
+    if id.is_user() {
+        return Err(Error::Forbidden("Only hosts can set the current song".to_string()));
+    }
+    let song = get_songs(pool, id)
+        .await?
+        .into_iter()
+        .find(|song| song.id == song_id)
+        .ok_or(Error::InvalidRequest(
+            "Song not found in current queue".to_string(),
+        ))?;
+    
+    sqlx::query!(
+        "DELETE FROM current_songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1)",
+        id.jam_id()
+    )
+    .execute(pool)
+    .await?;
+    sqlx::query!(
+        "INSERT INTO current_songs (id, user_id, name, album, duration, artists, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        song.id,
+        id.id(),
+        song.name,
+        song.album,
+        song.duration as i32,
+        &song.artists,
+        song.image_url
+    )
+    .execute(pool)
+    .await?;
+    Ok(real_time::Changed::new().current_song())
+}

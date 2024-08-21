@@ -11,4 +11,5 @@ pub enum Request {
     ResetVotes,
     Update,
     Position { percentage: f32 },
+    CurrentSong { song_id: String },
 }
