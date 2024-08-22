@@ -25,9 +25,9 @@ pub fn HostPage() -> impl IntoView {
         set_host_id(host_id);
     });
 
-    let jam_id =
-        move || use_params_map().with(|params| params.get("id").cloned().unwrap_or_default());
-    let jam_id = MaybeSignal::derive(jam_id);
+    // let jam_id =
+    //     move || use_params_map().with(|params| params.get("id").cloned().unwrap_or_default());
+    // let jam_id = MaybeSignal::derive(jam_id);
 
     let (users, set_users) = create_signal(None);
     let (songs, set_songs) = create_signal(None::<Vec<Song>>);
@@ -177,7 +177,7 @@ pub fn HostPage() -> impl IntoView {
                     request_update
                     song_list_action=SongListAction::Remove(remove_song)
                 />
-                <Share jam_id/>
+                //<Share jam_id/>
             </div>
         </div>
     }

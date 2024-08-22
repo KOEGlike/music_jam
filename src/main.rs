@@ -1,6 +1,7 @@
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
+    println!("1");
     let res=music_jam::startup::init().await;
     match res {
         Ok(_) => {},

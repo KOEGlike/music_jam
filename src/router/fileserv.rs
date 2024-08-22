@@ -35,9 +35,5 @@ async fn get_static_file(
     // This path is relative to the cargo root
     match ServeDir::new(root).oneshot(req).await {
         Ok(res) => Ok(res.into_response()),
-        Err(err) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Something went wrong: {err}"),
-        )),
     }
 }
