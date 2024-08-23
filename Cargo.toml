@@ -52,7 +52,7 @@ web-sys = { version = "0.3", features = [
 wasm-bindgen-futures = { version = "0.4" }
 js-sys = { version = "=0.3.70" }
 nestify = "0.3"
-rust_spotify_web_playback_sdk = { path = "C:/Users/lenovo/documents/men/hacker_man/projects/rust_spotify_web_playback_sdk" }
+rust_spotify_web_playback_sdk = { git = "https://github.com/KOEGlike/rust_spotify_web_playback_sdk.git"}
 gloo = { version = "0.11", features = ["storage"] }
 cuid2 = "0.1"
 sqlx = { version = "0.7.2", features = [
@@ -69,7 +69,6 @@ qrcode = { version = "0.13" }
 data-url = {version = "0.3", optional = true}
 base64 = {version = "0.22", optional = true}
 image = {version = "0.25.1", optional = true}
-strum = {version = "0.26", optional = true}
 codee = {version = "0.1", features = ["msgpack_serde", "json_serde_wasm"]}
 
 

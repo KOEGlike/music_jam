@@ -2547,7 +2547,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
- "strum",
  "thiserror",
  "tokio",
  "tower",
@@ -3423,6 +3422,7 @@ dependencies = [
 [[package]]
 name = "rust_spotify_web_playback_sdk"
 version = "0.2.0"
+source = "git+https://github.com/KOEGlike/rust_spotify_web_playback_sdk.git#9f7f45088ad345f5499181f7d10cc205f6d21c7c"
 dependencies = [
  "js-sys",
  "nestify",
