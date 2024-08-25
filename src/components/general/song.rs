@@ -1,7 +1,7 @@
-use crate::app::general::types::*;
+use crate::general::types::*;
 use icondata::IoClose;
 use leptos::{prelude::*, *, logging::*};
-use crate::app::components::host_only::millis_to_min_sec;
+use crate::components::host::millis_to_min_sec;
 
 #[derive(Clone, Debug, Copy)]
 pub enum SongAction {

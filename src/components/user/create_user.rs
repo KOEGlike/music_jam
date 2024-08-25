@@ -1,13 +1,7 @@
 use gloo::storage::{LocalStorage, Storage};
-use leptos::{
-    logging::error,
-    prelude::*,
-    *,
-};
+use leptos::{logging::error, prelude::*, *};
 use leptos_router::*;
 use web_sys::MediaStream;
-
-
 
 #[server]
 async fn create_user(
@@ -15,11 +9,11 @@ async fn create_user(
     name: String,
     pfp_url: String,
 ) -> Result<String, ServerFnError> {
+    use crate::general::{functions::create_user as create_user_fn, types::AppState};
     use crate::general::notify;
-    use crate::app::general::{functions::create_user, types::AppState};
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
-    match create_user(&jam_id, &pfp_url, &name, pool).await {
+    match create_user_fn(&jam_id, &pfp_url, &name, pool).await {
         Ok(user_id) => {
             notify(user_id.1, vec![], &jam_id, pool).await?;
             Ok(user_id.0)
@@ -159,11 +153,12 @@ async fn camera(image_url: WriteSignal<String>, video_id: &str) -> Result<impl F
         }
     };
 
-    let camera = match camera.get_user_media_with_constraints(
-        web_sys::MediaStreamConstraints::new()
-            .video(&JsValue::from(true))
-            .audio(&JsValue::from(false)),
-    ) {
+    let camera_constraints = web_sys::MediaStreamConstraints::new();
+    camera_constraints.set_video(&JsValue::from(true));
+    camera_constraints.set_audio(&JsValue::from(false));
+    
+
+    let camera = match camera.get_user_media_with_constraints(&camera_constraints) {
         Ok(camera) => camera,
         Err(e) => {
             error!("Error getting camera promise: {:?}", e);

@@ -1,7 +1,7 @@
 pub mod app;
 pub mod general;
-
-pub use crate::app::components;
+pub mod components;
+pub mod pages;
 
 #[cfg(feature = "ssr")]
 pub mod router;

@@ -1,4 +1,4 @@
-use crate::app::general::{self, Vote};
+use crate::general::{self, Vote};
 use crate::components::{Song, SongAction};
 use leptos::{logging::log, prelude::*, *};
 

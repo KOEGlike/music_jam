@@ -1,4 +1,4 @@
-use crate::app::components::*;
+use crate::components::*;
 use leptos::*;
 
 #[component]

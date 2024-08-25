@@ -3,12 +3,13 @@ name = "music_jam"
 version = "0.1.0"
 edition = "2021"
 
+[env]
+LEPTOS_WASM_OPT_VERSION="version_118"
+LEPTOS_SASS_VERSION = "1.71.0"
+RUST_BACKTRACE = "1"
+
 [lib]
 crate-type = ["cdylib", "rlib"]
-
-[env]
-LEPTOS_SASS_VERSION = "1.71.0"
-RUST_BACKTRACE = 1
 
 [build]
 rustflags = ["--cfg=web_sys_unstable_apis"]
@@ -140,7 +141,7 @@ end2end-dir = "end2end"
 browserquery = "defaults"
 
 # The environment Leptos will run in, usually either "DEV" or "PROD"
-env = "DEV"
+env = "PROD"
 
 # The features to use when compiling the bin target
 #
@@ -166,10 +167,3 @@ lib-default-features = false
 #
 # Optional. Defaults to "release".
 lib-profile-release = "wasm-release"
-
-[package.metadata.leptonic]
-# REQUIRED: Leptonic's build-script will copy the Leptonic themes to this directory.
-style-dir = "style"
-
-# REQUIRED: Leptonic's build-script will copy static JS dependencies to this directory.
-js-dir = "public/js"

@@ -1,4 +1,4 @@
-use crate::general::functions::{get_access_token, notify};
+use crate::general::functions::get_access_token;
 use crate::general::types::*;
 use leptos::logging::*;
 use rspotify::model::TrackId;

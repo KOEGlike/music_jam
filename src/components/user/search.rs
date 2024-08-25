@@ -1,4 +1,4 @@
-use crate::app::components::{Song, SongAction};
+use crate::components::{Song, SongAction};
 use crate::general::*;
 use icondata::AiSearchOutlined;
 use leptos::{prelude::*, *};

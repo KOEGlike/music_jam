@@ -5,7 +5,7 @@ use leptos_router::*;
 
 #[server]
 async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
-    use crate::app::general::AppState;
+    use crate::general::AppState;
     use leptos_axum::redirect;
     use sqlx::*;
     let app_state = expect_context::<AppState>();
@@ -35,7 +35,7 @@ async fn create_jam(
     host_id: String,
     max_song_count: i16,
 ) -> Result<JamId, ServerFnError> {
-    use crate::app::general::AppState;
+    use crate::general::AppState;
     use sqlx::*;
     let app_state = expect_context::<AppState>();
 

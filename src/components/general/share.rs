@@ -2,9 +2,8 @@ use leptos::{logging::log, *};
 use qrcode::render::svg;
 use qrcode::{EcLevel, QrCode, Version};
 
-#[cfg(web_sys_unstable_apis)]
 async fn save_to_clipboard(text: &str) {
-    /*let window = match web_sys::window() {
+    let window = match web_sys::window() {
         Some(window) => window,
         None => {
             log!("failed to copy, window not available");
@@ -16,7 +15,7 @@ async fn save_to_clipboard(text: &str) {
     let promise = clip.write_text(text);
     if wasm_bindgen_futures::JsFuture::from(promise).await.is_err() {
         log!("failed to copy to clipboard");
-    }*/
+    }
 }
 
 #[component]

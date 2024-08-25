@@ -2,10 +2,10 @@ use crate::general;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
-pub mod components;
-pub mod pages;
 
-use components::error_template::*;
+
+use crate::components::error_template::*;
+use crate::pages;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -38,7 +38,7 @@ pub fn App() -> impl IntoView {
 
 #[component]
 pub fn UserBartTest() -> impl IntoView {
-    use crate::{app::components::UsersBar, general::User};
+    use crate::{components::UsersBar, general::User};
     use leptos::logging::*;
 
     let users = vec![
@@ -103,13 +103,13 @@ pub fn UserBartTest() -> impl IntoView {
 
 #[component]
 fn ShareTest() -> impl IntoView {
-    use crate::app::components::Share;
+    use crate::components::Share;
     view! { <Share jam_id="5Y8FXC"/> }
 }
 
 #[component]
 fn SearchTest() -> impl IntoView {
-    use crate::app::components::Search;
+    use crate::components::Search;
     use leptos::logging::*;
 
     let song = general::Song {
