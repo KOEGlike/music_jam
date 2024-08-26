@@ -22,14 +22,14 @@ pub fn App() -> impl IntoView {
         }>
             <main>
                 <Routes>
-                    <Route path="/" view=pages::HomePage/>
-                    <Route path="/create-host" view=pages::CreateHostPage/>
+                    // <Route path="/" view=pages::HomePage/>
+                    // <Route path="/create-host" view=pages::CreateHostPage/>
                     <Route path="/create-user/:id" view=pages::CreateUserPage/>
-                    <Route path="/jam/host/:id" view=pages::HostPage/>
-                    <Route path="/jam/:id" view=pages::UserPage/>
-                    <Route path="/test-bar" view=UserBartTest/>
-                    <Route path="/test-share" view=ShareTest/>
-                    <Route path="/test-search" view=SearchTest/>
+                    // <Route path="/jam/host/:id" view=pages::HostPage/>
+                    // <Route path="/jam/:id" view=pages::UserPage/>
+                    // <Route path="/test-bar" view=UserBartTest/>
+                    // <Route path="/test-share" view=ShareTest/>
+                    // <Route path="/test-search" view=SearchTest/>
                 </Routes>
             </main>
         </Router>

@@ -1,9 +1,9 @@
 services:
-  app:
-    build: .
-    ports:
-      - 8080:8080
   jam_db:
     extends:
       file: db/compose.yml
       service: jam_db
+  app:
+    build: .
+    ports:
+      - 8080:8080
