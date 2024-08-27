@@ -14,19 +14,19 @@ $gap: 10px;
 
     >button {
         @extend .button;
-        
+
         display: flex;
         width: 75px;
         height: 75px;
         padding: 6px 5px;
         justify-content: center;
         align-items: center;
-        gap: 10px;
+        gap: $gap;
         flex-shrink: 0;
 
         border-radius: 37.5px;
 
-        >svg{
+        >svg {
             width: 30px;
             height: 30px;
             flex-shrink: 0;
@@ -39,7 +39,6 @@ $gap: 10px;
         display: flex;
         flex-direction: row;
         height: auto;
-        width: calc(calc(calc(100% - calc(75pc + 60px)) - mod(100%, calc($icon-size + $gap))) + $gap);
         padding: $gap;
         gap: $gap;
         border-radius: 40px;
