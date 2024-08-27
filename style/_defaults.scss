@@ -44,8 +44,33 @@ $blur: blur(12px);
 }
 
 body {
-	background-color: map-get($colors, "bg");
-	color: map-get($colors, "white");
+	
+
+	/* Full height */
+	height: 100%;
+
+	/* Center and scale the image nicely */
+	
+	background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%);
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: cover;
+}
+
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-position: inherit;
+    background-repeat: inherit;
+    background-size: inherit;
+    background-image: inherit;
+    filter: blur(8px);
+    -webkit-filter: blur(8px);
+    z-index: -1;
 }
 
 .glass {
@@ -97,4 +122,3 @@ body {
 .glass-element_ok:active {
 	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "selected"));
 }
-

@@ -33,8 +33,12 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
                 };
                 println!("update: {:#?}", update);
 
-                let changed=update.changed;
+                let mut changed=update.changed;
                 let errors=update.errors;
+                if id.is_host() {
+                    changed.position=false;
+                    changed.current_song=false;
+                }
 
                 let update = real_time::Update::from_changed(changed, &id, &pool).await.error_vec(errors);
                 let message = real_time::Message::Update(update);

@@ -41,9 +41,7 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
         }
     };
 
-    if let IdType::Host(_) = id {
-        tokio::spawn(functions::occasional_notify(app_state.db.pool.clone(), id.jam_id().to_owned()));
-    } 
+   
 
     let bridge_task = tokio::spawn(send(mpsc_receiver, sender));
     let recv_task = tokio::spawn(read::read(

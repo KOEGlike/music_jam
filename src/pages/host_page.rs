@@ -60,36 +60,36 @@ pub fn HostPage() -> impl IntoView {
 
     let remove_song = move |id| {
         let request = real_time::Request::RemoveSong { song_id: id };
-        send_request()(request);
+        send_request.get_untracked()(request);
     };
     let remove_song = Callback::new(remove_song);
 
     let request_update = move || {
         let request = real_time::Request::Update;
-        send_request()(request);
+        send_request.get_untracked()(request);
     };
 
     let kick_user = move |id| {
         let request = real_time::Request::KickUser { user_id: id };
-        send_request()(request);
+        send_request.get_untracked()(request);
     };
     let kick_user = Callback::new(kick_user);
 
     let reset_votes = move |_: ()| {
         let request = real_time::Request::ResetVotes;
-        send_request()(request);
+        send_request.get_untracked()(request);
     };
     let reset_votes = Callback::new(reset_votes);
 
     let set_current_song = move |song_id| {
         let request = real_time::Request::CurrentSong { song_id };
-        send_request()(request);
+        send_request.get_untracked()(request);
     };
     let set_current_song = Callback::new(set_current_song);
 
     let set_song_position = move |percentage| {
         let request = real_time::Request::Position { percentage };
-        send_request()(request);
+        send_request.get_untracked()(request);
     };
     let set_song_position = Callback::new(set_song_position);
 
@@ -161,9 +161,9 @@ pub fn HostPage() -> impl IntoView {
     });
 
     view! {
-        <div id="host-page">
+        <div class="host-page">
             <UsersBar close=close() users kick_user/>
-            <div id="center">
+            <div class="center">
                 <Player
                     host_id
                     top_song_id

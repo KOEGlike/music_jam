@@ -226,9 +226,15 @@ pub async fn set_current_song(
     pool: &sqlx::PgPool,
 ) -> Result<real_time::Changed, Error> {
     use crate::general::functions::song::get_songs;
+
+    let mut transaction = pool.begin().await?;
+
     if id.is_user() {
-        return Err(Error::Forbidden("Only hosts can set the current song".to_string()));
+        return Err(Error::Forbidden(
+            "Only hosts can set the current song".to_string(),
+        ));
     }
+
     let song = get_songs(pool, id)
         .await?
         .into_iter()
@@ -236,24 +242,30 @@ pub async fn set_current_song(
         .ok_or(Error::InvalidRequest(
             "Song not found in current queue".to_string(),
         ))?;
-    
+
     sqlx::query!(
         "DELETE FROM current_songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1)",
         id.jam_id()
     )
-    .execute(pool)
+    .execute(&mut *transaction)
     .await?;
+
+    let user_id = sqlx::query!("SELECT user_id FROM songs WHERE id=$1", song_id)
+        .fetch_one(&mut *transaction)
+        .await?
+        .user_id;
     sqlx::query!(
         "INSERT INTO current_songs (id, user_id, name, album, duration, artists, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7)",
         song.id,
-        id.id(),
+        user_id,
         song.name,
         song.album,
         song.duration as i32,
         &song.artists,
         song.image_url
     )
-    .execute(pool)
+    .execute(&mut *transaction)
     .await?;
+    transaction.commit().await?;
     Ok(real_time::Changed::new().current_song())
 }

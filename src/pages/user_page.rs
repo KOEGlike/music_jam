@@ -37,6 +37,10 @@ pub fn UserPage() -> impl IntoView {
     let (current_song, set_current_song) = create_signal(None);
     let(ready_state, set_ready_state) = create_signal(ConnectionReadyState::Connecting);
 
+    create_effect(move |_|{
+        log!("position: {}", position());
+    });
+
     let (send_request, set_send_request) = create_signal(Callback::new(|_: real_time::Request| {
         warn!("wanted to send a message to ws, but the ws is not ready yet");
     }));
@@ -46,39 +50,39 @@ pub fn UserPage() -> impl IntoView {
 
     let search = move |query: String| {
         let request = real_time::Request::Search { query };
-        send_request()(request);
+        send_request.get_untracked()(request);
     };
     let search = Callback::new(search);
 
     let add_song = move |song_id: String| {
         let request = real_time::Request::AddSong { song_id };
-        send_request()(request);
+        send_request.get_untracked()(request);
     };
     let add_song = Callback::new(add_song);
 
     let add_vote = move |song_id: String| {
         log!("Adding vote for song: {}", song_id);
         let request = real_time::Request::AddVote { song_id };
-        send_request()(request);
+        send_request.get_untracked()(request);
     };
     let add_vote = Callback::new(add_vote);
 
     let remove_vote = move |song_id: String| {
         log!("Removing vote for song: {}", song_id);
         let request = real_time::Request::RemoveVote { song_id };
-        send_request()(request);
+        send_request.get_untracked()(request);
     };
     let remove_vote = Callback::new(remove_vote);
 
     let remove_song = move |song_id: String| {
         let request = real_time::Request::RemoveSong { song_id };
-        send_request()(request);
+        send_request.get_untracked()(request);
     };
     let remove_song = Callback::new(remove_song);
 
     let request_update = move || {
         let request = real_time::Request::Update;
-        send_request()(request);
+        send_request.get_untracked()(request);
         log!("Sent update request");
     };
 
@@ -158,9 +162,9 @@ pub fn UserPage() -> impl IntoView {
     });
     
     view! {
-        <div id="user-page">
+        <div class="user-page">
             <UsersBar users close/>
-            <div id="center">
+            <div class="center">
                 <Search
                     search_result
                     search

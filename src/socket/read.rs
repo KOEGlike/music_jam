@@ -191,9 +191,14 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                if let Err(e) = set_current_song_position(&id.jam_id, percentage, pool).await {
-                    handle_error(e, false, &sender).await;
-                }
+                match set_current_song_position( &id.jam_id,percentage, pool).await {
+                    Ok(changed_new) => {
+                        changed = changed.merge_with_other(changed_new);
+                    }
+                    Err(e) => {
+                        errors.push(e);
+                    }
+                };
             }
             real_time::Request::CurrentSong { song_id } => {
                 if only_host(

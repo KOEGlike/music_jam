@@ -36,6 +36,7 @@ pub fn Player(
                 .url
                 .clone(),
         );
+        image_url.with_untracked(|url| set_bg_img(url));
         set_song_name(state_change.track_window.current_track.name);
 
         set_artists(
@@ -48,6 +49,8 @@ pub fn Player(
                 .collect::<Vec<_>>()
                 .join(", "),
         );
+
+        set_current_song(state_change.track_window.current_track.id);
     };
 
     let token = {
@@ -332,4 +335,14 @@ async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnEr
     };
 
     Ok(token)
+}
+
+pub fn set_bg_img(url: &str) {
+    let body = web_sys::window()
+        .unwrap()
+        .document()
+        .unwrap()
+        .body()
+        .unwrap();
+    body.style().set_property("background-image", &format!("radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%), url({})", url)).unwrap();
 }
