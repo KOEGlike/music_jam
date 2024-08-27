@@ -1,4 +1,6 @@
-use crate::components::{Search, SongList, SongListAction, UsersBar};
+use crate::components::create;
+use crate::components::user::Player;
+use crate::components::{user::Search, SongList, SongListAction, UsersBar};
 use crate::general::{self, *};
 use codee::string::JsonSerdeWasmCodec;
 use gloo::storage::{LocalStorage, Storage};
@@ -33,6 +35,7 @@ pub fn UserPage() -> impl IntoView {
     let (users, set_users) = create_signal(None);
     let (position, set_position) = create_signal(0.0);
     let (current_song, set_current_song) = create_signal(None);
+    let(ready_state, set_ready_state) = create_signal(ConnectionReadyState::Connecting);
 
     let (send_request, set_send_request) = create_signal(Callback::new(|_: real_time::Request| {
         warn!("wanted to send a message to ws, but the ws is not ready yet");
@@ -95,6 +98,10 @@ pub fn UserPage() -> impl IntoView {
             user_id.get_untracked()
         ));
 
+        create_effect(move |_| {
+            set_ready_state(ready_state.get());
+        });
+
         let send_request = move |request: real_time::Request| {
             send(&real_time::Message::Request(request));
         };
@@ -102,14 +109,6 @@ pub fn UserPage() -> impl IntoView {
         set_send_request(send_request);
 
         let close_ws = Callback::new(move |_: ()| close_ws());
-
-        create_effect(move |_| {
-            if let ConnectionReadyState::Open = ready_state() {
-                let request = real_time::Request::Update;
-                send_request(request);
-                set_search_result(Some(vec![]));
-            }
-        });
 
         create_effect(move |_| {
             log!("Update: {:#?}", message());
@@ -154,13 +153,20 @@ pub fn UserPage() -> impl IntoView {
         set_close(close);
     });
 
-    let close=Callback::new(move |_| {
+    let close = Callback::new(move |_| {
         close()(());
     });
+    
     view! {
         <div id="user-page">
             <UsersBar users close/>
             <div id="center">
+                <Search
+                    search_result
+                    search
+                    add_song
+                    loaded=Signal::derive(move || ready_state.get() == ConnectionReadyState::Open)
+                />
                 <SongList
                     songs
                     votes
@@ -172,7 +178,7 @@ pub fn UserPage() -> impl IntoView {
                     }
                 />
 
-                <Search search_result search add_song/>
+                <Player position current_song/>
             </div>
         </div>
     }

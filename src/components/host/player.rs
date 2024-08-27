@@ -6,7 +6,6 @@ use leptos::{
 };
 use rust_spotify_web_playback_sdk::prelude as sp;
 
-
 #[component]
 pub fn Player(
     #[prop(into)] host_id: Signal<Option<String>>,
@@ -20,7 +19,6 @@ pub fn Player(
     let top_song_id = create_memo(move |_| top_song_id());
     //let (current_song_id, set_current_song_id) = create_signal(String::new());
     //let current_song_id = create_memo(move |_| current_song_id());
-
 
     let (image_url, set_image_url) = create_signal(String::new());
     let (song_name, set_song_name) = create_signal(String::new());
@@ -103,7 +101,6 @@ pub fn Player(
                         token_value.access_token.clone()
                     },
                     move || {
-                        
                         sp::add_listener!("player_state_changed", on_update).unwrap();
                         sp::add_listener!("ready", move |player: sp::Player| {
                             switch_device.dispatch(player.device_id);
@@ -121,72 +118,66 @@ pub fn Player(
         }
     });
 
-    let is_loaded = create_memo(move |_| {
-        player_is_connected() && host_id.with(Option::is_some)
-    });
+    let is_loaded = create_memo(move |_| player_is_connected() && host_id.with(Option::is_some));
 
     create_effect(move |_| {
         log!("player is connected:{}", is_loaded());
     });
 
+    let play_song = create_action(move |(song_id, host_id): &(String, String)| {
+        let host_id = host_id.clone();
+        let song_id = song_id.clone();
+        async move {
+            if let Err(e) = play_song(song_id, host_id).await {
+                error!("Error playing song: {:?}", e);
+            }
+        }
+    });
+
+    let toggle_play = create_action(move |_: &()| async {
+        if let Err(e) = sp::toggle_play().await {
+            error!("Error toggling play: {:?}", e);
+        }
+    });
+
+    let position_update = create_action(move |_: &()| async move {
+        if is_loaded.get_untracked() {
+            if let Ok(Some(state)) = sp::get_current_state().await {
+                set_song_position(state.position);
+                set_global_song_position(state.position as f32 / song_length() as f32);
+            }
+        }
+    });
+
+    create_effect(move |_| {
+        if is_loaded() {
+            let position_update = Interval::new(100, move || {
+                position_update.dispatch(());
+            });
+            position_update.forget();
+        }
+    });
+
+    let can_go_to_next_song =
+        create_memo(move |_| (song_position() as f32 / song_length() as f32) > 0.995);
+
+    create_effect(move |_| {
+        if let Some(host_id) = host_id() {
+            if can_go_to_next_song() && player_is_connected() {
+                if let Some(song_id) = top_song_id.get() {
+                    play_song.dispatch((song_id.clone(), host_id.clone()));
+                    set_current_song(song_id);
+                    reset_votes(());
+                } else {
+                    toggle_play.dispatch(());
+                }
+            }
+        }
+    });
+
     view! {
         <Show when=is_loaded fallback=|| "loading.......">
             {move || {
-                let host_id = host_id().unwrap();
-                log!("is ready, host_id:{}", host_id);
-                
-                let play_song = {
-                    let host_id = host_id.clone();
-                    create_action(move |song_id: &String| {
-                        let host_id = host_id.clone();
-                        let song_id = song_id.clone();
-                        async move {
-                            if let Err(e) = play_song(song_id, host_id).await {
-                                error!("Error playing song: {:?}", e);
-                            }
-                        }
-                    })
-                };
-                
-                let toggle_play = create_action(move |_: &()| async {
-                    if let Err(e) = sp::toggle_play().await {
-                        error!("Error toggling play: {:?}", e);
-                    }
-                });
-                
-                let position_update = create_action(move |_: &()| async move {
-                    if is_loaded.get_untracked() {
-                        if let Ok(Some(state)) = sp::get_current_state().await {
-                            set_song_position(state.position);
-                            set_global_song_position(state.position as f32 / song_length() as f32);
-                        }
-                    }
-                });
-                if cfg!(any(target_arch = "wasm32", target_os = "unknown")) {
-                    let position_update = Interval::new(
-                        100,
-                        move || {
-                            position_update.dispatch(());
-                        },
-                    );
-                    position_update.forget();
-                }
-                
-                let can_go_to_next_song = create_memo(move |_| {
-                    (song_position() as f32 / song_length() as f32) > 0.995
-                });
-                create_effect(move |_| {
-                    if can_go_to_next_song() {
-                        if let Some(song_id) = top_song_id.get() {
-                            play_song.dispatch(song_id.clone());
-                            set_current_song(song_id);
-                            reset_votes(());
-                        } else {
-                            toggle_play.dispatch(());
-                        }
-                    }
-                });
-                
                 view! {
                     <div class="player">
                         <img prop:src=image_url alt="the album cover of the current song"/>

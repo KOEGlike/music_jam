@@ -8,6 +8,8 @@ pub fn Search(
     #[prop(into)] search_result: Signal<Option<Vec<Song>>>,
     search: Callback<String>,
     add_song: Callback<String>,
+    #[prop(into)]
+    loaded:Signal<bool>
 ) -> impl IntoView
 
 {
@@ -15,7 +17,7 @@ pub fn Search(
     let add_song = Callback::new(add_song);
     let search = Callback::new(search);
     view! {
-        <Show when=move || search_result.with(Option::is_some) fallback=move || "loading.s.....">
+        <Show when=loaded fallback=move || "loading.s.....">
             <div class="search">
                 <div class="search-input">
                     <input

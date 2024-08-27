@@ -125,7 +125,7 @@ pub async fn read(
                 };
             }
             real_time::Request::Update => {
-                if let Err(e) = notify(changed, errors.clone(), id.jam_id(), pool).await {
+                if let Err(e) = notify(real_time::Changed::all(), errors.clone(), id.jam_id(), pool).await {
                     handle_error(e.into(), false, &sender).await;
                 }
             }

@@ -22,14 +22,14 @@ pub fn App() -> impl IntoView {
         }>
             <main>
                 <Routes>
-                    // <Route path="/" view=pages::HomePage/>
-                    // <Route path="/create-host" view=pages::CreateHostPage/>
+                    <Route path="/" view=pages::HomePage/>
+                    <Route path="/create-host" view=pages::CreateHostPage/>
                     <Route path="/create-user/:id" view=pages::CreateUserPage/>
-                    // <Route path="/jam/host/:id" view=pages::HostPage/>
-                    // <Route path="/jam/:id" view=pages::UserPage/>
-                    // <Route path="/test-bar" view=UserBartTest/>
-                    // <Route path="/test-share" view=ShareTest/>
-                    // <Route path="/test-search" view=SearchTest/>
+                    <Route path="/jam/host/:id" view=pages::HostPage/>
+                    <Route path="/jam/:id" view=pages::UserPage/>
+                    <Route path="/test-bar" view=UserBartTest/>
+                    <Route path="/test-share" view=ShareTest/>
+                    <Route path="/test-search" view=SearchTest/>
                 </Routes>
             </main>
         </Router>
@@ -109,7 +109,7 @@ fn ShareTest() -> impl IntoView {
 
 #[component]
 fn SearchTest() -> impl IntoView {
-    use crate::components::Search;
+    use crate::components::user::Search;
     use leptos::logging::*;
 
     let song = general::Song {
@@ -134,10 +134,10 @@ fn SearchTest() -> impl IntoView {
         songs
     };
     let (songs, _) = create_signal(Some(songs));
-    let search = move |id| log!("search with id:{}", id);
-    let search = Callback::from(search);
+    //let search = move |id| log!("search with id:{}", id);
+    //let search = Callback::from(search);
 
-    let add_song = move |id| log!("add with id:{}", id);
-    let add_song = Callback::from(add_song);
-    view! { <Search search_result=songs search add_song/> }
+    //let add_song = move |id| log!("add with id:{}", id);
+    //let add_song = Callback::from(add_song);
+   // view! { <Search search_result=songs search add_song loaded=Signal::derive(move|true|)/> }
 }

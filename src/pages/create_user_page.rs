@@ -1,6 +1,6 @@
 use leptos::{*, logging::warn};
 use leptos_router::*;
-use crate::components::CreateUser;
+use crate::components::user::CreateUser;
 
 #[component]
 pub fn CreateUserPage() -> impl IntoView {
