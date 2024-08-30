@@ -1,3 +1,4 @@
+use crate::components::user;
 use gloo::timers::callback::Interval;
 use leptos::{
     logging::{error, log},
@@ -6,51 +7,47 @@ use leptos::{
 };
 use rust_spotify_web_playback_sdk::prelude as sp;
 
+use crate::general;
+
 #[component]
 pub fn Player(
     #[prop(into)] host_id: Signal<Option<String>>,
     #[prop(into)] top_song_id: Signal<Option<String>>,
     #[prop(into)] reset_votes: Callback<()>,
-    #[prop(into)] set_global_song_position: Callback<f32>,
+    #[prop(into)] set_song_position: Callback<f32>,
     #[prop(into)] set_current_song: Callback<String>,
 ) -> impl IntoView {
+    let set_global_current_song=set_current_song;
+    let set_global_song_position=set_song_position;
+    
     let (player_is_connected, set_player_is_connected) = create_signal(false);
 
     let top_song_id = create_memo(move |_| top_song_id());
     //let (current_song_id, set_current_song_id) = create_signal(String::new());
     //let current_song_id = create_memo(move |_| current_song_id());
 
-    let (image_url, set_image_url) = create_signal(String::new());
-    let (song_name, set_song_name) = create_signal(String::new());
-    let (artists, set_artists) = create_signal(String::new());
-    let (song_length, set_song_length) = create_signal(0);
+    let (current_song, set_current_song) = create_signal(None::<general::Song>);
     let (song_position, set_song_position) = create_signal(0);
     let (playing, set_playing) = create_signal(false);
 
     let on_update = move |state_change: sp::StateChange| {
         set_song_position(state_change.position);
         set_playing(!state_change.paused);
-        set_song_length(state_change.track_window.current_track.duration_ms);
-        set_image_url(
-            state_change.track_window.current_track.album.images[0]
-                .url
-                .clone(),
-        );
-        image_url.with_untracked(|url| set_bg_img(url));
-        set_song_name(state_change.track_window.current_track.name);
-
-        set_artists(
-            state_change
-                .track_window
-                .current_track
-                .artists
-                .into_iter()
-                .map(|a| a.name)
-                .collect::<Vec<_>>()
-                .join(", "),
-        );
-
-        set_current_song(state_change.track_window.current_track.id);
+        let mut current_song = state_change.track_window.current_track;
+        set_current_song(Some(general::Song {
+            id: current_song.id,
+            user_id: None,
+            name: current_song.name,
+            artists: current_song.artists.into_iter().map(|a| a.name).collect(),
+            album: current_song.album.name,
+            duration: current_song.duration_ms as u32,
+            image_url: current_song.album.images.remove(0).url,
+            votes: general::Vote {
+                votes: 0,
+                have_you_voted: None,
+            },
+        }));
+        reset_votes(());
     };
 
     let token = {
@@ -147,7 +144,6 @@ pub fn Player(
         if is_loaded.get_untracked() {
             if let Ok(Some(state)) = sp::get_current_state().await {
                 set_song_position(state.position);
-                set_global_song_position(state.position as f32 / song_length() as f32);
             }
         }
     });
@@ -161,16 +157,23 @@ pub fn Player(
         }
     });
 
-    let can_go_to_next_song =
-        create_memo(move |_| (song_position() as f32 / song_length() as f32) > 0.995);
+    let position_percentage = Signal::derive(move || {
+        song_position() as f32 / current_song.with(|s| s.as_ref(). map(|s| s.duration).unwrap_or(1)) as f32
+    });
+
+    create_effect(move |_| {
+        set_global_song_position(position_percentage());
+    });
+
+    let can_go_to_next_song = create_memo(move |_| position_percentage() > 0.995);
 
     create_effect(move |_| {
         if let Some(host_id) = host_id() {
             if can_go_to_next_song() && player_is_connected() {
                 if let Some(song_id) = top_song_id.get() {
                     play_song.dispatch((song_id.clone(), host_id.clone()));
-                    set_current_song(song_id);
-                    reset_votes(());
+                    set_global_current_song(song_id);
+                    //reset_votes(());
                 } else {
                     toggle_play.dispatch(());
                 }
@@ -179,78 +182,36 @@ pub fn Player(
     });
 
     view! {
-        <Show when=is_loaded fallback=|| "loading.......">
-            {move || {
-                view! {
-                    <div class="player">
-                        <img prop:src=image_url alt="the album cover of the current song"/>
+        <user::Player current_song position=position_percentage>
+            <button
+                on:click=move |_| toggle_play.dispatch(())
+                class="play-pause"
+                title="play-pause"
+            >
+                {move || match playing() {
+                    true => {
+                        view! {
+                            <svg
+                                viewBox=icondata::FaPauseSolid.view_box
+                                inner_html=icondata::FaPauseSolid.data
+                                class="pause"
+                            ></svg>
+                        }
+                    }
+                    false => {
+                        view! {
+                            <svg
+                                viewBox=icondata::BsPlayFill.view_box
+                                inner_html=icondata::BsPlayFill.data
+                                class="play"
+                            ></svg>
+                        }
+                    }
+                }}
 
-                        <div class="info">
-                            <div class="title">{song_name}</div>
-                            <div class="artist">{artists}</div>
-                        </div>
-
-                        <div class="progress">
-                            <div class="bar">
-                                <div
-                                    class="position"
-                                    style:width=move || {
-                                        let percentage = if song_length() == 0 {
-                                            0.0
-                                        } else {
-                                            (song_position() as f64 / song_length() as f64) * 100.0
-                                        };
-                                        format!("{}%", percentage)
-                                    }
-                                >
-                                </div>
-                            </div>
-                            <div class="times">
-                                <div>{move || { millis_to_min_sec(song_position() as u32) }}</div>
-                                <div>{move || millis_to_min_sec(song_length() as u32)}</div>
-                            </div>
-                        </div>
-
-                        <button
-                            on:click=move |_| toggle_play.dispatch(())
-                            class="play-pause"
-                            title="play-pause"
-                        >
-                            {move || match playing() {
-                                true => {
-                                    view! {
-                                        <svg
-                                            viewBox=icondata::FaPauseSolid.view_box
-                                            inner_html=icondata::FaPauseSolid.data
-                                            class="pause"
-                                        ></svg>
-                                    }
-                                }
-                                false => {
-                                    view! {
-                                        <svg
-                                            viewBox=icondata::BsPlayFill.view_box
-                                            inner_html=icondata::BsPlayFill.data
-                                            class="play"
-                                        ></svg>
-                                    }
-                                }
-                            }}
-
-                        </button>
-                    </div>
-                }
-            }}
-
-        </Show>
+            </button>
+        </user::Player>
     }
-}
-
-pub fn millis_to_min_sec(millis: u32) -> String {
-    let seconds = millis / 1000;
-    let minutes = seconds / 60;
-    let seconds = seconds % 60;
-    format!("{:01}:{:02}", minutes, seconds)
 }
 
 #[server]
@@ -335,14 +296,4 @@ async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnEr
     };
 
     Ok(token)
-}
-
-pub fn set_bg_img(url: &str) {
-    let body = web_sys::window()
-        .unwrap()
-        .document()
-        .unwrap()
-        .body()
-        .unwrap();
-    body.style().set_property("background-image", &format!("radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%), url({})", url)).unwrap();
 }

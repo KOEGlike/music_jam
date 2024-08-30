@@ -3,6 +3,7 @@ use qrcode::render::svg;
 use qrcode::{EcLevel, QrCode, Version};
 
 async fn save_to_clipboard(text: &str) {
+    log!("copying to clipboard: {}", text);
     let window = match web_sys::window() {
         Some(window) => window,
         None => {
@@ -19,20 +20,19 @@ async fn save_to_clipboard(text: &str) {
 }
 
 #[component]
-pub fn Share(#[prop(into)] jam_id: MaybeSignal<String>) -> impl IntoView {
-    let url = {
-        let jam_id = jam_id.clone();
-        move || format!("https://jam.leptos.dev/jam/{}", jam_id())
+pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
+    
+    let qr = move || {
+        QrCode::with_version(jam_id(), Version::Normal(10), EcLevel::Q)
+            .unwrap()
+            .render()
+            .quiet_zone(false)
+            .min_dimensions(400, 400)
+            .dark_color(svg::Color("#ffffff"))
+            .light_color(svg::Color("#00000000"))
+            .build()
     };
-    let url = Signal::derive(url);
-    let qr = move||QrCode::with_version(url.get(), Version::Normal(10), EcLevel::Q).unwrap();
-    let qr = move||qr()
-        .render()
-        .quiet_zone(false)
-        .min_dimensions(400, 400)
-        .dark_color(svg::Color("#ffffff"))
-        .light_color(svg::Color("#00000000"))
-        .build();
+    let qr = Signal::derive(qr);
 
     let copy_to_clipboard = create_action(move |text: &String| {
         let text = text.clone();
@@ -45,7 +45,7 @@ pub fn Share(#[prop(into)] jam_id: MaybeSignal<String>) -> impl IntoView {
         <div class="share">
             <div inner_html=qr></div>
             {jam_id}
-            <button class="button" on:click=move |_| copy_to_clipboard.dispatch(url())>
+            <button class="button" on:click=move |_| copy_to_clipboard.dispatch(jam_id())>
                 "COPY"
             </button>
         </div>

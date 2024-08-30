@@ -16,7 +16,6 @@
     >.info {
         display: flex;
         flex-direction: row;
-        gap: 10px;
         align-items: center;
         justify-content: start;
 
@@ -26,18 +25,24 @@
             border-radius: 5px;
         }
 
-        >div {
+        >.info-text {
+            padding-left: 10px;
             display: flex;
             flex-direction: column;
             gap: 10px;
             justify-content: center;
             align-items: start;
+            width: 200px;
+            mask-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 10px, rgba(0, 0, 0, 1) calc(100% - 75px), rgba(0, 0, 0, 0));
 
-            
-            font-weight: bold;
-            font-size: 20px;
 
-            >div {
+
+            >.title {
+                font-weight: bold;
+                font-size: 20px;
+            }
+
+            >.small-info {
                 opacity: 0.5;
 
                 display: flex;
@@ -48,12 +53,26 @@
                 line-height: 14px;
                 font-weight: 550;
 
+                >.artist-wrapper {
+                    width: 70px;
 
-                >#bullet-point {
+                    white-space: nowrap;
+                    mask-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 20px, rgba(0, 0, 0, 1) calc(100% - 20px), rgba(0, 0, 0, 0));
+
+                    >.artist {
+                        width: 70px;
+                        height: 100%;
+                        white-space: nowrap;
+                        padding: 0;
+                    }
+                }
+
+
+                >.bullet-point {
                     font-weight: 900;
                 }
 
-                >#song-duration {
+                >.song-duration {
                     letter-spacing: -0.5px;
                 }
 
@@ -61,8 +80,6 @@
         }
     }
 
-    >.action{
-        
-    }
+    >.action {}
 
 }

@@ -36,6 +36,14 @@ $element-heights: (
 
 $blur: blur(12px);
 
+main{
+	width: 100vw;
+	height: 100vh;
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
 * {
 	margin: 0;
 	padding: 0;
@@ -43,14 +51,40 @@ $blur: blur(12px);
 	font-family: $font-stack;
 }
 
+/* width */
+::-webkit-scrollbar {
+	width: 5px;
+	height: 5px;
+	background-color: transparent;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+	box-shadow: none;
+	color: transparent;
+	background-color: transparent;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+	background: map-get($colors, "glass" );
+	opacity: map-get($opacities, "bg" );
+	border-radius: 10px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+	opacity: map-get($opacities, "hover" );
+}
+
 body {
-	
+
 
 	/* Full height */
 	height: 100%;
 
 	/* Center and scale the image nicely */
-	
+
 	background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%);
 	background-position: center;
 	background-repeat: no-repeat;
@@ -58,19 +92,19 @@ body {
 }
 
 body::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-position: inherit;
-    background-repeat: inherit;
-    background-size: inherit;
-    background-image: inherit;
-    filter: blur(8px);
-    -webkit-filter: blur(8px);
-    z-index: -1;
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-position: inherit;
+	background-repeat: inherit;
+	background-size: inherit;
+	background-image: inherit;
+	filter: blur(8px);
+	-webkit-filter: blur(8px);
+	z-index: -1;
 }
 
 .glass {

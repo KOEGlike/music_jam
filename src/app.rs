@@ -2,9 +2,9 @@ use crate::general;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+use wasm_bindgen::JsCast;
 
-
-use crate::components::error_template::*;
+use crate::components::{error_template::*, song};
 use crate::pages;
 
 #[component]
@@ -30,6 +30,7 @@ pub fn App() -> impl IntoView {
                     <Route path="/test-bar" view=UserBartTest/>
                     <Route path="/test-share" view=ShareTest/>
                     <Route path="/test-search" view=SearchTest/>
+                    <Route path="/test-user-player" view=UserPlayerTest/>
                 </Routes>
             </main>
         </Router>
@@ -104,7 +105,8 @@ pub fn UserBartTest() -> impl IntoView {
 #[component]
 fn ShareTest() -> impl IntoView {
     use crate::components::Share;
-    view! { <Share jam_id="5Y8FXC"/> }
+    let jam_id = Signal::derive(|| "5Y8FXC".to_owned());
+    view! { <Share jam_id/> }
 }
 
 #[component]
@@ -115,8 +117,8 @@ fn SearchTest() -> impl IntoView {
     let song = general::Song {
         id: "lol".to_string(),
         user_id: None,
-        name: "Yesterday".to_string(),
-        artists: vec!["Beatles".to_string()],
+        name: "Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy".to_string(),
+        artists: vec!["Beatles".to_string(),"Beatles".to_string(),"Beatles".to_string(),"Beatles".to_string(),"Beatles".to_string(),"Beatles".to_string(),],
         album: "Help!".to_string(),
         duration: 240,
         image_url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
@@ -128,16 +130,47 @@ fn SearchTest() -> impl IntoView {
 
     let songs = {
         let mut songs = Vec::new();
-        for _ in 0..10 {
-            songs.push(song.clone());
+        for i in 0..10 {
+            let mut song = song.clone();
+            song.id = "a".repeat(i);
+            songs.push(song);
         }
         songs
     };
-    let (songs, _) = create_signal(Some(songs));
-    //let search = move |id| log!("search with id:{}", id);
-    //let search = Callback::from(search);
+    let (search_result, _) = create_signal(Some(songs));
+    let search = move |id| log!("search with id:{}", id);
+    let search = Callback::from(search);
 
-    //let add_song = move |id| log!("add with id:{}", id);
-    //let add_song = Callback::from(add_song);
-   // view! { <Search search_result=songs search add_song loaded=Signal::derive(move|true|)/> }
+    let add_song = move |id| log!("add with id:{}", id);
+    let add_song = Callback::from(add_song);
+    let loaded = Signal::derive(|| true);
+
+    view! { <Search search_result search add_song loaded/> }
 }
+
+#[component]
+fn UserPlayerTest() -> impl IntoView {
+    use crate::components::user::Player;
+    use leptos::logging::*;
+
+    let current_song = Signal::derive(move || {
+        Some(general::Song {
+            id: "lol".to_string(),
+            user_id: None,
+            name: "Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy".to_string(),
+            artists: vec!["Beatles".to_string()],
+            album: "Help!".to_string(),
+            duration: 240,
+            image_url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa"
+                .to_string(),
+            votes: general::Vote {
+                votes: 0,
+                have_you_voted: None,
+            },
+        })
+    });
+    let position = Signal::derive(|| 0.7);
+
+    view! { <Player position current_song/> }
+}
+

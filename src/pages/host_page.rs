@@ -27,7 +27,7 @@ pub fn HostPage() -> impl IntoView {
 
     let jam_id =
         move || use_params_map().with(|params| params.get("id").cloned().unwrap_or_default());
-    let jam_id = MaybeSignal::derive(jam_id);
+    let jam_id = Signal::derive(jam_id);
 
     let (users, set_users) = create_signal(None);
     let (songs, set_songs) = create_signal(None::<Vec<Song>>);
@@ -160,15 +160,18 @@ pub fn HostPage() -> impl IntoView {
         });
     });
 
+    let close=Callback::new(move|_|{
+        close.get_untracked()(());
+    });
     view! {
         <div class="host-page">
-            <UsersBar close=close() users kick_user/>
+            <UsersBar close=close users kick_user/>
             <div class="center">
                 <Player
                     host_id
                     top_song_id
                     reset_votes
-                    set_global_song_position=set_song_position
+                    set_song_position
                     set_current_song
                 />
                 <SongList
