@@ -31,7 +31,6 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
                         break;
                     }
                 };
-                println!("update: {:#?}", update);
 
                 let mut changed=update.changed;
                 let errors=update.errors;

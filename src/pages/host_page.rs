@@ -3,8 +3,10 @@ use crate::general::types::*;
 use codee::string::JsonSerdeWasmCodec;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
+use leptos_meta::Title;
 use leptos_router::{use_navigate, use_params_map, NavigateOptions};
 use leptos_use::{use_websocket, UseWebSocketReturn};
+use real_time::Changed;
 
 #[component]
 pub fn HostPage() -> impl IntoView {
@@ -27,7 +29,10 @@ pub fn HostPage() -> impl IntoView {
 
     let jam_id =
         move || use_params_map().with(|params| params.get("id").cloned().unwrap_or_default());
-    let jam_id = Signal::derive(jam_id);
+    create_effect(move |_| log!("jam_id:{:?}", jam_id()));
+
+    let jam =
+        create_resource_with_initial_value(jam_id, get_jam, Some(Ok(Jam::default())));
 
     let (users, set_users) = create_signal(None);
     let (songs, set_songs) = create_signal(None::<Vec<Song>>);
@@ -160,20 +165,21 @@ pub fn HostPage() -> impl IntoView {
         });
     });
 
-    let close=Callback::new(move|_|{
+    let close = Callback::new(move |_| {
         close.get_untracked()(());
     });
     view! {
+        <Title text=move || {
+            jam
+                .get()
+                .map(|jam| jam.map(|jam| jam.name.clone()))
+                .unwrap_or(Ok(String::from("Host")))
+                .unwrap_or_default()
+        }/>
         <div class="host-page">
             <UsersBar close=close users kick_user/>
             <div class="center">
-                <Player
-                    host_id
-                    top_song_id
-                    reset_votes
-                    set_song_position
-                    set_current_song
-                />
+                <Player host_id top_song_id reset_votes set_song_position set_current_song/>
                 <SongList
                     songs
                     votes
@@ -188,7 +194,7 @@ pub fn HostPage() -> impl IntoView {
 
 #[server]
 async fn delete_jam(host_id: String) -> Result<(), ServerFnError> {
-    use crate::general::{self, check_id_type, AppState};
+    use crate::general::{self, check_id_type, notify, AppState};
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     let id = check_id_type(&host_id, pool).await?;
@@ -197,5 +203,18 @@ async fn delete_jam(host_id: String) -> Result<(), ServerFnError> {
         _ => return Err(ServerFnError::Request("id is not a host id".to_string())),
     };
     general::delete_jam(&id.jam_id, pool).await?;
+    notify(Changed::new().ended(), vec![], &id.jam_id, pool).await?;
+    leptos_axum::redirect("/");
     Ok(())
+}
+
+#[server]
+pub async fn get_jam(jam_id: String) -> Result<Jam, ServerFnError> {
+    use crate::general::functions::get_jam as get_jam_fn;
+    let app_state = expect_context::<AppState>();
+    let pool = &app_state.db.pool;
+    match get_jam_fn(&jam_id, pool).await {
+        Ok(jam) => Ok(jam),
+        Err(e) => Err(ServerFnError::Request(e.to_string())),
+    }
 }

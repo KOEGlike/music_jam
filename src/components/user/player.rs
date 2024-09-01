@@ -27,8 +27,14 @@ pub fn Player(
                 prop:src=move || current_song().map(|s| s.image_url).unwrap_or_default()
                 alt="the album cover of the current song"
             />
-
-            <div class="info" id="info">
+            <div
+                class="info"
+                id="info"
+                style:width={
+                    let children_is_some = children.is_some();
+                    move || if children_is_some { "320px" } else { "100%" }
+                }
+            >
                 <div
                     class="title"
                     id="title"
@@ -119,26 +125,34 @@ pub fn set_bg_img(url: &str) {
     .style()
     .set_property(
         "background-image", 
-        &format!("radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%), url({})", url)).unwrap();
+        &format!("radial-gradient(50vw 50vh at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%), url({})", url)).unwrap();
 }
 
 pub fn will_element_overflow(element_id: &str, parent_id: Option<&str>) -> bool {
     use web_sys::*;
     let document = window().unwrap().document().unwrap();
-    let element = document
-        .get_element_by_id(element_id)
-        .unwrap_or_else(|| panic!("element with id {} not found", element_id));
+    let element = match document.get_element_by_id(element_id) {
+        Some(element) => element,
+        None => {
+            error!("element with id {} not found", element_id);
+            return false;
+        }
+    };
 
     let parent_width = {
         if let Some(parent_id) = parent_id {
-            document
-                .get_element_by_id(parent_id)
-                .unwrap_or_else(|| panic!("parent element with class {} not found", parent_id))
+            match document.get_element_by_id(parent_id) {
+                Some(element) => element,
+                None => {
+                    error!("element with id {} not found", parent_id);
+                    return false;
+                }
+            }
         } else {
             element.parent_element().expect("the element has no parent")
         }
     }
-    .scroll_width();
+    .client_width();
 
     let is_overflowing = parent_width < element.client_width();
     log!(
@@ -156,10 +170,13 @@ pub fn get_width_of_element(id: &str) -> i32 {
     use web_sys::*;
     let document = window().unwrap().document().unwrap();
 
-    let width=document
-        .get_element_by_id(id)
-        .unwrap_or_else(|| panic!("element with id {} not found", id))
-        .scroll_width();
+    let width = match document.get_element_by_id(id) {
+        Some(element) => element.scroll_width(),
+        None => {
+            error!("element with id {} not found", id);
+            return 0;
+        }
+    };
     log!("width of element {} is {}", id, width);
     width
 }

@@ -1,9 +1,11 @@
+use super::host_page::get_jam;
 use crate::components::user::Player;
 use crate::components::{user::Search, SongList, SongListAction, UsersBar};
 use crate::general::{self, *};
 use codee::string::JsonSerdeWasmCodec;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
+use leptos_meta::Title;
 use leptos_router::*;
 use leptos_use::core::ConnectionReadyState;
 use leptos_use::{use_websocket, UseWebSocketReturn};
@@ -13,6 +15,7 @@ pub fn UserPage() -> impl IntoView {
     let params = use_params_map();
     let jam_id = move || params.with(|params| params.get("id").cloned());
     let jam_id = Signal::derive(move || jam_id().unwrap_or_default());
+    let jam = create_resource_with_initial_value(jam_id, get_jam, Some(Ok(Jam::default())));
     let (user_id, set_user_id) = create_signal(String::new());
     create_effect(move |_| {
         let navigator = use_navigate();
@@ -34,11 +37,7 @@ pub fn UserPage() -> impl IntoView {
     let (users, set_users) = create_signal(None);
     let (position, set_position) = create_signal(0.0);
     let (current_song, set_current_song) = create_signal(None);
-    let(ready_state, set_ready_state) = create_signal(ConnectionReadyState::Connecting);
-
-    create_effect(move |_|{
-        log!("position: {}", position());
-    });
+    let (ready_state, set_ready_state) = create_signal(ConnectionReadyState::Connecting);
 
     let (send_request, set_send_request) = create_signal(Callback::new(|_: real_time::Request| {
         warn!("wanted to send a message to ws, but the ws is not ready yet");
@@ -54,8 +53,34 @@ pub fn UserPage() -> impl IntoView {
     let search = Callback::new(search);
 
     let add_song = move |song_id: String| {
-        let request = real_time::Request::AddSong { song_id };
-        send_request.get_untracked()(request);
+        let your_song_count = songs()
+            .as_ref()
+            .map(|songs: &Vec<Song>| {
+                songs
+                    .iter()
+                    .filter(|song| {
+                        if let Some(id) = &song.user_id {
+                            user_id.with_untracked(|user_id| *id == *user_id)
+                        } else {
+                            false
+                        }
+                    })
+                    .count()
+            })
+            .unwrap_or(0);
+
+        if jam
+            .get()
+            .map(|jam| jam.map(|jam| jam.max_song_count))
+            .unwrap_or(Ok(0))
+            .unwrap_or_default()
+            > your_song_count as u8
+        {
+            let request = real_time::Request::AddSong { song_id };
+            send_request.get_untracked()(request);
+        } else {
+            warn!("You have reached the maximum song count");
+        }
     };
     let add_song = Callback::new(add_song);
 
@@ -114,7 +139,6 @@ pub fn UserPage() -> impl IntoView {
         let close_ws = Callback::new(move |_: ()| close_ws());
 
         create_effect(move |_| {
-            log!("Update: {:#?}", message());
             if let Some(real_time::Message::Update(update)) = message() {
                 if let Some(result) = update.search {
                     set_search_result(Some(result));
@@ -135,7 +159,7 @@ pub fn UserPage() -> impl IntoView {
                     set_current_song(song);
                 }
                 if update.ended.is_some() {
-                    close_ws(());
+                    //close_ws(());
                     let navigator = use_navigate();
                     navigator("/", NavigateOptions::default());
                 }
@@ -159,8 +183,14 @@ pub fn UserPage() -> impl IntoView {
     let close = Callback::new(move |_| {
         close()(());
     });
-    
+
     view! {
+        <Title text=move || {
+            jam.get()
+                .map(|jam| jam.map(|jam| jam.name.clone()))
+                .unwrap_or(Ok(String::from("User")))
+                .unwrap_or_default()
+        }/>
         <div class="user-page">
             <UsersBar users close/>
             <div class="center">

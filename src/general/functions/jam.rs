@@ -3,6 +3,17 @@ use leptos::logging::*;
 
 use super::notify;
 
+pub async fn get_jam(jam_id: &str, pool: &sqlx::PgPool) -> Result<Jam, sqlx::Error> {
+    let jam = sqlx::query!("SELECT * FROM jams WHERE id = $1", jam_id)
+        .fetch_one(pool)
+        .await?;
+    Ok(Jam {
+        id: jam.id,
+        name: jam.name,
+        max_song_count: jam.max_song_count as u8,
+    })
+}
+
 pub async fn create_host(
     code: String,
     host_id: String,
@@ -116,22 +127,38 @@ pub async fn delete_jam(
 }
 
 pub async fn create_jam(
-    name: String,
-    host_id: String,
+    name: &str,
+    host_id: &str,
     max_song_count: i16,
     pool: &sqlx::PgPool,
 ) -> Result<JamId, Error> {
     let jam_id = cuid2::CuidConstructor::new().with_length(6).create_id();
 
-    sqlx::query!(
+    let error = sqlx::query!(
         "INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)",
         &jam_id,
         &max_song_count,
-        &host_id,
-        &name
+        host_id,
+        name
     )
     .execute(pool)
-    .await?;
+    .await;
+    match error {
+        Ok(_) => (),
+        Err(sqlx::Error::Database(e)) => {
+            if e.message() == "duplicate key value violates unique constraint \"jams_host_id_key\""
+            {
+                let jam_id = sqlx::query!("SELECT id FROM jams WHERE host_id=$1", host_id)
+                    .fetch_one(pool)
+                    .await?
+                    .id;
+                return Err(Error::HostAlreadyInJam { jam_id });
+            }
+        }
+        Err(e) => {
+            return Err(e.into());
+        }
+    }
 
     tokio::spawn(occasional_notify(pool.clone(), jam_id.clone()));
 

@@ -21,7 +21,6 @@ pub async fn read(
                 break;
             }
         };
-        println!("message: {:#?}", message);
 
         let message: types::real_time::Message =
             match serde_json::from_str(&message.into_text().unwrap()) {

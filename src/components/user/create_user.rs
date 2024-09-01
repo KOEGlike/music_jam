@@ -9,8 +9,8 @@ async fn create_user(
     name: String,
     pfp_url: String,
 ) -> Result<String, ServerFnError> {
-    use crate::general::{functions::create_user as create_user_fn, types::AppState};
     use crate::general::notify;
+    use crate::general::{functions::create_user as create_user_fn, types::AppState};
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     match create_user_fn(&jam_id, &pfp_url, &name, pool).await {
@@ -24,11 +24,13 @@ async fn create_user(
 
 #[component]
 pub fn CreateUser(jam_id: String) -> impl IntoView {
-    let (image_url, set_image_url) = create_signal(String::from("data:"));
+    let (image_url, set_image_url) = create_signal(String::new());
+    let (camera_request_state, set_camera_request_state) =
+        create_signal(CameraRequestState::Asking);
     let video_id = "video";
     let camera = create_local_resource(
         || (),
-        move |_| async move { camera(set_image_url, video_id).await },
+        move |_| async move { camera(set_image_url, set_camera_request_state, video_id).await },
     );
     let take_picture = move || {
         camera.with(|take_pic| {
@@ -69,23 +71,188 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
     });
 
     view! {
-        <video id=video_id>"Video stream not available."</video>
-        <img id="photo" prop:src=image_url alt="The screen capture will appear in this box."/>
-        <button
-            id="capture-button"
-            on:click=move |_| {
-                take_picture();
-            }
-        >
+        <div class="create-user">
+            <div class="image-container">
+                <video
+                    style:display=move || {
+                        if image_url.with(|url| !url.is_empty()) { "none" } else { "inline " }
+                    }
 
-            {move || if camera.loading().get() { "Loading..." } else { "Take picture" }}
-        </button>
-        <button on:click=move |_| { create_user.dispatch(()) }>"Create User"</button>
-        <input type="text" placeholder="Name" on:input=move |ev| set_name(event_target_value(&ev))/>
+                    id=video_id
+                >
+                    "Video stream not available."
+                </video>
+                <img
+                    class="photo"
+                    style:display=move || {
+                        if image_url.with(|url| url.is_empty()) { "none" } else { "inline " }
+                    }
+
+                    prop:src=image_url
+                    alt="The screen capture will appear in this box."
+                />
+            </div>
+            <input
+                type="text"
+                class="text-input"
+                placeholder="Name"
+                on:input=move |ev| set_name(event_target_value(&ev))
+            />
+            <div class="buttons">
+                <button
+                    class="capture-button"
+                    style:display=move || {
+                        if image_url.with(|url| !url.is_empty()) { "none" } else { "inline " }
+                    }
+
+                    on:click=move |_| {
+                        if image_url.with(|url| url.is_empty()) {
+                            take_picture();
+                        }
+                    }
+                >
+
+                    {move || {
+                        if let CameraRequestState::Asking = camera_request_state.get() {
+                            view! {
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="1em"
+                                    height="1em"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle cx="18" cy="12" r="0">
+                                        <animate
+                                            attributeName="r"
+                                            begin=".67"
+                                            calcMode="spline"
+                                            dur="1.5s"
+                                            keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+                                            repeatCount="indefinite"
+                                            values="0;2;0;0"
+                                        ></animate>
+                                    </circle>
+                                    <circle cx="12" cy="12" r="0">
+                                        <animate
+                                            attributeName="r"
+                                            begin=".33"
+                                            calcMode="spline"
+                                            dur="1.5s"
+                                            keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+                                            repeatCount="indefinite"
+                                            values="0;2;0;0"
+                                        ></animate>
+                                    </circle>
+                                    <circle cx="6" cy="12" r="0">
+                                        <animate
+                                            attributeName="r"
+                                            begin="0"
+                                            calcMode="spline"
+                                            dur="1.5s"
+                                            keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+                                            repeatCount="indefinite"
+                                            values="0;2;0;0"
+                                        ></animate>
+                                    </circle>
+                                </svg>
+                            }
+                                .into_view()
+                        } else {
+                            view! {
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="100"
+                                    height="100"
+                                    viewBox="0 0 100 100"
+                                    fill="none"
+                                >
+                                    <path
+                                        d="M100 50C100 77.6142 77.6142 100 50 100C22.3858 100 0 77.6142 0 50C0 22.3858 22.3858 0 50 0C77.6142 0 100 22.3858 100 50ZM7.5 50C7.5 73.4721 26.5279 92.5 50 92.5C73.4721 92.5 92.5 73.4721 92.5 50C92.5 26.5279 73.4721 7.5 50 7.5C26.5279 7.5 7.5 26.5279 7.5 50Z"
+                                        fill="white"
+                                    ></path>
+                                </svg>
+                            }
+                                .into_view()
+                        }
+                    }}
+
+                </button>
+                <button
+                    class="clear-button"
+                    on:click=move |_| set_image_url(String::new())
+                    style:display=move || {
+                        if image_url.with(|url| url.is_empty()) { "none" } else { "inline " }
+                    }
+                >
+
+                    <svg
+                        viewBox="0 0 32 32"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        stroke="#ffffff"
+                    >
+                        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                        <g
+                            id="SVGRepo_tracerCarrier"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        ></g>
+                        <g id="SVGRepo_iconCarrier">
+                            <path
+                                stroke="#ffffff"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M8.5 23.5l15-15M23.5 23.5l-15-15"
+                            ></path>
+                        </g>
+                    </svg>
+                </button>
+                <button
+                    class="create-button"
+                    on:click=move |_| { create_user.dispatch(()) }
+                    style:display=move || {
+                        if image_url.with(|url| url.is_empty()) { "none" } else { "inline " }
+                    }
+                >
+
+                    <svg
+                        fill="#ffffff"
+                        viewBox="0 0 32 32"
+                        version="1.1"
+                        xmlns="http://www.w3.org/2000/svg"
+                        stroke="#ffffff"
+                        stroke-width="0.00032"
+                    >
+                        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                        <g
+                            id="SVGRepo_tracerCarrier"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        ></g>
+                        <g id="SVGRepo_iconCarrier">
+                            <title>checkmark2</title>
+                            <path d="M28.998 8.531l-2.134-2.134c-0.394-0.393-1.030-0.393-1.423 0l-12.795 12.795-6.086-6.13c-0.393-0.393-1.029-0.393-1.423 0l-2.134 2.134c-0.393 0.394-0.393 1.030 0 1.423l8.924 8.984c0.393 0.393 1.030 0.393 1.423 0l15.648-15.649c0.393-0.392 0.393-1.030 0-1.423z"></path>
+                        </g>
+                    </svg>
+                </button>
+            </div>
+        </div>
     }
 }
 
-async fn camera(image_url: WriteSignal<String>, video_id: &str) -> Result<impl Fn(), String> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CameraRequestState {
+    Denied,
+    Asking,
+    Granted,
+}
+
+async fn camera(
+    image_url: WriteSignal<String>,
+    camera_request_state: WriteSignal<CameraRequestState>,
+    video_id: &str,
+) -> Result<impl Fn(), String> {
     use wasm_bindgen::prelude::*;
     use wasm_bindgen_futures::JsFuture;
 
@@ -156,7 +323,6 @@ async fn camera(image_url: WriteSignal<String>, video_id: &str) -> Result<impl F
     let camera_constraints = web_sys::MediaStreamConstraints::new();
     camera_constraints.set_video(&JsValue::from(true));
     camera_constraints.set_audio(&JsValue::from(false));
-    
 
     let camera = match camera.get_user_media_with_constraints(&camera_constraints) {
         Ok(camera) => camera,
@@ -165,13 +331,16 @@ async fn camera(image_url: WriteSignal<String>, video_id: &str) -> Result<impl F
             return Err(format!("Error getting camera promise: {:?}", e));
         }
     };
+    camera_request_state.set(CameraRequestState::Asking);
     let camera = match JsFuture::from(camera).await {
         Ok(camera) => camera,
         Err(e) => {
+            camera_request_state.set(CameraRequestState::Denied);
             error!("Error resolving camera future: {:?}", e);
             return Err(format!("Error resolving camera future: {:?}", e));
         }
     };
+    camera_request_state.set(CameraRequestState::Granted);
     let camera = match camera.dyn_into::<MediaStream>() {
         Ok(camera) => camera,
         Err(e) => {

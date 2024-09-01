@@ -3431,8 +3431,8 @@ dependencies = [
 
 [[package]]
 name = "rust_spotify_web_playback_sdk"
-version = "0.2.0"
-source = "git+https://github.com/KOEGlike/rust_spotify_web_playback_sdk.git#9f7f45088ad345f5499181f7d10cc205f6d21c7c"
+version = "0.2.1"
+source = "git+https://github.com/KOEGlike/rust_spotify_web_playback_sdk.git#5c44d3c155c7c46ea62d6d2cfcca6b908fa5a5df"
 dependencies = [
  "js-sys",
  "nestify",
@@ -3440,6 +3440,7 @@ dependencies = [
  "serde-wasm-bindgen",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]

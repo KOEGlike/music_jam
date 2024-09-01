@@ -36,12 +36,17 @@ $element-heights: (
 
 $blur: blur(12px);
 
+body {
+	display: inline;
+}
+
 main{
 	width: 100vw;
 	height: 100vh;
 	margin: 0;
 	padding: 0;
 	border: none;
+	display: inline;
 }
 
 * {
@@ -52,28 +57,28 @@ main{
 }
 
 /* width */
-::-webkit-scrollbar {
+*::-webkit-scrollbar {
 	width: 5px;
 	height: 5px;
 	background-color: transparent;
 }
 
 /* Track */
-::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
 	box-shadow: none;
 	color: transparent;
 	background-color: transparent;
 }
 
 /* Handle */
-::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
 	background: map-get($colors, "glass" );
 	opacity: map-get($opacities, "bg" );
 	border-radius: 10px;
 }
 
 /* Handle on hover */
-::-webkit-scrollbar-thumb:hover {
+*::-webkit-scrollbar-thumb:hover {
 	opacity: map-get($opacities, "hover" );
 }
 

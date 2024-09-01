@@ -1,4 +1,4 @@
-use leptos::{logging::log, *};
+use leptos::{logging::log, prelude::*, *};
 use qrcode::render::svg;
 use qrcode::{EcLevel, QrCode, Version};
 
@@ -21,7 +21,6 @@ async fn save_to_clipboard(text: &str) {
 
 #[component]
 pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
-    
     let qr = move || {
         QrCode::with_version(jam_id(), Version::Normal(10), EcLevel::Q)
             .unwrap()
@@ -32,20 +31,18 @@ pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
             .light_color(svg::Color("#00000000"))
             .build()
     };
-    let qr = Signal::derive(qr);
-
-    let copy_to_clipboard = create_action(move |text: &String| {
-        let text = text.clone();
-        async move {
-            save_to_clipboard(&text).await;
-        }
-    });
 
     view! {
         <div class="share">
             <div inner_html=qr></div>
             {jam_id}
-            <button class="button" on:click=move |_| copy_to_clipboard.dispatch(jam_id())>
+            <button
+                class="button"
+                on:click=move |_| {
+                    jam_id.with_untracked(|id| log!("{}", id));
+                    spawn_local(async move { save_to_clipboard(&jam_id.get_untracked()).await });
+                }
+            >
                 "COPY"
             </button>
         </div>

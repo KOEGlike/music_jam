@@ -1,0 +1,55 @@
+@use "../defaults" as *;
+
+.create-user {
+    @extend .glass;
+    display: flex;
+    width: 350px;
+    height: 600px;
+    padding: 30px;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 40px;
+
+    >.image-container{
+        >*{
+            object-fit: cover;
+            object-position: center;
+            width: 300px;
+            height: 300px;
+            border-radius: 150px;
+        }
+    }
+
+    >.buttons{
+        display: flex;
+        gap:10px;
+        flex-direction: row;
+        align-items: center;
+        >button{
+            background: none;
+            border: none;
+            padding: none;
+            margin: none;
+
+            >svg{
+                width:100px;
+                height:100px;
+                fill: white;
+                opacity: 0.8;
+                transition: opacity 0.1s ease;
+            }
+
+            >svg:hover{
+                opacity: 1;
+            }
+        }
+        >.clear-button{
+            >svg{
+                width: 130px;
+                height: 130px;
+                
+            }
+        }
+    }
+}

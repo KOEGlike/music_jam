@@ -11,10 +11,7 @@ async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
     let app_state = expect_context::<AppState>();
 
     let host_id = cuid2::create_id();
-    let query = query!(
-        "INSERT INTO hosts(id) VALUES ($1)",
-        &host_id
-    );
+    let query = query!("INSERT INTO hosts(id) VALUES ($1)", &host_id);
     let pool = app_state.db.pool;
     query.execute(&pool).await?;
     redirect(
@@ -35,29 +32,16 @@ async fn create_jam(
     host_id: String,
     max_song_count: i16,
 ) -> Result<JamId, ServerFnError> {
-    use crate::general::AppState;
-    use sqlx::*;
+    use crate::general::{AppState, create_jam, Error};
     let app_state = expect_context::<AppState>();
 
-    let jam_id = cuid2::CuidConstructor::new().with_length(6).create_id();
+    
 
-    let query = query!(
-        "INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)",
-        &jam_id,
-        &max_song_count,
-        &host_id,
-        &name
-    );
-    let pool = app_state.db.pool;
-    let result = query.execute(&pool).await;
-
-    if let Err(e) = result {
-        let query = query!("DELETE FROM hosts WHERE id = $1", &host_id);
-        query.execute(&pool).await?;
-        return Err(ServerFnError::from(e));
-    }
-
-    Ok(jam_id)
+     match create_jam(&name, &host_id, max_song_count, &app_state.db.pool).await {
+        Ok(jam_id) => Ok(jam_id),
+        Err(Error::HostAlreadyInJam { jam_id }) => Ok(jam_id),
+        Err(e) => Err(ServerFnError::Request(format!("Error creating jam: {:#?}", e))),
+     }
 }
 
 #[component]
@@ -85,15 +69,17 @@ pub fn CreateIsland() -> impl IntoView {
 
     let create = create_action(move |_: &()| {
         let name = name();
-        let navigate = use_navigate();
         let max_song_count = max_song_count();
         async move {
             match LocalStorage::get::<String>("host_id") {
                 Ok(host_id) => match create_jam(name, host_id, max_song_count).await {
-                    Ok(jam_id) => navigate(
-                        format!("/jam/host/{}", jam_id).as_str(),
-                        NavigateOptions::default(),
-                    ),
+                    Ok(jam_id) => {
+                        let navigate = use_navigate();
+                        navigate(
+                            format!("/jam/host/{}", jam_id).as_str(),
+                            NavigateOptions::default(),
+                        );
+                    }
                     Err(e) => {
                         set_error_message(format!("Error creating jam: {}", e));
                         set_show_dialog(true);
@@ -141,6 +127,7 @@ pub fn CreateIsland() -> impl IntoView {
                         on:input=move |ev| set_max_song_count(
                             event_target_value(&ev).parse().unwrap_or(0),
                         )
+
                         placeholder="ex. 10"
                         class="text-input"
                         id="create-jam-max-songs"

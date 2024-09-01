@@ -4,7 +4,11 @@ use leptos::logging::*;
 use rspotify::model::TrackId;
 use std::collections::HashMap;
 
-pub async fn remove_song(song_id: &str, id: &IdType, pool: &sqlx::PgPool) -> Result<real_time::Changed, Error> {
+pub async fn remove_song(
+    song_id: &str,
+    id: &IdType,
+    pool: &sqlx::PgPool,
+) -> Result<real_time::Changed, Error> {
     if let IdType::User(id) = id {
         let song_user_id = sqlx::query!(
             "SELECT * FROM songs WHERE id=$1 AND user_id=$2",
@@ -132,6 +136,21 @@ pub async fn add_song(
     use rspotify::AuthCodeSpotify;
     log!("adding song, with id: {}", song_id);
 
+    let amount_of_songs = sqlx::query!("SELECT COUNT(*) FROM songs WHERE user_id=$1", user_id)
+        .fetch_one(pool)
+        .await?
+        .count
+        .unwrap_or(0);
+
+    let max_amount_of_songs = sqlx::query!("SELECT max_song_count FROM jams WHERE id=$1", jam_id)
+        .fetch_one(pool)
+        .await?
+        .max_song_count;
+
+    if amount_of_songs as i16 >= max_amount_of_songs {
+        return Err(Error::UserHasTooTheMaxSongAmount);
+    }
+
     let token = get_access_token(pool, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let track_id = TrackId::from_id(song_id)?;
@@ -159,4 +178,3 @@ pub async fn add_song(
 
     Ok(real_time::Changed::new().songs())
 }
-

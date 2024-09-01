@@ -118,7 +118,14 @@ fn SearchTest() -> impl IntoView {
         id: "lol".to_string(),
         user_id: None,
         name: "Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy".to_string(),
-        artists: vec!["Beatles".to_string(),"Beatles".to_string(),"Beatles".to_string(),"Beatles".to_string(),"Beatles".to_string(),"Beatles".to_string(),],
+        artists: vec![
+            "Beatles".to_string(),
+            "Beatles".to_string(),
+            "Beatles".to_string(),
+            "Beatles".to_string(),
+            "Beatles".to_string(),
+            "Beatles".to_string(),
+        ],
         album: "Help!".to_string(),
         duration: 240,
         image_url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
@@ -174,3 +181,64 @@ fn UserPlayerTest() -> impl IntoView {
     view! { <Player position current_song/> }
 }
 
+#[component]
+fn Player() -> impl IntoView {
+    use leptos::logging::log;
+    use rust_spotify_web_playback_sdk::prelude as sp;
+
+    let (current_song_name, set_current_song_name) = create_signal(String::new());
+
+    let token = "BQAZ4oo4rm2B6DVW7SSrBgN9k9K6jw3Nk0UHKXnz9W1HU-oPWWPdXd3j7KjKFtO0dr399QrjEG-HkBd_dpEJi5VtijInn_WPPaffGK3TNHSnBxIiaeudshoGz3gDJsVpZNbqocpVc-7CCCe1kb0jGnDCLE2HpvWJYnkNR2w2pkkuxTedEg0KhfW40Ejs8tKyE7AsJS1oPeGIkmheR2p9SaIxn08C3ztxMXoi";
+
+    let connect = create_action(|_| async {
+        match sp::connect().await {
+            Ok(_) => log!("connected"),
+            Err(e) => log!("error {:?}", e),
+        };
+    });
+
+    create_effect(move |_| {
+        sp::init(
+            || {
+                log!("oauth was called");
+                token.to_string()
+            },
+            move || {
+                log!("ready");
+                connect.dispatch(());
+
+                sp::add_listener!("player_state_changed", move |state: sp::StateChange| {
+                    log!("state changed: {:#?}", state);
+                    set_current_song_name(state.track_window.current_track.name);
+                }).unwrap();
+            },
+            "example player",
+            1.0,
+            false,
+        );
+    });
+
+    let get_state = create_action(|_| async {
+        let state = sp::get_current_state().await.unwrap();
+        log!("state: {:#?}", state);
+    });
+
+    let activate_player = create_action(|_| async { sp::activate_element().await });
+
+    view! {
+        <h1>"Welcome to Leptos"</h1>
+        <button on:click=move |_| activate_player.dispatch(())>"activate player"</button>
+
+        {move || match activate_player.value().get() {
+            Some(Ok(_)) => {
+                view! {
+                    <button on:click=move |_| get_state.dispatch(())>"log state in console"</button>
+                    <p>"Current song: " {current_song_name}</p>
+                }
+                    .into_view()
+            }
+            Some(Err(e)) => view! { <p>"Error activating player: " {e}</p> }.into_view(),
+            None => view! { <p>"Activating player..."</p> }.into_view(),
+        }}
+    }
+}

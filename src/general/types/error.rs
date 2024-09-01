@@ -10,6 +10,8 @@ pub enum Error {
     Forbidden(String),
     FileSystem(String),
     InvalidRequest(String),
+    HostAlreadyInJam{jam_id:String},
+    UserHasTooTheMaxSongAmount,
 }
 
 impl Error {
@@ -23,6 +25,8 @@ impl Error {
             Error::Spotify(_) => 4500,
             Error::FileSystem(_) => 4500,
             Error::InvalidRequest(_) => 4400,
+            Error::HostAlreadyInJam{..} => 4400,
+            Error::UserHasTooTheMaxSongAmount => 4400,
         }
     }
 }
@@ -38,6 +42,8 @@ impl From<Error> for String {
             Error::Spotify(s) => s,
             Error::FileSystem(s) => s,
             Error::InvalidRequest(s) => s,
+            Error::HostAlreadyInJam{jam_id} => format!("Host is already in jam with id: {}", jam_id),
+            Error::UserHasTooTheMaxSongAmount => "User has too the max song amount".to_string(),
         }
     }
 }
@@ -76,6 +82,6 @@ impl Error {
 #[cfg(feature = "ssr")]
 impl From<sqlx::Error> for Error {
     fn from(e: sqlx::Error) -> Self {
-        Error::Database(e.to_string())
+        Error::Database(format!("sqlx error: {:?}", e))
     }
 }
