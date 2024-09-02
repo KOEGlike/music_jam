@@ -1,3 +1,4 @@
+use crate::components::create;
 use crate::components::{host::Player, Share, SongList, SongListAction, UsersBar};
 use crate::general::types::*;
 use codee::string::JsonSerdeWasmCodec;
@@ -31,8 +32,19 @@ pub fn HostPage() -> impl IntoView {
         move || use_params_map().with(|params| params.get("id").cloned().unwrap_or_default());
     create_effect(move |_| log!("jam_id:{:?}", jam_id()));
 
-    let jam =
-        create_resource_with_initial_value(jam_id, get_jam, Some(Ok(Jam::default())));
+    let jam = create_action(move |_: &()| async move {
+        let jam_id = jam_id();
+
+        get_jam(jam_id).await
+    });
+    create_effect(move |_| jam.dispatch(()));
+    create_effect(move |_| {
+        if let Some(jam_val) = jam.value().get() {
+            if jam_val.is_err() {
+                jam.dispatch(());
+            }
+        }
+    });
 
     let (users, set_users) = create_signal(None);
     let (songs, set_songs) = create_signal(None::<Vec<Song>>);
@@ -171,7 +183,7 @@ pub fn HostPage() -> impl IntoView {
     view! {
         <Title text=move || {
             jam
-                .get()
+                .value()()
                 .map(|jam| jam.map(|jam| jam.name.clone()))
                 .unwrap_or(Ok(String::from("Host")))
                 .unwrap_or_default()
@@ -185,7 +197,15 @@ pub fn HostPage() -> impl IntoView {
                     votes
                     request_update
                     song_list_action=SongListAction::Remove(remove_song)
+                    max_song_count=Signal::derive(move || {
+                        jam
+                            .value()()
+                            .map(|jam| jam.map(|jam| jam.max_song_count))
+                            .unwrap_or(Ok(0))
+                            .unwrap_or_default()
+                    })
                 />
+
                 <Share jam_id/>
             </div>
         </div>
@@ -211,6 +231,7 @@ async fn delete_jam(host_id: String) -> Result<(), ServerFnError> {
 #[server]
 pub async fn get_jam(jam_id: String) -> Result<Jam, ServerFnError> {
     use crate::general::functions::get_jam as get_jam_fn;
+    use crate::general::AppState;
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     match get_jam_fn(&jam_id, pool).await {

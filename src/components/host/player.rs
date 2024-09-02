@@ -47,7 +47,6 @@ pub fn Player(
                 have_you_voted: None,
             },
         }));
-        reset_votes(());
     };
 
     let token = {
@@ -173,7 +172,7 @@ pub fn Player(
                 if let Some(song_id) = top_song_id.get() {
                     play_song.dispatch((song_id.clone(), host_id.clone()));
                     set_global_current_song(song_id);
-                    //reset_votes(());
+                    reset_votes(());
                 } else {
                     toggle_play.dispatch(());
                 }
@@ -267,6 +266,7 @@ async fn change_playback_device(device_id: String, host_id: String) -> Result<()
 #[server]
 async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnError> {
     use crate::general::*;
+    
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     let credentials = app_state.spotify_credentials;

@@ -35,6 +35,7 @@ pub fn Player(
                     move || if children_is_some { "320px" } else { "100%" }
                 }
             >
+
                 <div
                     class="title"
                     id="title"
@@ -54,10 +55,12 @@ pub fn Player(
                         } else {
                             false
                         };
-                        current_song()
-                            .map(|s| s.name.clone())
-                            .unwrap_or_default()
-                            .repeat({ if is_overflowing { 2 } else { 1 } })
+                        std::iter::repeat(
+                                current_song().map(|s| s.name.clone()).unwrap_or_default(),
+                            )
+                            .take(if is_overflowing { 2 } else { 1 })
+                            .collect::<Vec<String>>()
+                            .join(" ")
                     }}
 
                 </div>
@@ -83,7 +86,10 @@ pub fn Player(
                         } else {
                             false
                         };
-                        artists.repeat({ if is_overflowing { 2 } else { 1 } })
+                        std::iter::repeat(artists)
+                            .take(if is_overflowing { 2 } else { 1 })
+                            .collect::<Vec<String>>()
+                            .join(" ")
                     }}
 
                 </div>

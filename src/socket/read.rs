@@ -2,6 +2,7 @@ use super::handle_error;
 use crate::general::*;
 use axum::extract::ws::{self, WebSocket};
 use futures_util::{stream::SplitStream, StreamExt};
+use real_time::SearchResult;
 use tokio::sync::mpsc;
 
 pub async fn read(
@@ -128,7 +129,7 @@ pub async fn read(
                     handle_error(e.into(), false, &sender).await;
                 }
             }
-            real_time::Request::Search { query } => {
+            real_time::Request::Search { query , id: search_id} => {
                 let id = match only_user(
                     &id,
                     "Only users can search, this is a bug, terminating socket connection",
@@ -149,7 +150,7 @@ pub async fn read(
                 };
 
                 let update =
-                    types::real_time::Message::Update(real_time::Update::new().search(songs));
+                    types::real_time::Message::Update(real_time::Update::new().search(SearchResult{ songs, search_id }));
                 let message = serde_json::to_string(&update).unwrap();
                 let message = ws::Message::Text(message);
                 if let Err(e) = sender.send(message).await {

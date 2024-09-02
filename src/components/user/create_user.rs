@@ -1,3 +1,4 @@
+use crate::components::{create, user::set_bg_img};
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::error, prelude::*, *};
 use leptos_router::*;
@@ -68,6 +69,12 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 Err(e) => error!("Error creating user: {:?}", e),
             }
         };
+    });
+
+    create_effect(move |_| {
+        image_url.with(|url| {
+            set_bg_img(url);
+        })
     });
 
     view! {

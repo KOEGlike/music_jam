@@ -7,6 +7,9 @@ pub use update::*;
 mod request;
 pub use request::*;
 
+pub mod search;
+pub use search::*;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Message{
     Request(Request),

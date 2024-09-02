@@ -46,8 +46,8 @@ pub fn UserPage() -> impl IntoView {
         warn!("wanted to close ws, but the ws is not ready yet");
     }));
 
-    let search = move |query: String| {
-        let request = real_time::Request::Search { query };
+    let search = move |query_id: (String, String)| {
+        let request = real_time::Request::Search { query:query_id.0, id:query_id.1 };
         send_request.get_untracked()(request);
     };
     let search = Callback::new(search);
@@ -209,6 +209,13 @@ pub fn UserPage() -> impl IntoView {
                         remove_vote,
                         remove_song,
                     }
+
+                    max_song_count=Signal::derive(move || {
+                        jam.get()
+                            .map(|jam| jam.map(|jam| jam.max_song_count))
+                            .unwrap_or(Ok(0))
+                            .unwrap_or_default()
+                    })
                 />
 
                 <Player position current_song/>

@@ -1,4 +1,5 @@
 use crate::general;
+use crate::general::real_time::SearchResult;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -144,8 +145,17 @@ fn SearchTest() -> impl IntoView {
         }
         songs
     };
-    let (search_result, _) = create_signal(Some(songs));
-    let search = move |id| log!("search with id:{}", id);
+    let (search_result, set_search_result) = create_signal(Some(SearchResult {
+        search_id: "lol".to_string(),
+        songs:songs.clone(),
+    }));
+    let search = move |id: (String, String)| {
+        set_search_result(Some(SearchResult {
+            songs:songs.clone(),
+            search_id: id.1,
+        }));
+        log!("search with id:{}", id.0)
+    };
     let search = Callback::from(search);
 
     let add_song = move |id| log!("add with id:{}", id);
@@ -210,7 +220,8 @@ fn Player() -> impl IntoView {
                 sp::add_listener!("player_state_changed", move |state: sp::StateChange| {
                     log!("state changed: {:#?}", state);
                     set_current_song_name(state.track_window.current_track.name);
-                }).unwrap();
+                })
+                .unwrap();
             },
             "example player",
             1.0,

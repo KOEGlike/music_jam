@@ -2,6 +2,7 @@
 use crate::general::functions;
 use crate::general::types::*;
 use serde::{Deserialize, Serialize};
+use super::SearchResult;
 
 /// The update that is sent to the client
 /// if the field is some then it was updated
@@ -12,7 +13,7 @@ pub struct Update {
     pub songs: Option<Vec<Song>>,
     pub errors: Vec<Error>,
     pub votes: Option<Votes>,
-    pub search: Option<Vec<Song>>,
+    pub search: Option<SearchResult>,
     pub ended: Option<()>,
     /// the percentage of the current song
     pub position: Option<f32>,
@@ -81,7 +82,7 @@ impl Update {
         }
     }
 
-    pub fn search(self, search: Vec<Song>) -> Self {
+    pub fn search(self, search: SearchResult) -> Self {
         Self {
             search: Some(search),
             ..self
