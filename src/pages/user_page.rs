@@ -1,21 +1,41 @@
 use super::host_page::get_jam;
-use crate::components::user::Player;
-use crate::components::{user::Search, SongList, SongListAction, UsersBar};
+use crate::components::{user::{Search,Player}, SongList, SongListAction, UsersBar};
 use crate::general::{self, *};
 use codee::string::JsonSerdeWasmCodec;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
 use leptos_meta::Title;
 use leptos_router::*;
-use leptos_use::core::ConnectionReadyState;
-use leptos_use::{use_websocket, UseWebSocketReturn};
+use leptos_use::{use_websocket, UseWebSocketReturn, core::ConnectionReadyState};
 
 #[component]
 pub fn UserPage() -> impl IntoView {
-    let params = use_params_map();
-    let jam_id = move || params.with(|params| params.get("id").cloned());
-    let jam_id = Signal::derive(move || jam_id().unwrap_or_default());
-    let jam = create_resource_with_initial_value(jam_id, get_jam, Some(Ok(Jam::default())));
+    let jam_id = move || use_params_map().with(|params| params.get("id").cloned());
+    let jam_id = Signal::derive(jam_id);
+    let (jam_id_new, set_jam_id) = create_signal(String::new());
+    create_effect(move |_| {
+        let jam_id = jam_id();
+        if let Some(jam_id) = jam_id {
+            set_jam_id(jam_id);
+        }
+    });
+    create_effect(move |_| log!("jam_id:{:?}", jam_id()));
+    let jam_id = jam_id_new;
+
+    let jam = create_action(move |_: &()| async move {
+        let jam_id = jam_id.get_untracked();
+        get_jam(jam_id).await
+    });
+
+    create_effect(move |_| jam.dispatch(()));
+    create_effect(move |_| {
+        if let Some(jam_val) = jam.value().get() {
+            if jam_val.is_err() {
+                jam.dispatch(());
+            }
+        }
+    });
+
     let (user_id, set_user_id) = create_signal(String::new());
     create_effect(move |_| {
         let navigator = use_navigate();
@@ -47,7 +67,10 @@ pub fn UserPage() -> impl IntoView {
     }));
 
     let search = move |query_id: (String, String)| {
-        let request = real_time::Request::Search { query:query_id.0, id:query_id.1 };
+        let request = real_time::Request::Search {
+            query: query_id.0,
+            id: query_id.1,
+        };
         send_request.get_untracked()(request);
     };
     let search = Callback::new(search);
@@ -70,7 +93,7 @@ pub fn UserPage() -> impl IntoView {
             .unwrap_or(0);
 
         if jam
-            .get()
+            .value().get()
             .map(|jam| jam.map(|jam| jam.max_song_count))
             .unwrap_or(Ok(0))
             .unwrap_or_default()
@@ -186,7 +209,7 @@ pub fn UserPage() -> impl IntoView {
 
     view! {
         <Title text=move || {
-            jam.get()
+            jam.value().get()
                 .map(|jam| jam.map(|jam| jam.name.clone()))
                 .unwrap_or(Ok(String::from("User")))
                 .unwrap_or_default()
@@ -211,7 +234,7 @@ pub fn UserPage() -> impl IntoView {
                     }
 
                     max_song_count=Signal::derive(move || {
-                        jam.get()
+                        jam.value().get()
                             .map(|jam| jam.map(|jam| jam.max_song_count))
                             .unwrap_or(Ok(0))
                             .unwrap_or_default()

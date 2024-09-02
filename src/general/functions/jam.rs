@@ -4,7 +4,7 @@ use leptos::logging::*;
 use super::notify;
 
 pub async fn get_jam(jam_id: &str, pool: &sqlx::PgPool) -> Result<Jam, sqlx::Error> {
-    let jam = sqlx::query!("SELECT * FROM jams WHERE id = $1", jam_id)
+    let jam = sqlx::query!("SELECT * FROM jams WHERE id = $1", jam_id.to_lowercase())
         .fetch_one(pool)
         .await?;
     Ok(Jam {
@@ -132,7 +132,7 @@ pub async fn create_jam(
     max_song_count: i16,
     pool: &sqlx::PgPool,
 ) -> Result<JamId, Error> {
-    let jam_id = cuid2::CuidConstructor::new().with_length(6).create_id();
+    let jam_id = cuid2::CuidConstructor::new().with_length(6).create_id().to_lowercase();
 
     let error = sqlx::query!(
         "INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)",

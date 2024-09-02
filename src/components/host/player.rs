@@ -40,7 +40,7 @@ pub fn Player(
             name: current_song.name,
             artists: current_song.artists.into_iter().map(|a| a.name).collect(),
             album: current_song.album.name,
-            duration: current_song.duration_ms as u32,
+            duration: current_song.duration_ms,
             image_url: current_song.album.images.remove(0).url,
             votes: general::Vote {
                 votes: 0,

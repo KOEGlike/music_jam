@@ -1,5 +1,5 @@
 use crate::components::{Song, SongAction};
-use crate::general::{self, Vote};
+use crate::general::{self, Vote, *};
 use leptos::{logging::log, prelude::*, *};
 
 #[derive(Clone, Debug, Copy)]
@@ -58,6 +58,7 @@ where
             if let SongListAction::Remove(_) = song_list_action {
                 songs.sort_by_key(|song| song.votes.votes);
             }
+            let songs = songs.into_iter().rev().collect::<Vec<_>>();
             Some(songs)
         } else {
             None
@@ -66,6 +67,26 @@ where
     let songs = Signal::derive(songs);
     create_effect(move |_| {
         log!("votes: {:#?}", votes());
+    });
+    create_effect(move |_| {
+        log!("songs: {:#?}", songs());
+    });
+
+    let your_songs = Signal::derive(move || {
+        songs().map(|songs| {
+            songs
+                .into_iter()
+                .filter(|song| song.user_id.is_some())
+                .collect::<Vec<types::Song>>()
+        })
+    });
+    let others_songs = Signal::derive(move || {
+        songs().map(|songs| {
+            songs
+                .into_iter()
+                .filter(|song| song.user_id.is_none())
+                .collect::<Vec<types::Song>>()
+        })
     });
 
     view! {
@@ -88,7 +109,7 @@ where
                             {move || {
                                 format!(
                                     "Add ({} / {})",
-                                    songs().unwrap_or_default().len(),
+                                    your_songs().unwrap_or_default().len(),
                                     max_song_count(),
                                 )
                             }}
@@ -121,28 +142,35 @@ where
                 }}
                 <div style:display=move || if !button_state() { "flex" } else { "none" }>
                     <For
-                        each=move || {
-                            songs()
-                                .unwrap_or_default()
-                                .into_iter()
-                                .filter(|song| song.user_id.is_none())
-                                .enumerate()
-                        }
+                        each=move || { others_songs().unwrap_or_default().into_iter() }
 
-                        key=|(_, song)| song.id.clone()
-                        children=move |(index, song)| {
+                        key=|song| song.id.clone()
+                        children=move |song| {
+                            let id = song.id.clone();
                             let votes = create_memo(move |_| {
-                                songs
+                                others_songs
                                     .with(|songs| {
                                         {
                                             songs
                                                 .as_ref()
                                                 .map(|songs| {
-                                                    songs.get(index).map(|s| s.votes).unwrap_or_default()
+                                                    songs
+                                                        .iter()
+                                                        .filter(|s| s.id == id)
+                                                        .map(|s| s.votes)
+                                                        .next()
+                                                        .unwrap_or(Vote {
+                                                            votes: 69,
+                                                            have_you_voted: None,
+                                                        })
                                                 })
                                         }
                                             .unwrap_or_default()
                                     })
+                            });
+                            let name = song.name.clone();
+                            create_effect(move |_| {
+                                log!("votes: {:#?}, song name:{}", votes(), name);
                             });
                             let song_action = match song_list_action {
                                 SongListAction::Vote { add_vote, remove_vote, .. } => {
@@ -166,25 +194,28 @@ where
 
                 </div> <div style:display=move || if button_state() { "flex" } else { "none" }>
                     <For
-                        each=move || {
-                            songs()
-                                .unwrap_or_default()
-                                .into_iter()
-                                .filter(|song| song.user_id.is_some())
-                                .enumerate()
-                        }
+                        each=move || { your_songs().unwrap_or_default().into_iter() }
 
-                        key=|(_, song)| song.id.clone()
-                        children=move |(index, song)| {
+                        key=|song| song.id.clone()
+                        children=move |song| {
                             if let SongListAction::Vote { remove_song, .. } = song_list_action {
+                                let id = song.id.clone();
                                 let votes = create_memo(move |_| {
-                                    songs
+                                    your_songs
                                         .with(|songs| {
                                             {
                                                 songs
                                                     .as_ref()
                                                     .map(|songs| {
-                                                        songs.get(index).map(|s| s.votes).unwrap_or_default()
+                                                        songs
+                                                            .iter()
+                                                            .filter(|s| s.id == id)
+                                                            .map(|s| s.votes)
+                                                            .next()
+                                                            .unwrap_or(Vote {
+                                                                votes: 69,
+                                                                have_you_voted: None,
+                                                            })
                                                     })
                                             }
                                                 .unwrap_or_default()

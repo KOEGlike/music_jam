@@ -120,10 +120,16 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                if let Err(error) = remove_vote(&song_id, id, pool).await {
-                    handle_error(error, false, &sender).await;
+                match remove_vote(&song_id, id, pool).await {
+                    Ok(changed_new) => {
+                        changed = changed.merge_with_other(changed_new);
+                    }
+                    Err(e) => {
+                        errors.push(e);
+                    }
                 };
-            }
+                }
+            
             real_time::Request::Update => {
                 if let Err(e) = notify(real_time::Changed::all(), errors.clone(), id.jam_id(), pool).await {
                     handle_error(e.into(), false, &sender).await;

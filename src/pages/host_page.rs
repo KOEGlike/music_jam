@@ -1,4 +1,3 @@
-use crate::components::create;
 use crate::components::{host::Player, Share, SongList, SongListAction, UsersBar};
 use crate::general::types::*;
 use codee::string::JsonSerdeWasmCodec;
@@ -28,12 +27,20 @@ pub fn HostPage() -> impl IntoView {
         set_host_id(host_id);
     });
 
-    let jam_id =
-        move || use_params_map().with(|params| params.get("id").cloned().unwrap_or_default());
+    let jam_id = move || use_params_map().with(|params| params.get("id").cloned());
+    let jam_id = Signal::derive(jam_id);
+    let (jam_id_new, set_jam_id) = create_signal(String::new());
+    create_effect(move |_| {
+        let jam_id = jam_id();
+        if let Some(jam_id) = jam_id {
+            set_jam_id(jam_id);
+        }
+    });
     create_effect(move |_| log!("jam_id:{:?}", jam_id()));
+    let jam_id = jam_id_new;
 
     let jam = create_action(move |_: &()| async move {
-        let jam_id = jam_id();
+        let jam_id = jam_id.get_untracked();
 
         get_jam(jam_id).await
     });

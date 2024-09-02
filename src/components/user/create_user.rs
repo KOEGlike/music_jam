@@ -1,4 +1,4 @@
-use crate::components::{create, user::set_bg_img};
+use crate::components::user::set_bg_img;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::error, prelude::*, *};
 use leptos_router::*;
@@ -34,16 +34,25 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
         move |_| async move { camera(set_image_url, set_camera_request_state, video_id).await },
     );
     let take_picture = move || {
-        camera.with(|take_pic| {
-            if let Some(take_pic) = take_pic {
-                match take_pic {
-                    Ok(take_pic) => take_pic(),
+        camera.with(|response| {
+            if let Some(response) = response {
+                match response {
+                    Ok(response) => (response.take_picture)(),
                     Err(e) => error!("Error taking picture: {:?}", e),
                 }
             }
         })
     };
-
+    let close_camera = move || {
+        camera.with(|response| {
+            if let Some(response) = response {
+                match response {
+                    Ok(response) => (response.close_camera)(),
+                    Err(e) => error!("Error taking picture: {:?}", e),
+                }
+            }
+        })
+    };
     let (name, set_name) = create_signal(String::new());
 
     let create_user = create_action({
@@ -217,7 +226,10 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 </button>
                 <button
                     class="create-button"
-                    on:click=move |_| { create_user.dispatch(()) }
+                    on:click=move |_| {
+                        create_user.dispatch(());
+                        close_camera();
+                    }
                     style:display=move || {
                         if image_url.with(|url| url.is_empty()) { "none" } else { "inline " }
                     }
@@ -255,11 +267,16 @@ enum CameraRequestState {
     Granted,
 }
 
+struct CameraResponse {
+    take_picture: Box<dyn Fn()>,
+    close_camera: Box<dyn Fn()>,
+}
+
 async fn camera(
     image_url: WriteSignal<String>,
     camera_request_state: WriteSignal<CameraRequestState>,
     video_id: &str,
-) -> Result<impl Fn(), String> {
+) -> Result<CameraResponse, String> {
     use wasm_bindgen::prelude::*;
     use wasm_bindgen_futures::JsFuture;
 
@@ -378,21 +395,37 @@ async fn camera(
         }
     };
 
-    let capture = Box::new(move || {
-        canvas.set_width(video.video_width());
-        canvas.set_height(video.video_height());
-        context
-            .draw_image_with_html_video_element_and_dw_and_dh(
-                &video,
-                0.0,
-                0.0,
-                video.video_width() as f64,
-                video.video_height() as f64,
-            )
-            .unwrap();
-        let data_url = canvas.to_data_url_with_type("image/webp").unwrap();
-        image_url(data_url.clone());
+    let capture = {
+        let video = video.clone();
+        Box::new(move || {
+            canvas.set_width(video.video_width());
+            canvas.set_height(video.video_height());
+            context
+                .draw_image_with_html_video_element_and_dw_and_dh(
+                    &video,
+                    0.0,
+                    0.0,
+                    video.video_width() as f64,
+                    video.video_height() as f64,
+                )
+                .unwrap();
+            let data_url = canvas.to_data_url_with_type("image/webp").unwrap();
+            image_url(data_url.clone());
+        })
+    };
+
+    let close_camera = Box::new(move || {
+        video.pause().unwrap();
+        video.set_src("");
+        video.set_src_object(None);
+        camera.get_tracks().iter().for_each(|track| {
+            let track = track.dyn_into::<web_sys::MediaStreamTrack>().unwrap();
+            track.stop();
+        });
     });
 
-    Ok(capture)
+    Ok(CameraResponse {
+        take_picture: capture,
+        close_camera,
+    })
 }

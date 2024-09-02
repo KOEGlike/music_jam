@@ -31,6 +31,8 @@ pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
             .light_color(svg::Color("#00000000"))
             .build()
     };
+    let jam_id=move||jam_id().to_uppercase();
+    let jam_id = Signal::derive(jam_id);
 
     view! {
         <div class="share">

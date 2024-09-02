@@ -118,7 +118,7 @@ pub async fn create_user(
     sqlx::query!(
         "INSERT INTO users(id, jam_id, name) VALUES ($1, $2, $3)",
         user_id,
-        jam_id,
+        jam_id.to_lowercase(),
         name,
     )
     .execute(pool)
