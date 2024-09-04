@@ -248,7 +248,7 @@ pub async fn get_current_song(
 }
 
 pub async fn set_current_song(
-    song_id: String,
+    song_id: &str,
     id: &IdType,
     pool: &sqlx::PgPool,
 ) -> Result<real_time::Changed, Error> {

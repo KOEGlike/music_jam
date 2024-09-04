@@ -1,6 +1,6 @@
 use crate::components::{host::Player, Share, SongList, SongListAction, UsersBar};
 use crate::general::types::*;
-use codee::string::JsonSerdeWasmCodec;
+use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
 use leptos_meta::Title;
@@ -53,6 +53,8 @@ pub fn HostPage() -> impl IntoView {
         }
     });
 
+   
+
     let (users, set_users) = create_signal(None);
     let (songs, set_songs) = create_signal(None::<Vec<Song>>);
     let (votes, set_votes) = create_signal(Votes::new());
@@ -64,23 +66,6 @@ pub fn HostPage() -> impl IntoView {
         warn!("wanted to close ws, but the ws is not ready yet");
     }));
 
-    let top_song_id = move || match songs() {
-        Some(songs) => songs
-            .iter()
-            .max_by_key(|song| {
-                votes()
-                    .get(&song.id)
-                    .copied()
-                    .unwrap_or(Vote {
-                        votes: 0,
-                        have_you_voted: None,
-                    })
-                    .votes
-            })
-            .map(|song| song.id.clone()),
-        None => None,
-    };
-    let top_song_id = Signal::derive(top_song_id);
 
     let remove_song = move |id| {
         let request = real_time::Request::RemoveSong { song_id: id };
@@ -99,17 +84,11 @@ pub fn HostPage() -> impl IntoView {
     };
     let kick_user = Callback::new(kick_user);
 
-    let reset_votes = move |_: ()| {
-        let request = real_time::Request::ResetVotes;
+    let next_song = move |_:()| {
+        let request = real_time::Request::NextSong;
         send_request.get_untracked()(request);
     };
-    let reset_votes = Callback::new(reset_votes);
-
-    let set_current_song = move |song_id| {
-        let request = real_time::Request::CurrentSong { song_id };
-        send_request.get_untracked()(request);
-    };
-    let set_current_song = Callback::new(set_current_song);
+    let next_song = Callback::new(next_song);
 
     let set_song_position = move |percentage| {
         let request = real_time::Request::Position { percentage };
@@ -131,16 +110,14 @@ pub fn HostPage() -> impl IntoView {
             close: close_ws,
             send,
             ..
-        } = use_websocket::<real_time::Message, JsonSerdeWasmCodec>(&format!(
+        } = use_websocket::<real_time::Request,real_time::Update, MsgpackSerdeCodec>(&format!(
             "/socket?id={}",
             host_id
         ));
 
-        let send_request = move |request: real_time::Request| {
-            send(&real_time::Message::Request(request));
-        };
+        
 
-        let send_request = Callback::new(send_request);
+        let send_request = Callback::new(move|request| send(&request));
         set_send_request(send_request);
 
         let delete_jam = create_action(move |_: &()| {
@@ -153,7 +130,7 @@ pub fn HostPage() -> impl IntoView {
         set_close(close);
 
         create_effect(move |_| {
-            if let Some(real_time::Message::Update(update)) = message() {
+            if let Some(update) = message() {
                 if let Some(users) = update.users {
                     set_users(Some(users));
                 }
@@ -198,7 +175,7 @@ pub fn HostPage() -> impl IntoView {
         <div class="host-page">
             <UsersBar close=close users kick_user/>
             <div class="center">
-                <Player host_id top_song_id reset_votes set_song_position set_current_song/>
+                <Player host_id set_song_position next_song/>
                 <SongList
                     songs
                     votes

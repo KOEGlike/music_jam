@@ -12,17 +12,13 @@ use crate::general;
 #[component]
 pub fn Player(
     #[prop(into)] host_id: Signal<Option<String>>,
-    #[prop(into)] top_song_id: Signal<Option<String>>,
-    #[prop(into)] reset_votes: Callback<()>,
     #[prop(into)] set_song_position: Callback<f32>,
-    #[prop(into)] set_current_song: Callback<String>,
+    #[prop(into)] next_song: Callback<()>,
 ) -> impl IntoView {
-    let set_global_current_song=set_current_song;
-    let set_global_song_position=set_song_position;
-    
+    let set_global_song_position = set_song_position;
+
     let (player_is_connected, set_player_is_connected) = create_signal(false);
 
-    let top_song_id = create_memo(move |_| top_song_id());
     //let (current_song_id, set_current_song_id) = create_signal(String::new());
     //let current_song_id = create_memo(move |_| current_song_id());
 
@@ -123,16 +119,6 @@ pub fn Player(
         log!("player is connected:{}", is_loaded());
     });
 
-    let play_song = create_action(move |(song_id, host_id): &(String, String)| {
-        let host_id = host_id.clone();
-        let song_id = song_id.clone();
-        async move {
-            if let Err(e) = play_song(song_id, host_id).await {
-                error!("Error playing song: {:?}", e);
-            }
-        }
-    });
-
     let toggle_play = create_action(move |_: &()| async {
         if let Err(e) = sp::toggle_play().await {
             error!("Error toggling play: {:?}", e);
@@ -157,7 +143,8 @@ pub fn Player(
     });
 
     let position_percentage = Signal::derive(move || {
-        song_position() as f32 / current_song.with(|s| s.as_ref(). map(|s| s.duration).unwrap_or(1)) as f32
+        song_position() as f32
+            / current_song.with(|s| s.as_ref().map(|s| s.duration).unwrap_or(1)) as f32
     });
 
     create_effect(move |_| {
@@ -167,16 +154,8 @@ pub fn Player(
     let can_go_to_next_song = create_memo(move |_| position_percentage() > 0.995);
 
     create_effect(move |_| {
-        if let Some(host_id) = host_id() {
-            if can_go_to_next_song() && player_is_connected() {
-                if let Some(song_id) = top_song_id.get() {
-                    play_song.dispatch((song_id.clone(), host_id.clone()));
-                    set_global_current_song(song_id);
-                    reset_votes(());
-                } else {
-                    toggle_play.dispatch(());
-                }
-            }
+        if can_go_to_next_song() && player_is_connected() {
+            next_song(());
         }
     });
 
@@ -214,31 +193,6 @@ pub fn Player(
 }
 
 #[server]
-async fn play_song(song_id: String, host_id: String) -> Result<(), ServerFnError> {
-    use crate::general::*;
-    let app_state = expect_context::<AppState>();
-    let pool = &app_state.db.pool;
-    let credentials = app_state.spotify_credentials;
-
-    let jam_id = match check_id_type(&host_id, pool).await {
-        Ok(IdType::Host(id)) => id.jam_id,
-        Ok(IdType::User(_)) => {
-            leptos_axum::redirect("/");
-            return Err(ServerFnError::Request(
-                "the id was found, but it belongs to a user".to_string(),
-            ));
-        }
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
-
-    if let Err(e) = crate::general::play_song(&song_id, &jam_id, pool, credentials).await {
-        return Err(ServerFnError::ServerError(e.into()));
-    };
-
-    Ok(())
-}
-
-#[server]
 async fn change_playback_device(device_id: String, host_id: String) -> Result<(), ServerFnError> {
     use crate::general::*;
     let app_state = expect_context::<AppState>();
@@ -266,7 +220,7 @@ async fn change_playback_device(device_id: String, host_id: String) -> Result<()
 #[server]
 async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnError> {
     use crate::general::*;
-    
+
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     let credentials = app_state.spotify_credentials;

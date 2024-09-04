@@ -13,48 +13,96 @@ pub fn Search(
     let add_song = Callback::new(add_song);
     let search = Callback::new(search);
     let (current_result, set_current_result) = create_signal::<Vec<Song>>(Vec::new());
-    let (search_id, set_search_id) = create_signal::<u128>(0);
 
     create_effect(move |_| {
         if let Some(search_result) = search_result() {
-            if search_result.search_id == search_id().to_string() {
+            if search_result.search_id.is_empty() {
                 set_current_result(search_result.songs.clone());
             }
         }
     });
     view! {
-        <Show when=loaded fallback=move || "loading.s.....">
-            <div class="search">
-                <div class="search-input">
-                    <input
-                        type="text"
-                        placeholder="Search for a song"
-                        on:input=move |ev| {
-                            let id = search_id.get_untracked();
+        <div class="search">
+            <div class="search-input">
+                <input
+                    type="text"
+                    placeholder="Search for a song"
+                    on:input=move |ev| {
+                        if loaded.get_untracked() {
+                            let id = "";
                             search((event_target_value(&ev), id.to_string()));
                         }
-                    />
+                    }
+                />
 
-                    <button>
-                        <svg
-                            inner_html=AiSearchOutlined.data
-                            viewBox=AiSearchOutlined.view_box
-                        ></svg>
-                    </button>
-                </div>
-                <div class="search-result">
-                    <For
-                        each=move || current_result().into_iter()
-                        key=|song| song.id.clone()
-                        children=move |song| {
+                <button class:loaded=loaded>
+                    {move || {
+                        if loaded() {
                             view! {
-                                <Song song=Some(song.clone()) song_type=SongAction::Add(add_song)/>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    inner_html=AiSearchOutlined.data
+                                    viewBox=AiSearchOutlined.view_box
+                                ></svg>
+                            }
+                        } else {
+                            view! {
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle cx="18" cy="12" r="0">
+                                        <animate
+                                            attributeName="r"
+                                            begin=".67"
+                                            calcMode="spline"
+                                            dur="1.5s"
+                                            keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+                                            repeatCount="indefinite"
+                                            values="0;2;0;0"
+                                        ></animate>
+                                    </circle>
+                                    <circle cx="12" cy="12" r="0">
+                                        <animate
+                                            attributeName="r"
+                                            begin=".33"
+                                            calcMode="spline"
+                                            dur="1.5s"
+                                            keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+                                            repeatCount="indefinite"
+                                            values="0;2;0;0"
+                                        ></animate>
+                                    </circle>
+                                    <circle cx="6" cy="12" r="0">
+                                        <animate
+                                            attributeName="r"
+                                            begin="0"
+                                            calcMode="spline"
+                                            dur="1.5s"
+                                            keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+                                            repeatCount="indefinite"
+                                            values="0;2;0;0"
+                                        ></animate>
+                                    </circle>
+                                </svg>
                             }
                         }
-                    />
+                    }}
 
-                </div>
+                </button>
             </div>
-        </Show>
+            <div class="search-result">
+                <For
+                    each=move || current_result().into_iter()
+                    key=|song| song.id.clone()
+                    children=move |song| {
+                        view! {
+                            <Song song=Some(song.clone()) song_type=SongAction::Add(add_song)/>
+                        }
+                    }
+                />
+
+            </div>
+        </div>
     }
 }

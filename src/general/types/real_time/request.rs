@@ -8,8 +8,7 @@ pub enum Request {
     AddVote { song_id: String },
     RemoveVote { song_id: String },
     Search { query: String, id: String },
-    ResetVotes,
     Update,
     Position { percentage: f32 },
-    CurrentSong { song_id: String },
+    NextSong,
 }

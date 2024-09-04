@@ -6,8 +6,16 @@
 	flex-direction: row;
 	justify-content: center;
 	align-items: center;
-	height: 100vh;
 	column-gap: 200px;
+	height: 100%;
+}
+
+@media (max-width: 1200px),
+(orientation: portrait) {
+	#home-page {
+		flex-direction: column;
+		row-gap: 100px;
+	}
 }
 
 #create-island {

@@ -37,6 +37,7 @@
     padding-bottom: 13px;
 
     >img {
+        @extend .glass;
         width: 410px;
         height: 410px;
         border-radius: 15px;
@@ -52,7 +53,7 @@
         align-items: start;
         width: 100%;
         overflow: hidden;
-        mask-image: linear-gradient(to right, rgba(0,0,0,0), rgba(0,0,0,1) 20px, rgba(0,0,0,1) calc(100% - 20px), rgba(0,0,0,0));
+        mask-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 20px, rgba(0, 0, 0, 1) calc(100% - 20px), rgba(0, 0, 0, 0));
 
         >.title,
         >.artist {
@@ -73,7 +74,7 @@
             opacity: 0.5;
         }
 
-        
+
     }
 
 
@@ -148,4 +149,11 @@
 
     }
 
+}
+
+@media (max-width:1200px),
+(orientation: portrait) {
+    .player {
+        scale: 0.8;
+    }
 }

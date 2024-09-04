@@ -1,7 +1,7 @@
 use super::host_page::get_jam;
 use crate::components::{user::{Search,Player}, SongList, SongListAction, UsersBar};
 use crate::general::{self, *};
-use codee::string::JsonSerdeWasmCodec;
+use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
 use leptos_meta::Title;
@@ -144,7 +144,7 @@ pub fn UserPage() -> impl IntoView {
             close: close_ws,
             send,
             ..
-        } = use_websocket::<real_time::Message, JsonSerdeWasmCodec>(&format!(
+        } = use_websocket::<real_time::Request,real_time::Update, MsgpackSerdeCodec>(&format!(
             "/socket?id={}",
             user_id.get_untracked()
         ));
@@ -154,7 +154,7 @@ pub fn UserPage() -> impl IntoView {
         });
 
         let send_request = move |request: real_time::Request| {
-            send(&real_time::Message::Request(request));
+            send(&request);
         };
         let send_request = Callback::new(send_request);
         set_send_request(send_request);
@@ -162,7 +162,7 @@ pub fn UserPage() -> impl IntoView {
         let close_ws = Callback::new(move |_: ()| close_ws());
 
         create_effect(move |_| {
-            if let Some(real_time::Message::Update(update)) = message() {
+            if let Some(update) = message() {
                 if let Some(result) = update.search {
                     set_search_result(Some(result));
                 }
@@ -182,7 +182,7 @@ pub fn UserPage() -> impl IntoView {
                     set_current_song(song);
                 }
                 if update.ended.is_some() {
-                    //close_ws(());
+                    close_ws(());
                     let navigator = use_navigate();
                     navigator("/", NavigateOptions::default());
                 }
@@ -194,11 +194,12 @@ pub fn UserPage() -> impl IntoView {
 
         let delete_user = create_action(move |_: &()| async move {
             let id = user_id.get_untracked();
-            delete_user(id).await
+            delete_user(id).await?;
+            close_ws(());
+            Ok::<(), ServerFnError>(())
         });
         let close = Callback::new(move |_: ()| {
             delete_user.dispatch(());
-            close_ws(());
         });
         set_close(close);
     });

@@ -23,8 +23,8 @@ pub async fn read(
             }
         };
 
-        let message: types::real_time::Message =
-            match serde_json::from_str(&message.into_text().unwrap()) {
+        let message: types::real_time::Request =
+            match rmp_serde::from_slice(&message.into_data()) {
                 Ok(m) => m,
                 Err(e) => {
                     use Error;
@@ -34,14 +34,6 @@ pub async fn read(
                     break;
                 }
             };
-        let message = match message {
-            types::real_time::Message::Request(r) => r,
-            types::real_time::Message::Update(_) => {
-                let error = Error::Decode("Unexpected update message".to_string());
-                handle_error(error, true, &sender).await;
-                break;
-            }
-        };
         let mut changed = real_time::Changed::new();
         let mut errors: Vec<Error> = Vec::new();
 
@@ -156,34 +148,13 @@ pub async fn read(
                 };
 
                 let update =
-                    types::real_time::Message::Update(real_time::Update::new().search(SearchResult{ songs, search_id }));
-                let message = serde_json::to_string(&update).unwrap();
+                    real_time::Update::new().search(SearchResult{ songs, search_id });
+                let message = rmp_serde::to_vec(&update).unwrap();
                 let message = ws::Message::Text(message);
                 if let Err(e) = sender.send(message).await {
                     eprintln!("Error sending ws message: {:?}", e);
                     break;
                 }
-            }
-            real_time::Request::ResetVotes => {
-                let id = match only_host(
-                    &id,
-                    "Only hosts can reset votes, this is a bug, terminating socket connection",
-                    &sender,
-                )
-                .await
-                {
-                    Ok(id) => id,
-                    Err(_) => break,
-                };
-
-                match reset_votes(&id.jam_id, pool).await {
-                    Ok(changed_new) => {
-                        changed = changed.merge_with_other(changed_new);
-                    }
-                    Err(e) => {
-                        errors.push(e.into());
-                    }
-                };
             }
             real_time::Request::Position { percentage } => {
                 let id = match only_host(
@@ -206,26 +177,47 @@ pub async fn read(
                     }
                 };
             }
-            real_time::Request::CurrentSong { song_id } => {
-                if only_host(
+            real_time::Request::NextSong => {
+              if  only_host(
                     &id, 
                 "Only a host can set the current song, this is a bug, terminating socket connection", 
                     &sender
                 )
-                    .await
-                    .is_err()
-                {
-                    break;
-                }
+                    .await.is_err(){break;}
+                    
 
-                match set_current_song(song_id, &id, pool).await {
-                    Ok(changed_new) => {
-                        changed = changed.merge_with_other(changed_new);
-                    }
-                    Err(e) => {
-                        errors.push(e);
+                let song_id=match get_songs(pool, &id).await{
+                    Ok(songs)=>songs.into_iter().max_by_key(|song|song.votes.votes),
+                    Err(e)=>{
+                        errors.push(e.into());
+                        None
                     }
                 };
+
+                if let Some(song_id)=song_id.map(|song|song.id){
+                    match set_current_song(&song_id, &id, pool).await{
+                        Ok(changed_new)=>{
+                            match reset_votes(id.jam_id(), pool).await {
+                                Ok(changed_new_new) => {
+                                    if let Err(e)= play_song(&song_id, id.jam_id(), pool, credentials.clone()).await {
+                                        errors.push(e);
+                                   }
+                                    
+                                    changed=changed.merge_with_other(changed_new_new);
+                                    changed = changed.merge_with_other(changed_new);
+                                }
+                                Err(e) => {
+                                    errors.push(e.into());
+                                }
+                            }
+
+                           
+                        }
+                        Err(e)=>{
+                            errors.push(e);
+                        }
+                    };
+                }
             }
         }
         if let Err(e) = notify(changed, errors, id.jam_id(), pool).await {

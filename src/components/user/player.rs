@@ -25,7 +25,9 @@ pub fn Player(
         <div class="player">
             <img
                 prop:src=move || current_song().map(|s| s.image_url).unwrap_or_default()
-                alt="the album cover of the current song"
+                title="the album cover of the current song"
+                alt="img not found, wait for a few seconds"
+                onerror="this.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';"
             />
             <div
                 class="info"
@@ -131,7 +133,7 @@ pub fn set_bg_img(url: &str) {
     .style()
     .set_property(
         "background-image", 
-        &format!("radial-gradient(50vw 50vh at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%), url({})", url)).unwrap();
+        &format!("radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%), url({})", url)).unwrap();
 }
 
 pub fn will_element_overflow(element_id: &str, parent_id: Option<&str>) -> bool {

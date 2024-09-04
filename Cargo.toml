@@ -24,14 +24,14 @@ leptos_router = { version = "0.6", features = ["nightly"] }
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 tower = { version = "0.4", optional = true }
 tower-http = { version = "0.5", features = ["fs"], optional = true }
-wasm-bindgen = "=0.2.93"
+wasm-bindgen = "=0.2"
 thiserror = "1"
 tracing = { version = "0.1", optional = true }
 http = "1"
 serde = { version = "1", features = ["derive"] }
 rmp-serde = "1"
 serde_json = { version = "1", optional = true }
-leptos-use = "0.12"
+leptos-use = "0.13"
 rspotify = "0.13"
 web-sys = { version = "0.3", features = [
     "Clipboard",
@@ -51,7 +51,7 @@ web-sys = { version = "0.3", features = [
     "MediaStreamConstraints",
 ] }
 wasm-bindgen-futures = { version = "0.4" }
-js-sys = { version = "=0.3.70" }
+js-sys = { version = "=0.3" }
 nestify = "0.3"
 rust_spotify_web_playback_sdk = { git = "https://github.com/KOEGlike/rust_spotify_web_playback_sdk.git"}
 gloo = { version = "0.11", features = ["storage"] }
@@ -70,7 +70,7 @@ qrcode = { version = "0.13" }
 data-url = {version = "0.3", optional = true}
 base64 = {version = "0.22", optional = true}
 image = {version = "0.25.1", optional = true}
-codee = {version = "0.1", features = ["msgpack_serde", "json_serde_wasm"]}
+codee = {version = "0.2", features = ["msgpack_serde", "json_serde_wasm"]}
 
 
 [features]

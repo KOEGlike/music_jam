@@ -39,10 +39,10 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
                     changed.current_song=false;
                 }
 
-                let update = real_time::Update::from_changed(changed, &id, &pool).await.error_vec(errors);
-                let message = real_time::Message::Update(update);
+                let message = real_time::Update::from_changed(changed, &id, &pool).await.error_vec(errors);
+             
 
-                let bin = match serde_json::to_string(&message) {
+                let bin = match rmp_serde::to_vec(&message) {
                     Ok(bin) => bin,
                     Err(e) => {
                         let error = Error::Decode(format!("Error encoding message sent in ws: {:?}", e));
@@ -51,7 +51,7 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
                     }
                 };
 
-                match sender.send(ws::Message::Text(bin)).await {
+                match sender.send(ws::Message::Binary(bin)).await {
                     Ok(_) => (),
                     Err(e) => {
                         eprintln!("Error sending ws send message: {:?}", e);

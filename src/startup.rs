@@ -10,7 +10,6 @@ pub async fn init() -> Result<(), Box<dyn std::error::Error>> {
     // Alternately a file can be specified such as Some("Cargo.toml")
     // The file would need to be included with the executable when moved to deployment
     dotenvy::dotenv()?;
-
     let conf = get_configuration(None).await?;
     let leptos_options: LeptosOptions = conf.leptos_options;
     let addr = leptos_options.site_addr;

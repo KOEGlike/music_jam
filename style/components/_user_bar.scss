@@ -2,7 +2,9 @@
 @use 'button' as *;
 
 $icon-size: 60px;
+$icon-size-number: 60;
 $gap: 10px;
+$gap-number: 10;
 
 .bar {
     display: flex;
@@ -38,7 +40,6 @@ $gap: 10px;
         @extend .glass;
         display: flex;
         flex-direction: row;
-        height: auto;
         width: auto;
         padding: $gap;
         gap: $gap;
@@ -47,6 +48,10 @@ $gap: 10px;
         overflow-y: hidden;
         white-space: nowrap; // Ensure elements don't wrap
         flex-shrink: 0; // Prevent shrinking
+        min-height: calc($icon-size + (2 * $gap));
+        $space-available:calc((100% - (75px + 60px + $gap)));
+        
+        width:$space-available;
     }
 }
 
@@ -58,6 +63,8 @@ $gap: 10px;
     border-radius: $icon-size / 2;
     overflow: hidden;
     flex-shrink: 0; // Prevent shrinking
+    overflow-y: hidden;
+    overflow-x: scroll;
 
     >* {
         width: $icon-size;
