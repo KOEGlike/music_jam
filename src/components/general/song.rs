@@ -2,6 +2,7 @@ use crate::components::user::{get_width_of_element, millis_to_min_sec, will_elem
 use crate::general::types::*;
 use icondata::IoClose;
 use leptos::{logging::*, prelude::*, *};
+use std::rc::Rc;
 
 
 #[derive(Clone, Debug, Copy)]
@@ -34,14 +35,32 @@ impl SongAction {
 pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction) -> impl IntoView {
     let loaded = move |song: Song| {
         let title_id = song.id.clone() + "title";
+        let title_id=Rc::new(title_id);
         let artist_id = song.id.clone() + "artist";
+        let artist_id=Rc::new(artist_id);
+    
         let mut width:u16=180;
         if song_type.is_add() {
             width=150;
         }
+
+        let (title_overflowing, set_title_overflowing) = create_signal(false);
+        let (artist_overflowing, set_artist_overflowing) = create_signal(false);
+
+        {
+            let title_id = Rc::clone(&title_id);
+            let artist_id = Rc::clone(&artist_id);
+            create_effect(move |_| {
+                if cfg!(target_arch = "wasm32") {
+                    set_title_overflowing(will_element_overflow(&title_id, Some("info-text")));
+                    set_artist_overflowing(get_width_of_element(&artist_id) > 110);
+                }
+            });
+        }
         view! {
             <div
                 class="song"
+                title=&song.name
                 class:voted=move || {
                     if let SongAction::Vote { vote, .. } = song_type {
                         vote().have_you_voted.unwrap_or(false)
@@ -96,27 +115,13 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                     <div class="info-text" id="info-txt" style:width=move||{format!("{}px", width)}>
                         <div
                             class="title"
-                            id=&title_id
-                            class:scroll={
-                                let title_id = title_id.clone();
-                                move || {
-                                    if cfg!(target_arch = "wasm32") {
-                                        will_element_overflow(&title_id, Some("info-text"))
-                                    } else {
-                                        false
-                                    }
-                                }
-                            }
+                            id={let id:&String=&title_id; id}
+                            class:scroll=title_overflowing
                         >
 
                             {move || {
-                                let is_overflowing = if cfg!(target_arch = "wasm32") {
-                                    will_element_overflow(&title_id, Some("info-text"))
-                                } else {
-                                    false
-                                };
                                 std::iter::repeat(song.name.clone())
-                                    .take(if is_overflowing { 2 } else { 1 })
+                                    .take(if title_overflowing() { 2 } else { 1 })
                                     .collect::<Vec<String>>()
                                     .join(" ")
                             }}
@@ -126,28 +131,13 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                             <div class="artist-wrapper" id="artist-wrapper">
                                 <div
                                     class="artist"
-                                    id=&artist_id
-                                    class:scroll={
-                                        let artist_id = artist_id.clone();
-                                        move || {
-                                            if cfg!(target_arch = "wasm32") {
-                                                get_width_of_element(&artist_id) > 60
-                                            } else {
-                                                false
-                                            }
-                                        }
-                                    }
+                                    id={let id:&String=&artist_id; id}
+                                    class:scroll=artist_overflowing
                                 >
-
                                     {move || {
                                         let artists = song.artists.join(", ");
-                                        let is_overflowing = if cfg!(target_arch = "wasm32") {
-                                            get_width_of_element(&artist_id) > 110
-                                        } else {
-                                            false
-                                        };
                                         std::iter::repeat(artists)
-                                            .take(if is_overflowing { 2 } else { 1 })
+                                            .take(if artist_overflowing() { 2 } else { 1 })
                                             .collect::<Vec<String>>()
                                             .join(" ")
                                     }}

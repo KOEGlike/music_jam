@@ -150,7 +150,7 @@ pub async fn read(
                 let update =
                     real_time::Update::new().search(SearchResult{ songs, search_id });
                 let message = rmp_serde::to_vec(&update).unwrap();
-                let message = ws::Message::Text(message);
+                let message = ws::Message::Binary(message);
                 if let Err(e) = sender.send(message).await {
                     eprintln!("Error sending ws message: {:?}", e);
                     break;

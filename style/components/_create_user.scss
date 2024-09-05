@@ -11,8 +11,8 @@
     align-items: center;
     border-radius: 40px;
 
-    >.image-container{
-        >*{
+    >.image-container {
+        >* {
             object-fit: cover;
             object-position: center;
             width: 300px;
@@ -21,34 +21,36 @@
         }
     }
 
-    >.buttons{
+    >.buttons {
         display: flex;
-        gap:10px;
+        gap: 10px;
         flex-direction: row;
         align-items: center;
-        >button{
+
+        >button {
             background: none;
             border: none;
             padding: 0px;
             margin: 0px;
 
-            >svg{
-                width:100px;
-                height:100px;
+            >svg {
+                width: 100px;
+                height: 100px;
                 fill: white;
                 opacity: 0.8;
                 transition: opacity 0.1s ease;
             }
 
-            >svg:hover{
+            >svg:hover {
                 opacity: 1;
             }
         }
-        >.clear-button{
-            >svg{
+
+        >.clear-button {
+            >svg {
                 width: 130px;
                 height: 130px;
-                
+
             }
         }
     }
