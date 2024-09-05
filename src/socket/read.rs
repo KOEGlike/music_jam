@@ -2,8 +2,10 @@ use super::handle_error;
 use crate::general::*;
 use axum::extract::ws::{self, WebSocket};
 use futures_util::{stream::SplitStream, StreamExt};
+use rand::{seq::SliceRandom, thread_rng};
 use real_time::SearchResult;
 use tokio::sync::mpsc;
+use itertools::*;
 
 pub async fn read(
     mut receiver: SplitStream<WebSocket>,
@@ -38,15 +40,32 @@ pub async fn read(
         let mut errors: Vec<Error> = Vec::new();
 
         match message {
-            real_time::Request::KickUser { user_id } => {
-                match kick_user(&user_id, pool).await {
-                    Ok(changed_new) => {
-                        changed = changed.merge_with_other(changed_new);
-                    }
-                    Err(e) => {
-                        errors.push(e.into());
-                    }
-                };
+            real_time::Request::KickUser { mut user_id } => {
+                if id.is_user() && !(user_id == id.id() || id.id().is_empty()) {
+                    let error = Error::Forbidden(
+                        "A user only can kick themselves, this is a bug, terminating socket connection"
+                            .to_string(),
+                    );
+                    handle_error(error, true, &sender).await;
+                    break;
+                }
+                if user_id.is_empty() {
+                   if id.is_user() {
+                    user_id = id.id().to_owned();
+                   } else {
+                    errors.push(Error::InvalidRequest("No user id provided".to_string()));
+                   }
+                }
+                if errors.is_empty() {
+                    match kick_user(&user_id, pool).await {
+                        Ok(changed_new) => {
+                            changed = changed.merge_with_other(changed_new);
+                        }
+                        Err(e) => {
+                            errors.push(e.into());
+                        }
+                    };
+                }
             }
             real_time::Request::AddSong { song_id } => {
                 let id = match only_user(
@@ -187,14 +206,18 @@ pub async fn read(
                     
 
                 let song_id=match get_songs(pool, &id).await{
-                    Ok(songs)=>songs.into_iter().max_by_key(|song|song.votes.votes),
+                    Ok(songs)=>{
+                        let mut top_songs=songs.into_iter().max_set_by_key(|song|song.votes.votes);
+                        top_songs.shuffle(&mut thread_rng());
+                        top_songs.first().map(|song|song.id.clone())
+                    }
                     Err(e)=>{
                         errors.push(e.into());
                         None
                     }
                 };
 
-                if let Some(song_id)=song_id.map(|song|song.id){
+                if let Some(song_id)=song_id{
                     match set_current_song(&song_id, &id, pool).await{
                         Ok(changed_new)=>{
                             match reset_votes(id.jam_id(), pool).await {

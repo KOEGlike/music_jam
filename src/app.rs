@@ -3,9 +3,8 @@ use crate::general::real_time::SearchResult;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
-use wasm_bindgen::JsCast;
 
-use crate::components::{error_template::*, song};
+use crate::components::error_template::*;
 use crate::pages;
 
 #[component]

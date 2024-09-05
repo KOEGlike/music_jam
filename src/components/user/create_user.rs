@@ -2,6 +2,7 @@ use crate::components::user::set_bg_img;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::error, prelude::*, *};
 use leptos_router::*;
+use std::rc::Rc;
 use web_sys::MediaStream;
 
 #[server]
@@ -25,16 +26,35 @@ async fn create_user(
 
 #[component]
 pub fn CreateUser(jam_id: String) -> impl IntoView {
+    let jam_id = Rc::new(jam_id);
+
+   
+
     let (image_url, set_image_url) = create_signal(String::new());
     let (camera_request_state, set_camera_request_state) =
         create_signal(CameraRequestState::Asking);
     let video_id = "video";
-    let camera = create_local_resource(
-        || (),
-        move |_| async move { camera(set_image_url, set_camera_request_state, video_id).await },
-    );
+
+    let camera = create_action(move |_: &()| async move {
+        camera(set_image_url, set_camera_request_state, video_id).await
+    });
+
+    {
+        let jam_id = Rc::clone(&jam_id);
+        create_effect(move |_| {
+            let jam_id: &str = &jam_id;
+            let user_id: String = LocalStorage::get(jam_id).unwrap_or_default();
+            if user_id.is_empty() {
+                camera.dispatch(());
+            } else {
+                let navigate = use_navigate();
+                navigate(&format!("/jam/{}", jam_id), NavigateOptions::default());
+            }
+        });
+    }
+
     let take_picture = move || {
-        camera.with(|response| {
+        camera.value().with(|response| {
             if let Some(response) = response {
                 match response {
                     Ok(response) => (response.take_picture)(),
@@ -44,7 +64,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
         })
     };
     let close_camera = move || {
-        camera.with(|response| {
+        camera.value().with(|response| {
             if let Some(response) = response {
                 match response {
                     Ok(response) => (response.close_camera)(),
@@ -60,7 +80,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
         move |_: &()| {
             let name = name.get();
             let pfp_url = image_url.get();
-            let jam_id = jam_id.clone();
+            let jam_id = (*jam_id).clone();
             async move { create_user(jam_id, name, pfp_url).await }
         }
     });
@@ -69,11 +89,12 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
         if let Some(res) = create_user.value().get() {
             match res {
                 Ok(id) => {
-                    if let Err(e) = LocalStorage::set(&jam_id, id) {
+                    let jam_id: &str = &jam_id;
+                    if let Err(e) = LocalStorage::set(jam_id, id) {
                         error!("Error setting user id in local storage: {:?}", e);
                     }
                     let navigate = use_navigate();
-                    navigate(&("/jam/".to_owned() + &jam_id), NavigateOptions::default());
+                    navigate(&format!("/jam/{}", jam_id), NavigateOptions::default());
                 }
                 Err(e) => error!("Error creating user: {:?}", e),
             }
@@ -93,6 +114,10 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                     style:display=move || {
                         if image_url.with(|url| !url.is_empty()) { "none" } else { "inline " }
                     }
+
+                    playsinline="false"
+                    disablepictureinpicture
+                    disableremoteplayback
 
                     id=video_id
                 >
@@ -230,6 +255,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                         create_user.dispatch(());
                         close_camera();
                     }
+
                     style:display=move || {
                         if image_url.with(|url| url.is_empty()) { "none" } else { "inline " }
                     }

@@ -13,12 +13,17 @@
 
     >.image-container {
         >* {
+            @extend .glass;
             object-fit: cover;
             object-position: center;
             width: 300px;
             height: 300px;
             border-radius: 150px;
         }
+    }
+
+    >.text-input {
+        height: 85px;
     }
 
     >.buttons {

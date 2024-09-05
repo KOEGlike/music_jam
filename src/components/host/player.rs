@@ -159,6 +159,10 @@ pub fn Player(
         }
     });
 
+    on_cleanup(move || {
+        sp::disconnect();
+    });
+
     view! {
         <user::Player current_song position=position_percentage>
             <button

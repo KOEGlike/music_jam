@@ -17,6 +17,7 @@
         "icondata",
         "idtypes",
         "imageops",
+        "itertools",
         "Lanczos",
         "linecap",
         "linejoin",

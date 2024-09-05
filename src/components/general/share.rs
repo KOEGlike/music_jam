@@ -21,17 +21,31 @@ async fn save_to_clipboard(text: &str) {
 
 #[component]
 pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
+    let (base_url, set_base_url) = create_signal(String::new());
+
+    if cfg!(target_arch = "wasm32") {
+        let window = web_sys::window().unwrap();
+
+        let location = window.location();
+        let base_url = location.origin().unwrap();
+        set_base_url(base_url);
+    }
+
     let qr = move || {
-        QrCode::with_version(jam_id(), Version::Normal(10), EcLevel::Q)
-            .unwrap()
-            .render()
-            .quiet_zone(false)
-            .min_dimensions(400, 400)
-            .dark_color(svg::Color("#ffffff"))
-            .light_color(svg::Color("#00000000"))
-            .build()
+        QrCode::with_version(
+            jam_id.with(move |id| base_url.with(move |url| format!("{}/create-user/{}", url, id))),
+            Version::Normal(10),
+            EcLevel::Q,
+        )
+        .unwrap()
+        .render()
+        .quiet_zone(false)
+        .min_dimensions(400, 400)
+        .dark_color(svg::Color("#ffffff"))
+        .light_color(svg::Color("#00000000"))
+        .build()
     };
-    let jam_id=move||jam_id().to_uppercase();
+    let jam_id = move || jam_id().to_uppercase();
     let jam_id = Signal::derive(jam_id);
 
     view! {
@@ -45,6 +59,7 @@ pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
                     spawn_local(async move { save_to_clipboard(&jam_id.get_untracked()).await });
                 }
             >
+
                 "COPY"
             </button>
         </div>

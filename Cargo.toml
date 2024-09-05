@@ -71,6 +71,8 @@ data-url = {version = "0.3", optional = true}
 base64 = {version = "0.22", optional = true}
 image = {version = "0.25.1", optional = true}
 codee = {version = "0.2", features = ["msgpack_serde", "json_serde_wasm"]}
+itertools = "0.13"
+rand = "0.8"
 
 
 [features]

@@ -1,12 +1,15 @@
 use super::host_page::get_jam;
-use crate::components::{user::{Search,Player}, SongList, SongListAction, UsersBar};
+use crate::components::{
+    user::{Player, Search},
+    SongList, SongListAction, UsersBar,
+};
 use crate::general::{self, *};
 use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
 use leptos_meta::Title;
 use leptos_router::*;
-use leptos_use::{use_websocket, UseWebSocketReturn, core::ConnectionReadyState};
+use leptos_use::{core::ConnectionReadyState, use_websocket, UseWebSocketReturn};
 
 #[component]
 pub fn UserPage() -> impl IntoView {
@@ -93,7 +96,8 @@ pub fn UserPage() -> impl IntoView {
             .unwrap_or(0);
 
         if jam
-            .value().get()
+            .value()
+            .get()
             .map(|jam| jam.map(|jam| jam.max_song_count))
             .unwrap_or(Ok(0))
             .unwrap_or_default()
@@ -127,11 +131,24 @@ pub fn UserPage() -> impl IntoView {
     };
     let remove_song = Callback::new(remove_song);
 
+    let leave = move || {
+        let request = real_time::Request::KickUser {
+            user_id: user_id.get_untracked(),
+        };
+        send_request.get_untracked()(request);
+    };
+
     let request_update = move || {
         let request = real_time::Request::Update;
         send_request.get_untracked()(request);
         log!("Sent update request");
     };
+
+    let delete_user_id_from_local_storage = move |_:()| {
+        LocalStorage::delete(jam_id.get_untracked());
+    };
+    let delete_user_id_from_local_storage = Callback::new(delete_user_id_from_local_storage);
+
 
     create_effect(move |_| {
         if user_id.with(String::is_empty) || jam_id.with(String::is_empty) {
@@ -144,7 +161,7 @@ pub fn UserPage() -> impl IntoView {
             close: close_ws,
             send,
             ..
-        } = use_websocket::<real_time::Request,real_time::Update, MsgpackSerdeCodec>(&format!(
+        } = use_websocket::<real_time::Request, real_time::Update, MsgpackSerdeCodec>(&format!(
             "/socket?id={}",
             user_id.get_untracked()
         ));
@@ -183,6 +200,7 @@ pub fn UserPage() -> impl IntoView {
                 }
                 if update.ended.is_some() {
                     close_ws(());
+                    delete_user_id_from_local_storage(());
                     let navigator = use_navigate();
                     navigator("/", NavigateOptions::default());
                 }
@@ -192,16 +210,15 @@ pub fn UserPage() -> impl IntoView {
             }
         });
 
-        let delete_user = create_action(move |_: &()| async move {
-            let id = user_id.get_untracked();
-            delete_user(id).await?;
+        let leave = move |_: ()| {
+            leave();
             close_ws(());
-            Ok::<(), ServerFnError>(())
-        });
-        let close = Callback::new(move |_: ()| {
-            delete_user.dispatch(());
-        });
-        set_close(close);
+            delete_user_id_from_local_storage(());
+            let navigator = use_navigate();
+            navigator("/", NavigateOptions::default());
+        };
+        let leave = Callback::new(leave);
+        set_close(leave);
     });
 
     let close = Callback::new(move |_| {
@@ -210,7 +227,8 @@ pub fn UserPage() -> impl IntoView {
 
     view! {
         <Title text=move || {
-            jam.value().get()
+            jam.value()
+                .get()
                 .map(|jam| jam.map(|jam| jam.name.clone()))
                 .unwrap_or(Ok(String::from("User")))
                 .unwrap_or_default()
@@ -235,7 +253,8 @@ pub fn UserPage() -> impl IntoView {
                     }
 
                     max_song_count=Signal::derive(move || {
-                        jam.value().get()
+                        jam.value()
+                            .get()
                             .map(|jam| jam.map(|jam| jam.max_song_count))
                             .unwrap_or(Ok(0))
                             .unwrap_or_default()
@@ -246,12 +265,4 @@ pub fn UserPage() -> impl IntoView {
             </div>
         </div>
     }
-}
-
-#[server]
-async fn delete_user(id: String) -> Result<(), ServerFnError> {
-    use crate::general::{kick_user, AppState};
-    let app_state = expect_context::<AppState>();
-    kick_user(&id, &app_state.db.pool).await?;
-    Ok(())
 }
