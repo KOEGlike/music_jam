@@ -6,6 +6,7 @@ use crate::components::{
 use crate::general::{self, *};
 use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
+use itertools::Itertools;
 use leptos::{logging::*, prelude::*, *};
 use leptos_meta::Title;
 use leptos_router::*;
@@ -144,11 +145,10 @@ pub fn UserPage() -> impl IntoView {
         log!("Sent update request");
     };
 
-    let delete_user_id_from_local_storage = move |_:()| {
+    let delete_user_id_from_local_storage = move |_: ()| {
         LocalStorage::delete(jam_id.get_untracked());
     };
     let delete_user_id_from_local_storage = Callback::new(delete_user_id_from_local_storage);
-
 
     create_effect(move |_| {
         if user_id.with(String::is_empty) || jam_id.with(String::is_empty) {
@@ -190,7 +190,22 @@ pub fn UserPage() -> impl IntoView {
                     set_votes(votes);
                 }
                 if let Some(users) = update.users {
-                    set_users(Some(users));
+                    if !users
+                        .iter()
+                        .map(|user| &user.id)
+                        .contains(&user_id.get_untracked())
+                    {
+                        close_ws(());
+                        jam_id.with_untracked(|jam_id| {
+                            if LocalStorage::set(jam_id, "kicked").is_err() {
+                                error!("Failed to set local storage to kicked");
+                            }
+                        });
+                        let navigator = use_navigate();
+                        navigator("/", NavigateOptions::default());
+                    } else {
+                        set_users(Some(users));
+                    }
                 }
                 if let Some(percentage) = update.position {
                     set_position(percentage);

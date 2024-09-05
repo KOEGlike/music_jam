@@ -28,8 +28,6 @@ async fn create_user(
 pub fn CreateUser(jam_id: String) -> impl IntoView {
     let jam_id = Rc::new(jam_id);
 
-   
-
     let (image_url, set_image_url) = create_signal(String::new());
     let (camera_request_state, set_camera_request_state) =
         create_signal(CameraRequestState::Asking);
@@ -46,6 +44,9 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             let user_id: String = LocalStorage::get(jam_id).unwrap_or_default();
             if user_id.is_empty() {
                 camera.dispatch(());
+            } else if user_id == "kicked" {
+                let navigate = use_navigate();
+                navigate("/", NavigateOptions::default());
             } else {
                 let navigate = use_navigate();
                 navigate(&format!("/jam/{}", jam_id), NavigateOptions::default());
