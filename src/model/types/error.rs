@@ -1,3 +1,4 @@
+use leptos::ServerFnError;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -83,5 +84,23 @@ impl Error {
 impl From<sqlx::Error> for Error {
     fn from(e: sqlx::Error) -> Self {
         Error::Database(format!("sqlx error: {:?}", e))
+    }
+}
+
+#[cfg(feature = "ssr")]
+impl From<Error> for ServerFnError {
+    fn from(val: Error) -> Self {
+       match val {
+            Error::Database(s) => ServerFnError::ServerError(s),
+            Error::Decode(s) => ServerFnError::ServerError(s),
+            Error::Encode(s) => ServerFnError::ServerError(s),
+            Error::WebSocket(s) => ServerFnError::ServerError(s),
+            Error::Forbidden(s) => ServerFnError::Request(s),
+            Error::Spotify(s) => ServerFnError::ServerError(s),
+            Error::FileSystem(s) => ServerFnError::ServerError(s),
+            Error::InvalidRequest(s) => ServerFnError::Request(s),
+            Error::HostAlreadyInJam{jam_id} => ServerFnError::Request(format!("Host is already in jam with id: {}", jam_id)),
+            Error::UserHasTooTheMaxSongAmount => ServerFnError::Request("User has too the max song amount".to_string()),
+       }
     }
 }

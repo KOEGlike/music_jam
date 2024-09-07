@@ -42,6 +42,7 @@ $gap-number: 10;
         flex-direction: row;
         width: auto;
         padding: $gap;
+        padding-bottom: 0px;
         gap: $gap;
         border-radius: 40px;
         overflow-x: scroll;

@@ -1,5 +1,5 @@
 pub mod app;
-pub mod general;
+pub mod model;
 pub mod components;
 pub mod pages;
 

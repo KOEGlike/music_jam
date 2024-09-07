@@ -1,6 +1,6 @@
 #[cfg(feature = "ssr")]
-use crate::general::functions;
-use crate::general::types::*;
+use crate::model::functions;
+use crate::model::types::*;
 use serde::{Deserialize, Serialize};
 use super::SearchResult;
 
@@ -35,7 +35,7 @@ impl Update {
 
     #[cfg(feature = "ssr")]
     ///only the jam id id used from the id
-    pub async fn users_from_jam(self, id: &IdType, pool: &sqlx::PgPool) -> Self {
+    pub async fn users_from_jam(self, id: &Id, pool: &sqlx::PgPool) -> Self {
         match functions::get_users(pool, id).await {
             Ok(users) => self.users(users),
             Err(e) => self.error(e.into()),
@@ -50,7 +50,7 @@ impl Update {
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn songs_from_jam(self, id: &IdType, pool: &sqlx::PgPool) -> Self {
+    pub async fn songs_from_jam(self, id: &Id, pool: &sqlx::PgPool) -> Self {
         match functions::get_songs(pool, id).await {
             Ok(songs) => self.songs(songs),
             Err(e) => self.error(e.into()),
@@ -75,7 +75,7 @@ impl Update {
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn votes_from_jam(self, id: &IdType, pool: &sqlx::PgPool) -> Self {
+    pub async fn votes_from_jam(self, id: &Id, pool: &sqlx::PgPool) -> Self {
         match functions::get_votes(pool, id).await {
             Ok(votes) => self.votes(votes),
             Err(e) => self.error(e.into()),
@@ -144,7 +144,7 @@ impl Update {
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn from_changed(changed:real_time::Changed, id: &IdType, pool: &sqlx::PgPool) -> Self {
+    pub async fn from_changed(changed:real_time::Changed, id: &Id, pool: &sqlx::PgPool) -> Self {
         let mut update = Update::new();
         if changed.users {
             update = update.users_from_jam(id, pool).await;

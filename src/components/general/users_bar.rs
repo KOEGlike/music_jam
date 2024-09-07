@@ -1,4 +1,4 @@
-use crate::general::*;
+use crate::model::*;
 use icondata::IoClose;
 use leptos::{logging::log, prelude::*, *};
 use std::rc::Rc;

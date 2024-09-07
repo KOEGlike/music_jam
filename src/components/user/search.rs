@@ -1,5 +1,5 @@
 use crate::components::{Song, SongAction};
-use crate::general::{types::real_time::SearchResult, *};
+use crate::model::{types::real_time::SearchResult, *};
 use icondata::AiSearchOutlined;
 use leptos::{prelude::*, *};
 
@@ -13,6 +13,10 @@ pub fn Search(
     let add_song = Callback::new(add_song);
     let search = Callback::new(search);
     let (current_result, set_current_result) = create_signal::<Vec<Song>>(Vec::new());
+    let add_song = Callback::new(move |id| {
+        set_current_result(vec![]);
+        add_song(id);
+    });
 
     create_effect(move |_| {
         if let Some(search_result) = search_result() {
@@ -47,10 +51,7 @@ pub fn Search(
                             }
                         } else {
                             view! {
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                                     <circle cx="18" cy="12" r="0">
                                         <animate
                                             attributeName="r"

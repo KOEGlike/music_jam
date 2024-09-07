@@ -1,19 +1,22 @@
-use crate::general::functions::get_access_token;
-use crate::general::types::*;
+use crate::model::functions::get_access_token;
+use crate::model::types::*;
+use itertools::Itertools;
 use leptos::logging::*;
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use rspotify::model::TrackId;
 use std::collections::HashMap;
 
 pub async fn remove_song(
     song_id: &str,
-    id: &IdType,
+    id: &Id,
     pool: &sqlx::PgPool,
 ) -> Result<real_time::Changed, Error> {
-    if let IdType::User(id) = id {
+    if let IdType::User(id) = &id.id {
         let song_user_id = sqlx::query!(
             "SELECT * FROM songs WHERE id=$1 AND user_id=$2",
             song_id,
-            id.id
+            id
         )
         .fetch_optional(pool)
         .await?;
@@ -30,7 +33,23 @@ pub async fn remove_song(
     Ok(real_time::Changed::new().songs())
 }
 
-pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sqlx::Error> {
+pub async fn get_top_song(pool: &sqlx::PgPool, jam_id: String) -> Result<Option<Song>, Error> {
+    let id = Id {
+        id: IdType::General,
+        jam_id,
+    };
+
+    let songs=get_songs(pool, &id).await?;
+    if songs.is_empty() {
+        return Ok(None);
+    }
+
+    let mut songs=songs.into_iter().max_set_by_key(|s|s.votes.votes);
+    songs.shuffle(&mut thread_rng());
+    Ok(Some(songs.into_iter().next().unwrap()))
+}
+
+pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::Error> {
     struct SongDb {
         pub id: String,
         pub user_id: String,
@@ -56,8 +75,8 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sq
     .fetch_all(pool)
     .await?;
 
-    let votes: HashMap<String, Vote> = match id {
-        IdType::Host(_) => vec
+    let votes: HashMap<String, Vote> = match &id.id {
+        IdType::Host(_) | IdType::General => vec
             .iter()
             .map(|song| {
                 (
@@ -70,7 +89,7 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sq
             })
             .collect(),
         IdType::User(id) => {
-            let votes = sqlx::query!("SELECT song_id FROM votes WHERE user_id=$1;", id.id)
+            let votes = sqlx::query!("SELECT song_id FROM votes WHERE user_id=$1;", id)
                 .fetch_all(pool)
                 .await?
                 .into_iter()
@@ -95,21 +114,23 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &IdType) -> Result<Vec<Song>, sq
         .map(|song| Song {
             votes: votes.get(&song.id).cloned().unwrap_or(Vote {
                 votes: 0,
-                have_you_voted: match id {
-                    IdType::Host(_) => None,
+                have_you_voted: match id.id {
+                    IdType::Host(_) | IdType::General => None,
                     IdType::User(_) => Some(false),
                 },
             }),
             id: song.id,
             user_id: {
-                if let IdType::User(ref id) = id {
-                    if id.id == song.user_id {
-                        Some(song.user_id)
-                    } else {
-                        None
+                match &id.id {
+                    IdType::User(id) => {
+                        if id == &song.user_id {
+                            Some(song.user_id)
+                        } else {
+                            None
+                        }
                     }
-                } else {
-                    None
+                    IdType::General => Some(song.user_id),
+                    IdType::Host(_) => None,
                 }
             },
             name: song.name,

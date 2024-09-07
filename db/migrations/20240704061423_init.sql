@@ -37,16 +37,6 @@ CREATE TABLE songs (
   image_url varchar NOT NULL
 );
 
-CREATE TABLE current_songs (
-  id varchar(22) UNIQUE PRIMARY KEY NOT NULL,
-  user_id char(24) UNIQUE NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  name varchar(50) NOT NULL,
-  album varchar(50) NOT NULL,
-  duration int NOT NULL,
-  artists varchar[] NOT NULL,
-  image_url varchar NOT NULL
-);
-
 
 
 

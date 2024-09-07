@@ -1,7 +1,7 @@
 pub mod fileserv;
 pub use fileserv::*;
 
-use crate::general::AppState;
+use crate::model::AppState;
 use axum::{routing::get, Router};
 
 use leptos::*;

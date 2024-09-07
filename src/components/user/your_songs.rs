@@ -1,4 +1,4 @@
-use crate::general::*;
+use crate::model::*;
 use leptos::{prelude::*, *};
 use std::rc::Rc;
 

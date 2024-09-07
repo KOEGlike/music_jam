@@ -13,14 +13,14 @@ $colors: (
 
 $opacities: (
 	"bg": 0.2,
-	"border": 0.4,
+	"border": 0.5,
 	"hover": 0.3,
 	"selected": 0.4,
 );
 
 $font-stack: "Roboto Mono", monospace;
 
-$border: 1px solid rgba(map-get($colors, "glass-border"), map-get($opacities, "border"));
+$border: 1.5px solid rgba(map-get($colors, "glass-border"), map-get($opacities, "border"));
 
 $border-radiuses: (
 	"small": 10px,
@@ -46,6 +46,12 @@ main{
 	position: absolute;
 	border: none;
 	overflow: scroll;
+}
+
+@media (max-width: 1200px), (orientation: portrait) {
+	main{
+		scale: 0.8;
+	}
 }
 
 * {

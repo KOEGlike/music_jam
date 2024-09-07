@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use crate::general::types::*;
+use crate::model::types::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Song {

@@ -1,5 +1,5 @@
 use crate::components::{host::Player, Share, SongList, SongListAction, UsersBar};
-use crate::general::types::*;
+use crate::model::types::*;
 use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
@@ -198,15 +198,14 @@ pub fn HostPage() -> impl IntoView {
 
 #[server]
 async fn delete_jam(host_id: String) -> Result<(), ServerFnError> {
-    use crate::general::{self, check_id_type, notify, AppState};
+    use crate::model::{self, check_id_type, notify, AppState};
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     let id = check_id_type(&host_id, pool).await?;
-    let id = match id {
-        IdType::Host(id) => id,
-        _ => return Err(ServerFnError::Request("id is not a host id".to_string())),
-    };
-    general::delete_jam(&id.jam_id, pool).await?;
+    if !id.is_host() {
+        return Err(ServerFnError::Request("id is not a host id".to_string()));
+    }
+    model::delete_jam(&id.jam_id, pool).await?;
     notify(Changed::new().ended(), vec![], &id.jam_id, pool).await?;
     leptos_axum::redirect("/");
     Ok(())
@@ -214,8 +213,8 @@ async fn delete_jam(host_id: String) -> Result<(), ServerFnError> {
 
 #[server]
 pub async fn get_jam(jam_id: String) -> Result<Jam, ServerFnError> {
-    use crate::general::functions::get_jam as get_jam_fn;
-    use crate::general::AppState;
+    use crate::model::functions::get_jam as get_jam_fn;
+    use crate::model::AppState;
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     match get_jam_fn(&jam_id, pool).await {

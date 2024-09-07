@@ -3,7 +3,7 @@ use crate::components::{
     user::{Player, Search},
     SongList, SongListAction, UsersBar,
 };
-use crate::general::{self, *};
+use crate::model::{self, *};
 use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
 use itertools::Itertools;
@@ -57,7 +57,7 @@ pub fn UserPage() -> impl IntoView {
 
     let (search_result, set_search_result) = create_signal(None);
     let (songs, set_songs) = create_signal(None);
-    let (votes, set_votes) = create_signal(general::Votes::new());
+    let (votes, set_votes) = create_signal(model::Votes::new());
     let (users, set_users) = create_signal(None);
     let (position, set_position) = create_signal(0.0);
     let (current_song, set_current_song) = create_signal(None);

@@ -32,8 +32,9 @@
     display: flex;
     flex-direction: column;
     align-items: start;
-    justify-content: space-evenly;
+    justify-content: space-between;
     padding: 25px;
+    //padding-top: 0px;
     padding-bottom: 13px;
 
     >img {
@@ -41,6 +42,8 @@
         width: 410px;
         height: 410px;
         border-radius: 15px;
+        padding: 0;
+        margin: 0;
     }
 
     >.info {
@@ -155,5 +158,6 @@
 (orientation: portrait) {
     .player {
         scale: 0.8;
+        margin: calc(-0.1 * 600px) calc(-0.1 * 460px)
     }
 }

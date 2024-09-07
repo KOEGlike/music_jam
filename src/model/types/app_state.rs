@@ -1,5 +1,5 @@
 use std::error::Error as StdError;
-use crate::general::types::*;
+use crate::model::types::*;
 use axum::extract::FromRef;
 
 #[derive(FromRef, Clone, Debug)]

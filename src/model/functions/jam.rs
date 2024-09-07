@@ -1,5 +1,9 @@
-use crate::general::types::*;
+use crate::model::types::*;
 use leptos::logging::*;
+use rand::seq::SliceRandom;
+use real_time::Changed;
+use rspotify::Credentials;
+use sqlx::PgPool;
 
 use super::notify;
 
@@ -132,7 +136,11 @@ pub async fn create_jam(
     max_song_count: i16,
     pool: &sqlx::PgPool,
 ) -> Result<JamId, Error> {
-    let jam_id = cuid2::CuidConstructor::new().with_length(6).create_id().to_lowercase();
+    let jam_id = cuid2::CuidConstructor::new()
+        .with_length(6)
+        .create_id()
+        .to_lowercase();
+
 
     let error = sqlx::query!(
         "INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)",
@@ -159,6 +167,14 @@ pub async fn create_jam(
             return Err(e.into());
         }
     }
+
+    sqlx::query!(
+        "INSERT INTO users (id, jam_id, name) VALUES ($1, $1, $2)",
+        jam_id,
+        name
+    )
+    .execute(pool)
+    .await?;
 
     tokio::spawn(occasional_notify(pool.clone(), jam_id.clone()));
 
@@ -219,7 +235,7 @@ pub async fn get_current_song(
 
     let song = sqlx::query_as!(
         SongDb,
-        "SELECT * FROM current_songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1)",
+        "SELECT * FROM songs WHERE user_id=$1",
         jam_id
     )
     .fetch_optional(pool)
@@ -248,51 +264,60 @@ pub async fn get_current_song(
 }
 
 pub async fn set_current_song(
-    song_id: &str,
-    id: &IdType,
+    song: &Song,
+    jam_id: &str,
     pool: &sqlx::PgPool,
 ) -> Result<real_time::Changed, Error> {
-    use crate::general::functions::song::get_songs;
-
-    let mut transaction = pool.begin().await?;
-
-    if id.is_user() {
-        return Err(Error::Forbidden(
-            "Only hosts can set the current song".to_string(),
-        ));
-    }
-
-    let song = get_songs(pool, id)
-        .await?
-        .into_iter()
-        .find(|song| song.id == song_id)
-        .ok_or(Error::InvalidRequest(
-            "Song not found in current queue".to_string(),
-        ))?;
-
     sqlx::query!(
-        "DELETE FROM current_songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1)",
-        id.jam_id()
+        "DELETE FROM songs WHERE user_id=$1",
+        jam_id
     )
-    .execute(&mut *transaction)
+    .execute(pool)
     .await?;
 
-    let user_id = sqlx::query!("SELECT user_id FROM songs WHERE id=$1", song_id)
-        .fetch_one(&mut *transaction)
-        .await?
-        .user_id;
     sqlx::query!(
-        "INSERT INTO current_songs (id, user_id, name, album, duration, artists, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        "INSERT INTO songs (id, user_id, name, album, duration, artists, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7)",
         song.id,
-        user_id,
+        jam_id,
         song.name,
         song.album,
         song.duration as i32,
         &song.artists,
         song.image_url
     )
-    .execute(&mut *transaction)
+    .execute(pool)
     .await?;
-    transaction.commit().await?;
     Ok(real_time::Changed::new().current_song())
+}
+
+pub async fn next_song(
+    jam_id: String,
+    pool: &PgPool,
+    credentials: SpotifyCredentials,
+) -> Result<Changed, Error> {
+    use super::*;
+    use itertools::*;
+    use rand::prelude::*;
+
+    let id = Id::new(IdType::General, jam_id);
+
+    let mut changed = Changed::new();
+    let top_song = get_top_song(pool, id.jam_id.clone()).await?;
+
+    let top_song = match top_song{
+        Some(song)=>Some(song),
+        None=>{
+            get_next_song_from_player(id.jam_id(), pool, credentials.clone())
+            .await
+            .ok()
+        }
+    };
+
+    if let Some(song) =top_song {
+        changed = changed.merge_with_other(set_current_song(&song, id.jam_id(), pool).await?);
+        changed = changed.merge_with_other(reset_votes(id.jam_id(), pool).await?);
+        play_song(&song.id, id.jam_id(), pool, credentials).await?;
+    };
+
+    Ok(changed)
 }

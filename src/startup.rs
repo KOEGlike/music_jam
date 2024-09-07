@@ -1,5 +1,5 @@
 use crate::router;
-use crate::{general::types::AppState,app::{*}};
+use crate::{model::types::AppState,app::{*}};
 use leptos::*;
 use leptos_axum::generate_route_list;
 

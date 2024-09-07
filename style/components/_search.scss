@@ -63,3 +63,9 @@
         }
     }
 }
+
+@media (max-width:1200px), (orientation: portrait) {
+    .search {
+        height: 350px;
+    }
+}

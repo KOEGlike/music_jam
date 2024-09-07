@@ -1,12 +1,12 @@
 
-use crate::general::types::*;
+use crate::model::types::*;
 
 
-pub async fn add_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Result<real_time::Changed, Error> {
+pub async fn add_vote(song_id: &str, user_id: &str, pool: &sqlx::PgPool) -> Result<real_time::Changed, Error> {
     let vote_exists = sqlx::query!(
         "SELECT * FROM votes WHERE song_id=$1 AND user_id=$2;",
         song_id,
-        user_id.id
+        user_id
     )
     .fetch_optional(pool)
     .await?;
@@ -20,8 +20,8 @@ pub async fn add_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Resul
     sqlx::query!(
         "INSERT INTO votes (song_id, user_id, id) VALUES ($1, $2, $3);",
         song_id,
-        user_id.id,
-        format!("{}{}", song_id, user_id.id)
+        user_id,
+        format!("{}{}", song_id, user_id)
     )
     .execute(pool)
     .await?;
@@ -29,11 +29,11 @@ pub async fn add_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Resul
     Ok(real_time::Changed::new().votes())
 }
 
-pub async fn remove_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Result<real_time::Changed, Error> {
+pub async fn remove_vote(song_id: &str, user_id: &str, pool: &sqlx::PgPool) -> Result<real_time::Changed, Error> {
     let vote_exists = sqlx::query!(
         "SELECT * FROM votes WHERE song_id=$1 AND user_id=$2;",
         song_id,
-        user_id.id
+        user_id
     )
     .fetch_optional(pool)
     .await?;
@@ -47,7 +47,7 @@ pub async fn remove_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Re
     sqlx::query!(
         "DELETE FROM votes WHERE song_id=$1 AND user_id=$2;",
         song_id,
-        user_id.id
+        user_id
     )
     .execute(pool)
     .await?;
@@ -55,7 +55,7 @@ pub async fn remove_vote(song_id: &str, user_id: &Id, pool: &sqlx::PgPool) -> Re
     Ok(real_time::Changed::new().votes())
 }
 
-pub async fn get_votes(pool: &sqlx::PgPool, id: &IdType) -> Result<Votes, sqlx::Error> {
+pub async fn get_votes(pool: &sqlx::PgPool, id: &Id) -> Result<Votes, sqlx::Error> {
     struct VotesDb {
         pub song_id: String,
         pub votes_nr: Option<i64>,
@@ -73,8 +73,8 @@ pub async fn get_votes(pool: &sqlx::PgPool, id: &IdType) -> Result<Votes, sqlx::
     )
     .fetch_all(pool)
     .await?;
-    let votes = match id {
-        IdType::Host(_) => vec
+    let votes = match &id.id {
+        IdType::Host(_) | IdType::General=> vec
             .into_iter()
             .map(|v| {
                 (
@@ -86,8 +86,8 @@ pub async fn get_votes(pool: &sqlx::PgPool, id: &IdType) -> Result<Votes, sqlx::
                 )
             })
             .collect(),
-        IdType::User(id) => {
-            let votes = sqlx::query!("SELECT song_id FROM votes WHERE user_id=$1;", id.id)
+        IdType::User(user_id) => {
+            let votes = sqlx::query!("SELECT song_id FROM votes WHERE user_id=$1;", user_id)
                 .fetch_all(pool)
                 .await?
                 .into_iter()

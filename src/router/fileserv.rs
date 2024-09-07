@@ -7,7 +7,7 @@ use axum::{
 use axum::response::Response as AxumResponse;
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
-use crate::general::AppState;
+use crate::model::AppState;
 use crate::app::App;
 
 pub async fn file_and_error_handler(uri: Uri, State(state): State<AppState>, req: Request<Body>) -> AxumResponse {

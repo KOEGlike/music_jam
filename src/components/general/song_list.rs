@@ -1,5 +1,5 @@
 use crate::components::{Song, SongAction};
-use crate::general::{self, Vote, *};
+use crate::model::{self, Vote, *};
 use leptos::{logging::log, prelude::*, *};
 
 #[derive(Clone, Debug, Copy)]
@@ -27,8 +27,8 @@ impl SongListAction {
 
 #[component]
 pub fn SongList<F>(
-    #[prop(into)] songs: Signal<Option<Vec<general::Song>>>,
-    #[prop(into)] votes: Signal<general::Votes>,
+    #[prop(into)] songs: Signal<Option<Vec<model::Song>>>,
+    #[prop(into)] votes: Signal<model::Votes>,
     #[prop(into)] max_song_count: Signal<u8>,
     request_update: F,
     song_list_action: SongListAction,

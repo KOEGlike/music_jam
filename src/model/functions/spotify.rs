@@ -1,12 +1,10 @@
-use crate::general::types::*;
+use crate::model::types::*;
 use leptos::logging::*;
 use rspotify::{
     clients::{BaseClient, OAuthClient},
-    model::{SearchResult, TrackId},
+    model::{AdditionalType, Id, SearchResult, TrackId},
     AuthCodeSpotify,
 };
-
-
 
 pub async fn switch_playback_to_device(
     device_id: &str,
@@ -40,7 +38,7 @@ async fn get_maybe_expired_access_token(
     pool: &sqlx::PgPool,
     jam_id: &str,
 ) -> Result<rspotify::Token, sqlx::Error> {
-    let token=sqlx::query_as!(
+    let token = sqlx::query_as!(
         AccessTokenDb,
         "SELECT * FROM access_tokens WHERE host_id=(SELECT host_id FROM jams WHERE id=$1) ",
         jam_id
@@ -129,7 +127,7 @@ pub async fn search(
         .search(
             query,
             rspotify::model::SearchType::Track,
-            Some(rspotify::model::Market::Country(rspotify::model::Country::Romania)),
+            None,
             None,
             Some(30),
             Some(0),
@@ -142,7 +140,14 @@ pub async fn search(
     };
 
     for song in &songs.items {
-        println!("    song: {}, by:{:?}", song.name, song.artists.iter().map(|a| a.name.clone()).collect::<Vec<_>>());
+        println!(
+            "    song: {}, by:{:?}",
+            song.name,
+            song.artists
+                .iter()
+                .map(|a| a.name.clone())
+                .collect::<Vec<_>>()
+        );
     }
 
     let songs_in_jam = sqlx::query!(
@@ -161,25 +166,7 @@ pub async fn search(
         .filter(|song| !songs_in_jam.contains(&song.id.as_ref().unwrap().id().to_owned()))
         .collect::<Vec<_>>();
 
-    let songs = songs
-        .iter()
-        .map(|track| {
-            let id = track.id.as_ref().unwrap().id().to_owned();
-            Song {
-                id,
-                user_id: None,
-                name: track.name.clone(),
-                artists: track.artists.iter().map(|a| a.name.clone()).collect(),
-                album: track.album.name.clone(),
-                duration: track.duration.num_seconds() as u32,
-                image_url: track.album.images[0].url.clone(),
-                votes: Vote {
-                    votes: 0,
-                    have_you_voted: None,
-                },
-            }
-        })
-        .collect::<Vec<Song>>();
+    let songs = songs.into_iter().map(track_to_song).collect::<Vec<Song>>();
 
     println!("sending songs: ");
     for song in &songs {
@@ -187,6 +174,50 @@ pub async fn search(
     }
 
     Ok(songs)
+}
+
+pub async fn get_next_song_from_player(
+    jam_id: &str,
+    pool: &sqlx::PgPool,
+    credentials: SpotifyCredentials,
+) -> Result<Song, Error> {
+    let token = get_access_token(pool, jam_id, credentials).await?;
+    let client = AuthCodeSpotify::from_token(token);
+    let current = client.current_user_queue().await?.queue.into_iter().next();
+    let current = match current {
+        Some(song) => song,
+        None => return Err(Error::Spotify("no song playing".to_string())),
+    };
+    let current = match current {
+        rspotify::model::PlayableItem::Track(track) => track,
+        _ => return Err(Error::Spotify("no song playing".to_string())),
+    };
+    Ok(track_to_song(current))
+}
+
+pub fn track_to_song(track: rspotify::model::FullTrack) -> Song {
+    Song {
+        id: track
+            .id
+            .map(|id| id.id().to_string())
+            .unwrap_or("no id, wtf".to_string()),
+        user_id: None,
+        name: track.name,
+        artists: track.artists.into_iter().map(|a| a.name).collect(),
+        album: track.album.name,
+        duration: track.duration.num_seconds() as u32,
+        image_url: track
+            .album
+            .images
+            .into_iter()
+            .next()
+            .map(|i| i.url)
+            .unwrap_or_default(),
+        votes: Vote {
+            votes: 0,
+            have_you_voted: None,
+        },
+    }
 }
 
 pub async fn play_song(

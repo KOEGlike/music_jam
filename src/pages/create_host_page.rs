@@ -3,8 +3,8 @@ use leptos_router::*;
 
 #[server]
 async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError> {
-    use crate::general::functions::create_host;
-    use crate::general::AppState;
+    use crate::model::functions::create_host;
+    use crate::model::AppState;
     let app_state = expect_context::<AppState>();
 
     if let Err(e) = create_host(

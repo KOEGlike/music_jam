@@ -1,4 +1,4 @@
-use crate::general::types::Song;
+use crate::model::types::Song;
 use leptos::{
     logging::{error, log},
     prelude::*,
@@ -20,6 +20,18 @@ pub fn Player(
     });
 
     let song_length = move || current_song().map(|s| s.duration).unwrap_or_default();
+    let (title_overflow, set_title_overflow) = create_signal(false);
+    let (artist_overflow, set_artist_overflow) = create_signal(false);
+
+    create_effect(move |_| {
+        current_song.track();
+        set_artist_overflow(will_element_overflow("artist", Some("info")));
+    });
+
+    create_effect(move |_| {
+        current_song.track();
+        set_title_overflow(will_element_overflow("title", Some("info")));
+    });
 
     view! {
         <div class="player">
@@ -43,20 +55,12 @@ pub fn Player(
                     id="title"
                     class:scroll=move || {
                         current_song.track();
-                        if cfg!(target_arch = "wasm32") {
-                            will_element_overflow("title", Some("info"))
-                        } else {
-                            false
-                        }
+                        title_overflow()
                     }
                 >
 
                     {move || {
-                        let is_overflowing = if cfg!(target_arch = "wasm32") {
-                            will_element_overflow("title", Some("info"))
-                        } else {
-                            false
-                        };
+                        let is_overflowing = title_overflow();
                         std::iter::repeat(
                                 current_song().map(|s| s.name.clone()).unwrap_or_default(),
                             )
@@ -71,11 +75,7 @@ pub fn Player(
                     id="artist"
                     class:scroll=move || {
                         current_song.track();
-                        if cfg!(target_arch = "wasm32") {
-                            will_element_overflow("artist", Some("info"))
-                        } else {
-                            false
-                        }
+                        artist_overflow()
                     }
                 >
 
@@ -83,11 +83,7 @@ pub fn Player(
                         let artists = current_song()
                             .map(|s| s.artists.join(", "))
                             .unwrap_or_default();
-                        let is_overflowing = if cfg!(target_arch = "wasm32") {
-                            will_element_overflow("artist", Some("info"))
-                        } else {
-                            false
-                        };
+                        let is_overflowing = artist_overflow();
                         std::iter::repeat(artists)
                             .take(if is_overflowing { 2 } else { 1 })
                             .collect::<Vec<String>>()

@@ -11,8 +11,8 @@ async fn create_user(
     name: String,
     pfp_url: String,
 ) -> Result<String, ServerFnError> {
-    use crate::general::notify;
-    use crate::general::{functions::create_user as create_user_fn, types::AppState};
+    use crate::model::notify;
+    use crate::model::{functions::create_user as create_user_fn, types::AppState};
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     match create_user_fn(&jam_id, &pfp_url, &name, pool).await {

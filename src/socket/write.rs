@@ -1,10 +1,10 @@
-use super::{handle_error, IdType};
-use crate::general::*;
+use super::{handle_error, Id};
+use crate::model::*;
 use axum::extract::ws;
 use sqlx::postgres::PgListener;
 use tokio::sync::mpsc;
 
-pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: AppState) {
+pub async fn write(sender: mpsc::Sender<ws::Message>, id: Id, app_state: AppState) {
     let pool = app_state.db.pool;
     let mut listener = match create_listener(&pool, &id).await{
         Ok(listener)=>listener,
@@ -65,7 +65,7 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: IdType, app_state: App
 
 async fn create_listener(
     pool: &sqlx::PgPool,
-    id:&IdType,
+    id:&Id,
 ) -> Result<PgListener, Error> {
     let mut listener = match PgListener::connect_with(pool).await {
         Ok(listener) => listener,

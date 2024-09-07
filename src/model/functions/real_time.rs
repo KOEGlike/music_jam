@@ -1,5 +1,5 @@
 
-use crate::general::types::*;
+use crate::model::types::*;
 
 /// only the jam id is used form the id
 /// some fields such as songs and votes have different outputs depending on the id type

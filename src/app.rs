@@ -1,5 +1,5 @@
-use crate::general;
-use crate::general::real_time::SearchResult;
+use crate::model;
+use crate::model::real_time::SearchResult;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -39,7 +39,7 @@ pub fn App() -> impl IntoView {
 
 #[component]
 pub fn UserBartTest() -> impl IntoView {
-    use crate::{components::UsersBar, general::User};
+    use crate::{components::UsersBar, model::User};
     use leptos::logging::*;
 
     let users = vec![
@@ -114,7 +114,7 @@ fn SearchTest() -> impl IntoView {
     use crate::components::user::Search;
     use leptos::logging::*;
 
-    let song = general::Song {
+    let song = model::Song {
         id: "lol".to_string(),
         user_id: None,
         name: "Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy".to_string(),
@@ -129,7 +129,7 @@ fn SearchTest() -> impl IntoView {
         album: "Help!".to_string(),
         duration: 240,
         image_url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
-        votes: general::Vote {
+        votes: model::Vote {
             votes: 0,
             have_you_voted: None,
         },
@@ -170,7 +170,7 @@ fn UserPlayerTest() -> impl IntoView {
     use leptos::logging::*;
 
     let current_song = Signal::derive(move || {
-        Some(general::Song {
+        Some(model::Song {
             id: "lol".to_string(),
             user_id: None,
             name: "Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy".to_string(),
@@ -179,7 +179,7 @@ fn UserPlayerTest() -> impl IntoView {
             duration: 240,
             image_url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa"
                 .to_string(),
-            votes: general::Vote {
+            votes: model::Vote {
                 votes: 0,
                 have_you_voted: None,
             },

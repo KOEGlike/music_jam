@@ -1,5 +1,5 @@
 use crate::components::user::{get_width_of_element, millis_to_min_sec, will_element_overflow};
-use crate::general::types::*;
+use crate::model::types::*;
 use icondata::IoClose;
 use leptos::{logging::*, prelude::*, *};
 use std::rc::Rc;

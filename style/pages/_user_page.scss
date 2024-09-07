@@ -16,23 +16,19 @@
 @media (max-width: 1200px),
 (orientation: portrait) {
     .user-page {
-        gap: 0px;
+        gap: 10px;
     }
 
     .center {
         flex-direction: column;
-        gap: 0px;
-    }
-
-    .user-page>.center>.search {
-        margin-bottom: calc(600px * 0.1);
-        margin-top: calc(600px * 0.1);
+        gap: 10px;
     }
 }
 
 @media (min-width: 1200px) {
     .user-page {
         gap: 40px;
+        padding: 10px;
     }
 
     .user-page>.center {

@@ -1,11 +1,11 @@
 use crate::components::Modal;
-use crate::general::*;
+use crate::model::*;
 use leptos::{logging::log, prelude::*, *};
 use leptos_router::*;
 
 #[server]
 async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
-    use crate::general::AppState;
+    use crate::model::AppState;
     use leptos_axum::redirect;
     use sqlx::*;
     let app_state = expect_context::<AppState>();
@@ -32,13 +32,23 @@ async fn create_jam(
     host_id: String,
     max_song_count: i16,
 ) -> Result<JamId, ServerFnError> {
-    use crate::general::{AppState, create_jam, Error};
+    use crate::model::{AppState, create_jam, Error,set_current_song};
     let app_state = expect_context::<AppState>();
-
+    let pool=&app_state.db.pool;
+    let credentials=app_state.spotify_credentials;
     
 
-     match create_jam(&name, &host_id, max_song_count, &app_state.db.pool).await {
-        Ok(jam_id) => Ok(jam_id),
+     match create_jam(&name, &host_id, max_song_count, pool).await {
+        Ok(jam_id) => {
+            let song=match get_next_song_from_player(&jam_id, pool, credentials).await {
+                Ok(song)=>song,
+                Err(e)=>return Err(e.into())
+            };
+            if let Err(e) =set_current_song(&song, &jam_id, pool).await{
+                return Err(ServerFnError::Request("Error setting current song".to_string()));
+            }
+            Ok(jam_id)
+        },
         Err(Error::HostAlreadyInJam { jam_id }) => Ok(jam_id),
         Err(e) => Err(ServerFnError::Request(format!("Error creating jam: {:#?}", e))),
      }

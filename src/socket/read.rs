@@ -1,5 +1,5 @@
 use super::handle_error;
-use crate::general::*;
+use crate::model::*;
 use axum::extract::ws::{self, WebSocket};
 use futures_util::{stream::SplitStream, StreamExt};
 use rand::{seq::SliceRandom, thread_rng};
@@ -10,7 +10,7 @@ use itertools::*;
 pub async fn read(
     mut receiver: SplitStream<WebSocket>,
     sender: mpsc::Sender<ws::Message>,
-    id: IdType,
+    id: Id,
     app_state: AppState,
 ) {
     let pool = &app_state.db.pool.clone();
@@ -40,8 +40,19 @@ pub async fn read(
         let mut errors: Vec<Error> = Vec::new();
 
         match message {
-            real_time::Request::KickUser { mut user_id } => {
-                if id.is_user() && !(user_id == id.id() || id.id().is_empty()) {
+            real_time::Request::KickUser {  user_id } => {
+                let your_id=match &id.id{
+                    IdType::User(id)=>id,
+                    IdType::Host(_) | IdType::General=>{
+                        let error = Error::Forbidden(
+                            "Only users can kick other users, this is a bug, terminating socket connection"
+                                .to_string(),
+                        );
+                        handle_error(error, true, &sender).await;
+                        break;
+                    }
+                };
+                if !(&user_id == your_id || user_id.is_empty()) {
                     let error = Error::Forbidden(
                         "A user only can kick themselves, this is a bug, terminating socket connection"
                             .to_string(),
@@ -49,9 +60,10 @@ pub async fn read(
                     handle_error(error, true, &sender).await;
                     break;
                 }
+                let mut user_id = &user_id;
                 if user_id.is_empty() {
                    if id.is_user() {
-                    user_id = id.id().to_owned();
+                    user_id = your_id;
                    } else {
                     errors.push(Error::InvalidRequest("No user id provided".to_string()));
                    }
@@ -68,7 +80,7 @@ pub async fn read(
                 }
             }
             real_time::Request::AddSong { song_id } => {
-                let id = match only_user(
+                let your_id = match only_user(
                     &id,
                     "Only users can add songs, this is a bug, terminating socket connection",
                     &sender,
@@ -79,7 +91,7 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                match add_song(&song_id, &id.id, &id.jam_id, pool, credentials.clone()).await {
+                match add_song(&song_id, your_id, id.jam_id(), pool, credentials.clone()).await {
                     Ok(changed_new) => {
                         changed = changed.merge_with_other(changed_new);
                     }
@@ -120,7 +132,7 @@ pub async fn read(
                 };
             }
             real_time::Request::RemoveVote { song_id } => {
-                let id = match only_user(
+                let your_id = match only_user(
                     &id,
                     "Only users can remove votes, this is a bug, terminating socket connection",
                     &sender,
@@ -131,7 +143,7 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                match remove_vote(&song_id, id, pool).await {
+                match remove_vote(&song_id, your_id, pool).await {
                     Ok(changed_new) => {
                         changed = changed.merge_with_other(changed_new);
                     }
@@ -147,7 +159,7 @@ pub async fn read(
                 }
             }
             real_time::Request::Search { query , id: search_id} => {
-                let id = match only_user(
+                let your_id = match only_user(
                     &id,
                     "Only users can search, this is a bug, terminating socket connection",
                     &sender,
@@ -158,7 +170,7 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                let songs = match search(&query, pool, &id.jam_id, credentials.clone()).await {
+                let songs = match search(&query, pool, id.jam_id(), credentials.clone()).await {
                     Ok(songs) => songs,
                     Err(e) => {
                         handle_error(e, false, &sender).await;
@@ -176,7 +188,7 @@ pub async fn read(
                 }
             }
             real_time::Request::Position { percentage } => {
-                let id = match only_host(
+                let your_id = match only_host(
                     &id,
                     "Only a host can update the current position of a song, this is a bug, terminating socket connection",
                     &sender,
@@ -187,7 +199,7 @@ pub async fn read(
                     Err(_) => break,
                 };
 
-                match set_current_song_position( &id.jam_id,percentage, pool).await {
+                match set_current_song_position( id.jam_id(),percentage, pool).await {
                     Ok(changed_new) => {
                         changed = changed.merge_with_other(changed_new);
                     }
@@ -205,42 +217,15 @@ pub async fn read(
                     .await.is_err(){break;}
                     
 
-                let song_id=match get_songs(pool, &id).await{
-                    Ok(songs)=>{
-                        let mut top_songs=songs.into_iter().max_set_by_key(|song|song.votes.votes);
-                        top_songs.shuffle(&mut thread_rng());
-                        top_songs.first().map(|song|song.id.clone())
+              match next_song(id.jam_id.clone(), pool, credentials.clone()).await {
+                    Ok(changed_new) => {
+                        changed = changed.merge_with_other(changed_new);
                     }
-                    Err(e)=>{
-                        errors.push(e.into());
-                        None
+                    Err(e) => {
+                        errors.push(e);
                     }
-                };
-
-                if let Some(song_id)=song_id{
-                    match set_current_song(&song_id, &id, pool).await{
-                        Ok(changed_new)=>{
-                            match reset_votes(id.jam_id(), pool).await {
-                                Ok(changed_new_new) => {
-                                    if let Err(e)= play_song(&song_id, id.jam_id(), pool, credentials.clone()).await {
-                                        errors.push(e);
-                                   }
-                                    
-                                    changed=changed.merge_with_other(changed_new_new);
-                                    changed = changed.merge_with_other(changed_new);
-                                }
-                                Err(e) => {
-                                    errors.push(e.into());
-                                }
-                            }
-
-                           
-                        }
-                        Err(e)=>{
-                            errors.push(e);
-                        }
-                    };
-                }
+                
+              }
             }
         }
         if let Err(e) = notify(changed, errors, id.jam_id(), pool).await {
@@ -251,30 +236,33 @@ pub async fn read(
 
 use super::Id;
 
+///returns id of host, if the id is not a host, it returns an error
 async fn only_host<'a>(
-    id: &'a IdType,
+    id: &'a Id,
     message: &str,
     sender: &mpsc::Sender<ws::Message>,
-) -> Result<&'a Id, ()> {
-    match id {
+) -> Result<&'a String, ()> {
+    match &id.id {
         IdType::Host(id) => Ok(id),
-        IdType::User { .. } => {
+       _  => {
             let error = Error::Forbidden(message.to_string());
 
             handle_error(error, true, sender).await;
             Err(())
         }
+
     }
 }
 
+/// returns the user id if the id is a user, otherwise sends an error message and returns an error
 async fn only_user<'a>(
-    id: &'a IdType,
+    id: &'a Id,
     message: &str,
     sender: &mpsc::Sender<ws::Message>,
-) -> Result<&'a Id, ()> {
-    match id {
+) -> Result<&'a String, ()> {
+    match &id.id {
         IdType::User(id) => Ok(id),
-        IdType::Host { .. } => {
+        _ => {
             let error = Error::Forbidden(message.to_string());
 
             handle_error(error, true, sender).await;

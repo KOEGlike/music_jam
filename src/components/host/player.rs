@@ -7,7 +7,7 @@ use leptos::{
 };
 use rust_spotify_web_playback_sdk::prelude as sp;
 
-use crate::general;
+use crate::model;
 
 #[component]
 pub fn Player(
@@ -22,7 +22,7 @@ pub fn Player(
     //let (current_song_id, set_current_song_id) = create_signal(String::new());
     //let current_song_id = create_memo(move |_| current_song_id());
 
-    let (current_song, set_current_song) = create_signal(None::<general::Song>);
+    let (current_song, set_current_song) = create_signal(None::<model::Song>);
     let (song_position, set_song_position) = create_signal(0);
     let (playing, set_playing) = create_signal(false);
 
@@ -30,7 +30,7 @@ pub fn Player(
         set_song_position(state_change.position);
         set_playing(!state_change.paused);
         let mut current_song = state_change.track_window.current_track;
-        set_current_song(Some(general::Song {
+        set_current_song(Some(model::Song {
             id: current_song.id,
             user_id: None,
             name: current_song.name,
@@ -38,7 +38,7 @@ pub fn Player(
             album: current_song.album.name,
             duration: current_song.duration_ms,
             image_url: current_song.album.images.remove(0).url,
-            votes: general::Vote {
+            votes: model::Vote {
                 votes: 0,
                 have_you_voted: None,
             },
@@ -160,7 +160,9 @@ pub fn Player(
     });
 
     on_cleanup(move || {
-        sp::disconnect();
+        if let Err(e) = sp::disconnect() {
+            error!("Error disconnecting player: {:?}", e);
+        };
     });
 
     view! {
@@ -198,19 +200,21 @@ pub fn Player(
 
 #[server]
 async fn change_playback_device(device_id: String, host_id: String) -> Result<(), ServerFnError> {
-    use crate::general::*;
+    use crate::model::*;
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     let credentials = app_state.spotify_credentials;
 
     let jam_id = match check_id_type(&host_id, pool).await {
-        Ok(IdType::Host(id)) => id.jam_id,
-        Ok(IdType::User(_)) => {
-            leptos_axum::redirect("/");
-            return Err(ServerFnError::Request(
-                "the id was found, but it belongs to a user".to_string(),
-            ));
-        }
+        Ok(id) => match id.id {
+            IdType::Host(_) => id.jam_id,
+            _ => {
+                leptos_axum::redirect("/");
+                return Err(ServerFnError::Request(
+                    "the id was found, but it belongs to a user".to_string(),
+                ));
+            }
+        },
         Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
     };
 
@@ -223,14 +227,14 @@ async fn change_playback_device(device_id: String, host_id: String) -> Result<()
 
 #[server]
 async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnError> {
-    use crate::general::*;
+    use crate::model::*;
 
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     let credentials = app_state.spotify_credentials;
 
-    let jam_id = check_id_type(&host_id, pool).await;
-    let jam_id = match jam_id {
+    let id = check_id_type(&host_id, pool).await;
+    let id = match id {
         Ok(id) => id,
         Err(sqlx::Error::RowNotFound) => {
             leptos_axum::redirect("/");
@@ -238,17 +242,16 @@ async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnEr
         }
         Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
     };
-    let jam_id = match jam_id {
-        IdType::Host(id) => id.jam_id,
-        IdType::User(_) => {
-            leptos_axum::redirect("/");
-            return Err(ServerFnError::Request(
-                "the id was found, but it belongs to a user".to_string(),
-            ));
-        }
+    let jam_id = if id.is_host() {
+        id.jam_id
+    } else {
+        leptos_axum::redirect("/");
+        return Err(ServerFnError::Request(
+            "the id was found, but it belongs to a user".to_string(),
+        ));
     };
 
-    let token = match crate::general::get_access_token(pool, &jam_id, credentials).await {
+    let token = match crate::model::get_access_token(pool, &jam_id, credentials).await {
         Ok(token) => token,
         Err(e) => return Err(ServerFnError::ServerError(e.into())),
     };

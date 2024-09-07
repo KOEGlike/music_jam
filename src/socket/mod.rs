@@ -1,4 +1,4 @@
-use crate::general::*;
+use crate::model::*;
 use axum::{
     extract::{
         ws::{self, WebSocket, WebSocketUpgrade},
@@ -41,7 +41,7 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
         }
     };
 
-   
+    
 
     let bridge_task = tokio::spawn(send(mpsc_receiver, sender));
     let recv_task = tokio::spawn(read::read(
