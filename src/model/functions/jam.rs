@@ -141,7 +141,6 @@ pub async fn create_jam(
         .create_id()
         .to_lowercase();
 
-
     let error = sqlx::query!(
         "INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)",
         &jam_id,
@@ -183,13 +182,14 @@ pub async fn create_jam(
 
 pub async fn occasional_notify(pool: sqlx::PgPool, jam_id: String) -> Result<(), Error> {
     use std::time::Duration;
-    loop {
+    while dose_jam_exist(&jam_id, &pool).await.unwrap_or(true) {
         log!("Occasional notify");
         if let Err(e) = notify(real_time::Changed::all(), vec![], &jam_id, &pool).await {
             eprintln!("Error notifying all, in occasional notify: {:?}", e);
         };
         tokio::time::sleep(Duration::from_secs(10)).await;
     }
+    Ok(())
 }
 
 pub async fn set_current_song_position(
@@ -233,13 +233,9 @@ pub async fn get_current_song(
         pub image_url: String,
     }
 
-    let song = sqlx::query_as!(
-        SongDb,
-        "SELECT * FROM songs WHERE user_id=$1",
-        jam_id
-    )
-    .fetch_optional(pool)
-    .await?;
+    let song = sqlx::query_as!(SongDb, "SELECT * FROM songs WHERE user_id=$1", jam_id)
+        .fetch_optional(pool)
+        .await?;
 
     let song = match song {
         Some(song) => song,
@@ -268,12 +264,9 @@ pub async fn set_current_song(
     jam_id: &str,
     pool: &sqlx::PgPool,
 ) -> Result<real_time::Changed, Error> {
-    sqlx::query!(
-        "DELETE FROM songs WHERE user_id=$1",
-        jam_id
-    )
-    .execute(pool)
-    .await?;
+    sqlx::query!("DELETE FROM songs WHERE user_id=$1", jam_id)
+        .execute(pool)
+        .await?;
 
     sqlx::query!(
         "INSERT INTO songs (id, user_id, name, album, duration, artists, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7)",
@@ -290,30 +283,34 @@ pub async fn set_current_song(
     Ok(real_time::Changed::new().current_song())
 }
 
+pub async fn dose_jam_exist(jam_id: &str, pool: &sqlx::PgPool) -> Result<bool, Error> {
+    sqlx::query!("SELECT EXISTS(SELECT 1 FROM jams WHERE id=$1)", jam_id)
+        .fetch_one(pool)
+        .await
+        .map(|b| b.exists.unwrap())
+        .map_err(|e| e.into())
+}
+
 pub async fn next_song(
     jam_id: String,
     pool: &PgPool,
     credentials: SpotifyCredentials,
 ) -> Result<Changed, Error> {
     use super::*;
-    use itertools::*;
-    use rand::prelude::*;
 
     let id = Id::new(IdType::General, jam_id);
 
     let mut changed = Changed::new();
     let top_song = get_top_song(pool, id.jam_id.clone()).await?;
 
-    let top_song = match top_song{
-        Some(song)=>Some(song),
-        None=>{
-            get_next_song_from_player(id.jam_id(), pool, credentials.clone())
+    let top_song = match top_song {
+        Some(song) => Some(song),
+        None => get_next_song_from_player(id.jam_id(), pool, credentials.clone())
             .await
-            .ok()
-        }
+            .ok(),
     };
 
-    if let Some(song) =top_song {
+    if let Some(song) = top_song {
         changed = changed.merge_with_other(set_current_song(&song, id.jam_id(), pool).await?);
         changed = changed.merge_with_other(reset_votes(id.jam_id(), pool).await?);
         play_song(&song.id, id.jam_id(), pool, credentials).await?;

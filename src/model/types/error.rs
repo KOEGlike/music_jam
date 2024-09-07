@@ -1,18 +1,31 @@
 use leptos::ServerFnError;
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+
+#[derive(Serialize, Deserialize, Debug, Clone, thiserror::Error)]
 pub enum Error {
+    #[error("Error from database: {0}")]
     Database(String),
+    #[error("Error from spotify: {0}")]
     Spotify(String),
+    #[error("Error from serde decode: {0}")]
     Decode(String),
+    #[error("Error from serde encode: {0}")]
     Encode(String),
+    #[error("Error with web socket")]
     WebSocket(String),
+    #[error("This action is not allowed for you: {0}")]
     Forbidden(String),
+    #[error("There is something missing or something that is not allow with the file system: {0}")]
     FileSystem(String),
+    #[error("Your request is incorrect: {0}")]
     InvalidRequest(String),
+    #[error("The host cant create another jam cuz he is in one already, jam id: {jam_id}")]
     HostAlreadyInJam{jam_id:String},
+    #[error("This user has reached |insert pronoun here| song limit")]
     UserHasTooTheMaxSongAmount,
+    #[error("A env was not found: {0}")]
+    EnvNotFound(String)
 }
 
 impl Error {
@@ -28,6 +41,7 @@ impl Error {
             Error::InvalidRequest(_) => 4400,
             Error::HostAlreadyInJam{..} => 4400,
             Error::UserHasTooTheMaxSongAmount => 4400,
+            Error::EnvNotFound(_) => 4500
         }
     }
 }
@@ -45,6 +59,8 @@ impl From<Error> for String {
             Error::InvalidRequest(s) => s,
             Error::HostAlreadyInJam{jam_id} => format!("Host is already in jam with id: {}", jam_id),
             Error::UserHasTooTheMaxSongAmount => "User has too the max song amount".to_string(),
+            Error::EnvNotFound(s) => s,
+            
         }
     }
 }
@@ -88,19 +104,8 @@ impl From<sqlx::Error> for Error {
 }
 
 #[cfg(feature = "ssr")]
-impl From<Error> for ServerFnError {
-    fn from(val: Error) -> Self {
-       match val {
-            Error::Database(s) => ServerFnError::ServerError(s),
-            Error::Decode(s) => ServerFnError::ServerError(s),
-            Error::Encode(s) => ServerFnError::ServerError(s),
-            Error::WebSocket(s) => ServerFnError::ServerError(s),
-            Error::Forbidden(s) => ServerFnError::Request(s),
-            Error::Spotify(s) => ServerFnError::ServerError(s),
-            Error::FileSystem(s) => ServerFnError::ServerError(s),
-            Error::InvalidRequest(s) => ServerFnError::Request(s),
-            Error::HostAlreadyInJam{jam_id} => ServerFnError::Request(format!("Host is already in jam with id: {}", jam_id)),
-            Error::UserHasTooTheMaxSongAmount => ServerFnError::Request("User has too the max song amount".to_string()),
-       }
+impl From<std::env::VarError> for Error {
+    fn from(value: std::env::VarError) -> Self {
+        Error::EnvNotFound(value.to_string())
     }
 }

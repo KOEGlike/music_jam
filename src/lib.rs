@@ -6,8 +6,6 @@ pub mod pages;
 #[cfg(feature = "ssr")]
 pub mod router;
 #[cfg(feature = "ssr")]
-pub mod startup;
-#[cfg(feature = "ssr")]
 pub mod socket;
 
 #[cfg(feature = "hydrate")]

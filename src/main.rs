@@ -1,13 +1,26 @@
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-    let res=music_jam::startup::init().await;
-    match res {
-        Ok(_) => {},
-        Err(e) => {
-            eprintln!("Error: {}", e);
-        }
-    }
+    use leptos::*;
+    use leptos_axum::generate_route_list;
+    use music_jam::router;
+    use music_jam::{app::*, model::types::AppState};
+
+    dotenvy::dotenv().unwrap();
+    let conf = get_configuration(None).await.unwrap();
+    let leptos_options: LeptosOptions = conf.leptos_options;
+    let addr = leptos_options.site_addr;
+    let routes = generate_route_list(App);
+    let state = AppState::new(leptos_options).await.unwrap();
+
+    // build our application with a route
+    let app = router::new(routes, state);
+
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    logging::log!("listening on http://{}", &addr);
+    axum::serve(listener, app.into_make_service())
+        .await
+        .unwrap();
 }
 
 #[cfg(not(feature = "ssr"))]
