@@ -166,14 +166,6 @@ async fn handle_message(
                 }
             };
         }
-
-        real_time::Request::Update => {
-            if let Err(e) =
-                notify(real_time::Changed::all(), errors.clone(), id.jam_id(), pool).await
-            {
-                handle_error(e.into(), false, &sender).await;
-            }
-        }
         real_time::Request::Search {
             query,
             id: search_id,
@@ -243,6 +235,8 @@ async fn handle_message(
             }
         }
     }
+
+
     if let Err(e) = notify(changed, errors, id.jam_id(), pool).await {
         handle_error(e.into(), false, &sender).await;
     }

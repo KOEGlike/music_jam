@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id AS song_id, COUNT(v.id) AS votes_nr\n        FROM songs s\n        JOIN users u ON s.user_id = u.id\n        LEFT JOIN votes v ON s.id = v.song_id\n        WHERE u.jam_id = $1\n        GROUP BY s.id\n        ORDER BY votes_nr DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "song_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "votes_nr",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "2d512d6eaaec38e9453bd2901fa433aea0bceae5e7821cb3de72620c0effb673"
+}

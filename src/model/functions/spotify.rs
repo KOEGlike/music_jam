@@ -119,8 +119,6 @@ pub async fn search(
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
 
-    println!("searching for {}: ", query);
-
     let token = get_access_token(pool, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let result = client
@@ -138,17 +136,6 @@ pub async fn search(
     } else {
         return Err(Error::Spotify("Error in search".to_string()));
     };
-
-    for song in &songs.items {
-        println!(
-            "    song: {}, by:{:?}",
-            song.name,
-            song.artists
-                .iter()
-                .map(|a| a.name.clone())
-                .collect::<Vec<_>>()
-        );
-    }
 
     let songs_in_jam = sqlx::query!(
         "SELECT id FROM songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1);",
@@ -168,11 +155,6 @@ pub async fn search(
 
     let songs = songs.into_iter().map(track_to_song).collect::<Vec<Song>>();
 
-    println!("sending songs: ");
-    for song in &songs {
-        println!("    song: {}, by:{:?}", song.name, song.artists);
-    }
-
     Ok(songs)
 }
 
@@ -180,19 +162,19 @@ pub async fn get_next_song_from_player(
     jam_id: &str,
     pool: &sqlx::PgPool,
     credentials: SpotifyCredentials,
-) -> Result<Song, Error> {
+) -> Result<Option<Song>, Error> {
     let token = get_access_token(pool, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let current = client.current_user_queue().await?.queue.into_iter().next();
     let current = match current {
         Some(song) => song,
-        None => return Err(Error::Spotify("no song playing".to_string())),
+        None => return Ok(None),
     };
     let current = match current {
         rspotify::model::PlayableItem::Track(track) => track,
-        _ => return Err(Error::Spotify("no song playing".to_string())),
+        _ => return Ok(None),
     };
-    Ok(track_to_song(current))
+    Ok(Some(track_to_song(current)))
 }
 
 pub fn track_to_song(track: rspotify::model::FullTrack) -> Song {

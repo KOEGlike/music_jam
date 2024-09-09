@@ -139,12 +139,6 @@ pub fn UserPage() -> impl IntoView {
         send_request.get_untracked()(request);
     };
 
-    let request_update = move || {
-        let request = real_time::Request::Update;
-        send_request.get_untracked()(request);
-        log!("Sent update request");
-    };
-
     let delete_user_id_from_local_storage = move |_: ()| {
         LocalStorage::delete(jam_id.get_untracked());
     };
@@ -260,7 +254,6 @@ pub fn UserPage() -> impl IntoView {
                 <SongList
                     songs
                     votes
-                    request_update
                     song_list_action=SongListAction::Vote {
                         add_vote,
                         remove_vote,

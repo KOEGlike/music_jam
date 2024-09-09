@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO songs \n            (id, user_id, name, album, duration, image_url, artists) \n        VALUES \n            ($1, $2, $3, $4, $5, $6, $7);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Bpchar",
+        "Varchar",
+        "Varchar",
+        "Int4",
+        "Varchar",
+        "VarcharArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4389a42fe4bfcbfe5424d8c6c9d1d3a3a927131a385e1dae4cf124acfc62d1bb"
+}

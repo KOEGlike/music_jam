@@ -16,7 +16,18 @@ pub struct Changed {
 impl Changed {
     /// This function creates a new instance of the struct with all fields set to false
     pub fn new() -> Self {
-        Self::default()
+       Self{
+            users: false,
+            songs: false,
+            votes: false,
+            ended: false,
+            position: false,
+            current_song: false,
+       }
+    }
+
+    pub fn has_changed(&self) -> bool {
+        self.users || self.songs || self.votes || self.ended || self.position || self.current_song
     }
 
     /// This function merges the current instance with another instance of the struct

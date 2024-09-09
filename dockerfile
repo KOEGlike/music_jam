@@ -16,10 +16,15 @@ RUN cargo binstall cargo-leptos -y
 # Add the WASM target
 RUN rustup target add wasm32-unknown-unknown
 
+
 # Make an /app dir, which everything will eventually live in
 RUN mkdir -p /app
 WORKDIR /app
 COPY . .
+
+ENV SQLX_OFFLINE=true
+ENV LETPOS_WASM_OPT_VERSION=0.9.0
+# RUN cargo sqlx prepare
 
 # Build the app
 RUN cargo leptos build --release -vv
@@ -47,7 +52,6 @@ ENV RUST_LOG="info"
 ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
 ENV LEPTOS_SITE_ROOT="site"
 EXPOSE 8080
-
 # -- NB: update binary name from "leptos_start" to match your app name in Cargo.toml --
 # Run the server
 CMD ["/app/music_jam"]

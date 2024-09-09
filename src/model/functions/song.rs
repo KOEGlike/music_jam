@@ -111,6 +111,7 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::
 
     let songs = vec
         .into_iter()
+        .filter(|song| song.user_id.trim() != id.jam_id())
         .map(|song| Song {
             votes: votes.get(&song.id).cloned().unwrap_or(Vote {
                 votes: 0,
@@ -142,7 +143,7 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::
             image_url: song.image_url,
         })
         .collect::<Vec<_>>();
-
+    
     Ok(songs)
 }
 

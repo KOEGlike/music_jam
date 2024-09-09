@@ -26,22 +26,18 @@ impl SongListAction {
 }
 
 #[component]
-pub fn SongList<F>(
+pub fn SongList(
     #[prop(into)] songs: Signal<Option<Vec<model::Song>>>,
     #[prop(into)] votes: Signal<model::Votes>,
     #[prop(into)] max_song_count: Signal<u8>,
-    request_update: F,
     song_list_action: SongListAction,
 ) -> impl IntoView
-where
-    F: Fn() + 'static,
 {
     let (button_state, set_button_state) = create_signal(false);
     let songs = move || {
         if let Some(songs) = songs() {
             let votes = votes();
             if songs.len() != votes.len() {
-                request_update();
                 return Some(songs);
             }
             let mut songs = songs

@@ -6,13 +6,13 @@ services:
     ports:
       - 5432:5432
     env_file:
-      - .env
+      - ./.env
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
       - POSTGRES_USER=jammer
       - POSTGRES_DB=jam_db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -p 5432 -h localhost"] 
       interval: 10s
       retries: 5
       start_period: 30s

@@ -141,6 +141,8 @@ pub async fn create_jam(
         .create_id()
         .to_lowercase();
 
+    let mut transaction=pool.begin().await?;
+
     let error = sqlx::query!(
         "INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)",
         &jam_id,
@@ -148,7 +150,7 @@ pub async fn create_jam(
         host_id,
         name
     )
-    .execute(pool)
+    .execute(&mut *transaction)
     .await;
     match error {
         Ok(_) => (),
@@ -172,9 +174,10 @@ pub async fn create_jam(
         jam_id,
         name
     )
-    .execute(pool)
+    .execute(&mut *transaction)
     .await?;
 
+    transaction.commit().await?;
     tokio::spawn(occasional_notify(pool.clone(), jam_id.clone()));
 
     Ok(jam_id)
@@ -305,9 +308,22 @@ pub async fn next_song(
 
     let top_song = match top_song {
         Some(song) => Some(song),
-        None => get_next_song_from_player(id.jam_id(), pool, credentials.clone())
-            .await
-            .ok(),
+        None => match get_next_song_from_player(id.jam_id(), pool, credentials.clone())
+            .await{
+                Ok(song) => {
+                    match song {
+                        Some(song) => Some(song),
+                        None => {
+                            search("Never gonna give you up", pool, id.jam_id(), credentials.clone()).await?.pop()
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error getting next song from player: {:?}", e);
+                    None
+                },
+            }
+            ,
     };
 
     if let Some(song) = top_song {

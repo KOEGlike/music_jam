@@ -53,8 +53,6 @@ pub fn HostPage() -> impl IntoView {
         }
     });
 
-   
-
     let (users, set_users) = create_signal(None);
     let (songs, set_songs) = create_signal(None::<Vec<Song>>);
     let (votes, set_votes) = create_signal(Votes::new());
@@ -66,17 +64,11 @@ pub fn HostPage() -> impl IntoView {
         warn!("wanted to close ws, but the ws is not ready yet");
     }));
 
-
     let remove_song = move |id| {
         let request = real_time::Request::RemoveSong { song_id: id };
         send_request.get_untracked()(request);
     };
     let remove_song = Callback::new(remove_song);
-
-    let request_update = move || {
-        let request = real_time::Request::Update;
-        send_request.get_untracked()(request);
-    };
 
     let kick_user = move |id| {
         let request = real_time::Request::KickUser { user_id: id };
@@ -84,7 +76,7 @@ pub fn HostPage() -> impl IntoView {
     };
     let kick_user = Callback::new(kick_user);
 
-    let next_song = move |_:()| {
+    let next_song = move |_: ()| {
         let request = real_time::Request::NextSong;
         send_request.get_untracked()(request);
     };
@@ -110,14 +102,12 @@ pub fn HostPage() -> impl IntoView {
             close: close_ws,
             send,
             ..
-        } = use_websocket::<real_time::Request,real_time::Update, MsgpackSerdeCodec>(&format!(
+        } = use_websocket::<real_time::Request, real_time::Update, MsgpackSerdeCodec>(&format!(
             "/socket?id={}",
             host_id
         ));
 
-        
-
-        let send_request = Callback::new(move|request| send(&request));
+        let send_request = Callback::new(move |request| send(&request));
         set_send_request(send_request);
 
         let delete_jam = create_action(move |_: &()| {
@@ -179,7 +169,6 @@ pub fn HostPage() -> impl IntoView {
                 <SongList
                     songs
                     votes
-                    request_update
                     song_list_action=SongListAction::Remove(remove_song)
                     max_song_count=Signal::derive(move || {
                         jam

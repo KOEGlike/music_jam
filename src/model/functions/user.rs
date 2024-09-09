@@ -5,6 +5,12 @@ pub async fn get_users(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<User>, sqlx::
     sqlx::query_as!(User, "SELECT * FROM users WHERE jam_id=$1", id.jam_id())
         .fetch_all(pool)
         .await
+        .map(|users| {
+            users
+                .into_iter()
+                .filter(|user| user.id.trim() != id.jam_id())
+                .collect()
+        })
 }
 
 pub async fn check_id_type(id: &str, pool: &sqlx::PgPool) -> Result<Id, sqlx::Error> {

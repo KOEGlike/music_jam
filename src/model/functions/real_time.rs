@@ -1,4 +1,3 @@
-
 use crate::model::types::*;
 
 /// only the jam id is used form the id
@@ -9,11 +8,13 @@ pub async fn notify(
     jam_id: &str,
     pool: &sqlx::PgPool,
 ) -> Result<(), sqlx::Error> {
-    let update=real_time::ChannelUpdate{ errors, changed };
-    let update = serde_json::to_string(&update).unwrap();
+    if changed.has_changed() {
+        let update = real_time::ChannelUpdate { errors, changed };
+        let update = serde_json::to_string(&update).unwrap();
 
-    sqlx::query!("SELECT pg_notify($1,$2)", jam_id, update)
-        .execute(pool)
-        .await?;
+        sqlx::query!("SELECT pg_notify($1,$2)", jam_id, update)
+            .execute(pool)
+            .await?;
+    }
     Ok(())
 }

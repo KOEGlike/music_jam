@@ -3,8 +3,6 @@
 /target/
 pkg
 
-# real env file
-.env
 
 # uploaded pfp s
 public/uploads/*

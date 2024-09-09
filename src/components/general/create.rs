@@ -40,8 +40,13 @@ async fn create_jam(
 
      match create_jam(&name, &host_id, max_song_count, pool).await {
         Ok(jam_id) => {
-            let song=match get_next_song_from_player(&jam_id, pool, credentials).await {
-                Ok(song)=>song,
+            let song=match get_next_song_from_player(&jam_id, pool, credentials.clone()).await {
+                Ok(song)=>match song {
+                    Some(song) => song,
+                    None => {
+                        search("Never gonna give you up", pool, &jam_id, credentials.clone()).await?.remove(0)
+                    }
+                },
                 Err(e)=>return Err(e.into())
             };
             if let Err(e) =set_current_song(&song, &jam_id, pool).await{
