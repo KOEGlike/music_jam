@@ -43,7 +43,7 @@ pub fn SongList(
             let mut songs = songs
                 .into_iter()
                 .map(|mut song| {
-                    let votes = votes.get(&song.id).copied().unwrap_or(Vote {
+                    let votes = votes.get(song.id.as_ref().unwrap()).copied().unwrap_or(Vote {
                         votes: 0,
                         have_you_voted: None,
                     });

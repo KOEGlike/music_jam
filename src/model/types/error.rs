@@ -25,7 +25,9 @@ pub enum Error {
     #[error("This user has reached |insert pronoun here| song limit")]
     UserHasTooTheMaxSongAmount,
     #[error("A env was not found: {0}")]
-    EnvNotFound(String)
+    EnvNotFound(String),
+    #[error("song allready in jam")]
+    SongAlreadyInJam,
 }
 
 impl Error {
@@ -41,7 +43,8 @@ impl Error {
             Error::InvalidRequest(_) => 4400,
             Error::HostAlreadyInJam{..} => 4400,
             Error::UserHasTooTheMaxSongAmount => 4400,
-            Error::EnvNotFound(_) => 4500
+            Error::EnvNotFound(_) => 4500,
+            Error::SongAlreadyInJam => 4400,
         }
     }
 }
@@ -60,6 +63,7 @@ impl From<Error> for String {
             Error::HostAlreadyInJam{jam_id} => format!("Host is already in jam with id: {}", jam_id),
             Error::UserHasTooTheMaxSongAmount => "User has too the max song amount".to_string(),
             Error::EnvNotFound(s) => s,
+            Error::SongAlreadyInJam => "Song already in jam".to_string(),
             
         }
     }

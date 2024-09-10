@@ -20,7 +20,7 @@ RUN rustup target add wasm32-unknown-unknown
 # Make an /app dir, which everything will eventually live in
 RUN mkdir -p /app
 WORKDIR /app
-COPY . .
+COPY [^.env]. .
 
 ENV SQLX_OFFLINE=true
 ENV LETPOS_WASM_OPT_VERSION=0.9.0
@@ -28,6 +28,8 @@ ENV LETPOS_WASM_OPT_VERSION=0.9.0
 
 # Build the app
 RUN cargo leptos build --release -vv
+
+COPY .env .
 
 FROM debian:bookworm-slim as runtime
 WORKDIR /app

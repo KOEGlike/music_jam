@@ -115,7 +115,8 @@ fn SearchTest() -> impl IntoView {
     use leptos::logging::*;
 
     let song = model::Song {
-        id: "lol".to_string(),
+        id: Some("lol".to_string()),
+        spotify_id: "lol".to_string(),
         user_id: None,
         name: "Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy".to_string(),
         artists: vec![
@@ -139,7 +140,7 @@ fn SearchTest() -> impl IntoView {
         let mut songs = Vec::new();
         for i in 0..10 {
             let mut song = song.clone();
-            song.id = "a".repeat(i);
+            song.id = Some("a".repeat(i));
             songs.push(song);
         }
         songs
@@ -171,7 +172,8 @@ fn UserPlayerTest() -> impl IntoView {
 
     let current_song = Signal::derive(move || {
         Some(model::Song {
-            id: "lol".to_string(),
+            id: Some("lol".to_string()),
+            spotify_id: "lol".to_string(),
             user_id: None,
             name: "Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy".to_string(),
             artists: vec!["Beatles".to_string()],

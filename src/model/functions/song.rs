@@ -39,12 +39,12 @@ pub async fn get_top_song(pool: &sqlx::PgPool, jam_id: String) -> Result<Option<
         jam_id,
     };
 
-    let songs=get_songs(pool, &id).await?;
+    let songs = get_songs(pool, &id).await?;
     if songs.is_empty() {
         return Ok(None);
     }
 
-    let mut songs=songs.into_iter().max_set_by_key(|s|s.votes.votes);
+    let mut songs = songs.into_iter().max_set_by_key(|s| s.votes.votes);
     songs.shuffle(&mut thread_rng());
     Ok(Some(songs.into_iter().next().unwrap()))
 }
@@ -52,6 +52,7 @@ pub async fn get_top_song(pool: &sqlx::PgPool, jam_id: String) -> Result<Option<
 pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::Error> {
     struct SongDb {
         pub id: String,
+        pub spotify_id: String,
         pub user_id: String,
         pub name: String,
         pub album: String,
@@ -63,7 +64,7 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::
 
     let vec = sqlx::query_as!(
         SongDb,
-        "SELECT s.id, s.artists, s.image_url, s.user_id, s.name, s.album, s.duration, COUNT(v.id) AS votes
+        "SELECT s.id, s.spotify_id ,s.artists, s.image_url, s.user_id, s.name, s.album, s.duration, COUNT(v.id) AS votes
         FROM songs s
         JOIN users u ON s.user_id = u.id
         LEFT JOIN votes v ON s.id = v.song_id
@@ -120,7 +121,8 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::
                     IdType::User(_) => Some(false),
                 },
             }),
-            id: song.id,
+            id: Some(song.id),
+            spotify_id: song.spotify_id,
             user_id: {
                 match &id.id {
                     IdType::User(id) => {
@@ -143,12 +145,12 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::
             image_url: song.image_url,
         })
         .collect::<Vec<_>>();
-    
+
     Ok(songs)
 }
 
 pub async fn add_song(
-    song_id: &str,
+    spotify_song_id: &str,
     user_id: &str,
     jam_id: &str,
     pool: &sqlx::PgPool,
@@ -156,16 +158,27 @@ pub async fn add_song(
 ) -> Result<real_time::Changed, Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
-    log!("adding song, with id: {}", song_id);
+    log!("adding song, with id: {}", spotify_song_id);
+
+    let mut transaction=pool.begin().await?;
+
+    let does_song_exist = sqlx::query!("SELECT EXISTS(SELECT 1 FROM songs WHERE spotify_id=$1)", spotify_song_id)
+        .fetch_one(&mut *transaction)
+        .await?;
+
+    if does_song_exist.exists.unwrap_or(false) {
+        return Err(Error::SongAlreadyInJam);
+    }
+    
 
     let amount_of_songs = sqlx::query!("SELECT COUNT(*) FROM songs WHERE user_id=$1", user_id)
-        .fetch_one(pool)
+        .fetch_one(&mut *transaction)
         .await?
         .count
         .unwrap_or(0);
 
     let max_amount_of_songs = sqlx::query!("SELECT max_song_count FROM jams WHERE id=$1", jam_id)
-        .fetch_one(pool)
+        .fetch_one(&mut *transaction)
         .await?
         .max_song_count;
 
@@ -175,15 +188,15 @@ pub async fn add_song(
 
     let token = get_access_token(pool, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
-    let track_id = TrackId::from_id(song_id)?;
+    let track_id = TrackId::from_id(spotify_song_id)?;
     let song = client.track(track_id, None).await?;
 
     sqlx::query!(
         "INSERT INTO songs 
-            (id, user_id, name, album, duration, image_url, artists) 
+            (id, user_id, name, album, duration, image_url, artists, spotify_id) 
         VALUES 
-            ($1, $2, $3, $4, $5, $6, $7);",
-        song_id,
+            ($1, $2, $3, $4, $5, $6, $7, $8);",
+        cuid2::create_id(),
         user_id,
         song.name,
         song.album.name,
@@ -193,10 +206,13 @@ pub async fn add_song(
             .artists
             .into_iter()
             .map(|a| a.name)
-            .collect::<Vec<String>>()
+            .collect::<Vec<String>>(),
+        spotify_song_id,
     )
-    .execute(pool)
+    .execute(&mut *transaction)
     .await?;
+
+    transaction.commit().await?;
 
     Ok(real_time::Changed::new().songs())
 }

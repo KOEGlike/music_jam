@@ -68,6 +68,8 @@ pub async fn get_access_token(
     jam_id: &str,
     credentials: SpotifyCredentials,
 ) -> Result<rspotify::Token, Error> {
+    let mut transaction=pool.begin().await?;
+
     let token = get_maybe_expired_access_token(pool, jam_id).await?;
     let now = chrono::Utc::now().timestamp();
     if now < token.expires_at.unwrap_or_default().timestamp() {
@@ -102,10 +104,12 @@ pub async fn get_access_token(
         new_token.refresh_token,
         old_access_token
     )
-    .execute(pool)
+    .execute(&mut *transaction)
     .await?;
 
     log!("updated token");
+
+    transaction.commit().await?;
 
     Ok(new_token)
 }
@@ -179,7 +183,8 @@ pub async fn get_next_song_from_player(
 
 pub fn track_to_song(track: rspotify::model::FullTrack) -> Song {
     Song {
-        id: track
+        id: None,
+        spotify_id: track
             .id
             .map(|id| id.id().to_string())
             .unwrap_or("no id, wtf".to_string()),
@@ -203,14 +208,14 @@ pub fn track_to_song(track: rspotify::model::FullTrack) -> Song {
 }
 
 pub async fn play_song(
-    song_id: &str,
+    spotify_song_id: &str,
     jam_id: &str,
     pool: &sqlx::PgPool,
     credentials: SpotifyCredentials,
 ) -> Result<(), Error> {
     let token = get_access_token(pool, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
-    let song_id = match TrackId::from_id(song_id) {
+    let song_id = match TrackId::from_id(spotify_song_id) {
         Ok(id) => id,
         Err(e) => {
             return Err(Error::Spotify(format!(

@@ -29,7 +29,8 @@ CREATE TABLE users (
 
 CREATE TABLE songs (
   user_id char(24) NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  id varchar(22) UNIQUE PRIMARY KEY NOT NULL,
+  id char(24) UNIQUE PRIMARY KEY NOT NULL,
+  spotify_id varchar  NOT NULL,
   name varchar NOT NULL,
   album varchar NOT NULL,
   duration int NOT NULL,

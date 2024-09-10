@@ -141,7 +141,7 @@ pub async fn create_jam(
         .create_id()
         .to_lowercase();
 
-    let mut transaction=pool.begin().await?;
+    let mut transaction = pool.begin().await?;
 
     let error = sqlx::query!(
         "INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)",
@@ -228,6 +228,7 @@ pub async fn get_current_song(
 ) -> Result<Option<Song>, sqlx::Error> {
     struct SongDb {
         pub id: String,
+        pub spotify_id: String,
         pub user_id: String,
         pub name: String,
         pub album: String,
@@ -250,7 +251,8 @@ pub async fn get_current_song(
             votes: 0,
             have_you_voted: None,
         },
-        id: song.id,
+        spotify_id: song.spotify_id,
+        id: Some(song.id),
         user_id: Some(song.user_id),
         name: song.name,
         artists: song
@@ -262,6 +264,7 @@ pub async fn get_current_song(
     }))
 }
 
+/// doesn't need to have the id as some, it will generate a new one, either way
 pub async fn set_current_song(
     song: &Song,
     jam_id: &str,
@@ -270,16 +273,18 @@ pub async fn set_current_song(
     sqlx::query!("DELETE FROM songs WHERE user_id=$1", jam_id)
         .execute(pool)
         .await?;
+    let song_id= cuid2::create_id();
 
     sqlx::query!(
-        "INSERT INTO songs (id, user_id, name, album, duration, artists, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-        song.id,
+        "INSERT INTO songs (id, user_id, name, album, duration, artists, image_url, spotify_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+        song_id,
         jam_id,
         song.name,
         song.album,
         song.duration as i32,
         &song.artists,
-        song.image_url
+        song.image_url,
+        song.spotify_id
     )
     .execute(pool)
     .await?;
@@ -308,28 +313,31 @@ pub async fn next_song(
 
     let top_song = match top_song {
         Some(song) => Some(song),
-        None => match get_next_song_from_player(id.jam_id(), pool, credentials.clone())
-            .await{
-                Ok(song) => {
-                    match song {
-                        Some(song) => Some(song),
-                        None => {
-                            search("Never gonna give you up", pool, id.jam_id(), credentials.clone()).await?.pop()
-                        }
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Error getting next song from player: {:?}", e);
-                    None
-                },
+        None => match get_next_song_from_player(id.jam_id(), pool, credentials.clone()).await {
+            Ok(song) => match song {
+                Some(song) => Some(song),
+                None => search(
+                    "Never gonna give you up",
+                    pool,
+                    id.jam_id(),
+                    credentials.clone(),
+                )
+                .await?
+                .pop(),
+            },
+            Err(e) => {
+                eprintln!("Error getting next song from player: {:?}", e);
+                None
             }
-            ,
+        },
     };
 
     if let Some(song) = top_song {
         changed = changed.merge_with_other(set_current_song(&song, id.jam_id(), pool).await?);
         changed = changed.merge_with_other(reset_votes(id.jam_id(), pool).await?);
-        play_song(&song.id, id.jam_id(), pool, credentials).await?;
+        
+            play_song(&song.spotify_id, id.jam_id(), pool, credentials).await?;
+        
     };
 
     Ok(changed)

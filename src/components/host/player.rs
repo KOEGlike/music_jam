@@ -31,7 +31,8 @@ pub fn Player(
         set_playing(!state_change.paused);
         let mut current_song = state_change.track_window.current_track;
         set_current_song(Some(model::Song {
-            id: current_song.id,
+            id: None,
+            spotify_id:current_song.id,
             user_id: None,
             name: current_song.name,
             artists: current_song.artists.into_iter().map(|a| a.name).collect(),

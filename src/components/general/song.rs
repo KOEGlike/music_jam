@@ -34,9 +34,9 @@ impl SongAction {
 #[component]
 pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction) -> impl IntoView {
     let loaded = move |song: Song| {
-        let title_id = song.id.clone() + "title";
+        let title_id = song.spotify_id.clone() + "title";
         let title_id=Rc::new(title_id);
-        let artist_id = song.id.clone() + "artist";
+        let artist_id = song.spotify_id.clone() + "artist";
         let artist_id=Rc::new(artist_id);
     
         let mut width:u16=180;
@@ -71,7 +71,8 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
 
                 class:remove=song_type.is_remove()
                 on:click={
-                    let song_id = song.id.clone();
+                    let spotify_song_id = song.spotify_id.clone();
+                    let song_id = song.id.clone().unwrap_or_default();
                     move |_| {
                         match song_type {
                             SongAction::Vote { add_vote, remove_vote, vote } => {
@@ -81,12 +82,12 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                                         remove_vote(song_id.clone())
                                     } else {
                                         log!("Adding vote");
-                                        add_vote(song_id.clone())
+                                        add_vote(spotify_song_id.clone())
                                     }
                                 }
                             }
                             SongAction::Remove { remove, .. } => remove(song_id.clone()),
-                            SongAction::Add(add) => add(song_id.clone()),
+                            SongAction::Add(add) => add(spotify_song_id.clone()),
                         }
                     }
                 }
