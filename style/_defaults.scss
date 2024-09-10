@@ -125,7 +125,6 @@ body::before {
 	background-color: rgba(map-get($colors, "glass"), map-get($opacities, "bg"));
 	border: $border;
 	backdrop-filter: $blur;
-	-webkit-backdrop-filter: $blur;
 	color: map-get($colors, "font");
 	width: 100%;
 	height: 100%;

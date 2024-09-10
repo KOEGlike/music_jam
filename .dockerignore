@@ -3,6 +3,14 @@
 /target/
 pkg
 
+dockerfile
+compose.yml
+
+LICENSE
+README.md
+env.sample
+
+.vscode/
 
 # uploaded pfp s
 public/uploads/*

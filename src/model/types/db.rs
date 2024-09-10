@@ -8,6 +8,7 @@ pub struct Db {
 
 impl Db {
     pub async fn new(url: String) -> Result<Self, Error> {
+        println!("creating db pool...");
         let pool = sqlx::postgres::PgPoolOptions::new()
             .idle_timeout(Some(std::time::Duration::from_secs(60 * 15)))
             .acquire_timeout(std::time::Duration::from_secs(60 * 5))
@@ -18,11 +19,12 @@ impl Db {
             .connect(&url)
             .await?;
 
-
+        println!("running migrations...");
         sqlx::migrate!("db/migrations")
             .run(&pool)
             .await
             .map_err(|e| Error::Database(format!("The migration failed: {}", e)))?;
+        println!("migrations ran...");
 
         Ok(Db { pool, url })
     }

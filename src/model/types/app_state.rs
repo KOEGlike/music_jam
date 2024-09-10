@@ -12,13 +12,16 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new(leptos_options: leptos::LeptosOptions) -> Result<Self, Error> {
+        println!("Loading configuration for app_state...");
         dotenvy::dotenv().map_err(|e|Error::EnvNotFound(e.to_string()))?;
         let reqwest_client = reqwest::Client::new();
         let spotify_id = std::env::var("SPOTIFY_ID")?;
         let spotify_secret = std::env::var("SPOTIFY_SECRET")?;
         let db_url = std::env::var("DATABASE_URL")?;
+        println!("Connecting to database...");
         
         let db=Db::new(db_url).await?;
+        println!("Connected to database...");
 
         let spotify_credentials = SpotifyCredentials {
             id: spotify_id,

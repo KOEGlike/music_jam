@@ -127,9 +127,7 @@
         left: 350px;
         top: 410px;
         $blur: blur(20px);
-        //opacity: 0.4;
         backdrop-filter: $blur;
-        -webkit-backdrop-filter: $blur;
 
         display: flex;
         justify-content: center;

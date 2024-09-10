@@ -1,5 +1,5 @@
 # Get started with a build env with Rust nightly
-FROM rustlang/rust:nightly-bullseye as builder
+FROM rustlang/rust:nightly-bookworm as builder
 
 # If you’re using stable, use this instead
 # FROM rust:1.74-bullseye as builder
@@ -46,6 +46,12 @@ COPY --from=builder /app/target/site /app/site
 
 # Copy Cargo.toml if it’s needed at runtime
 COPY --from=builder /app/Cargo.toml /app/
+
+# Copy the .env file if it’s needed at runtime
+COPY --from=builder app/.env /app/
+
+# Copy the migrations directory if it’s needed at runtime
+COPY --from=builder /app/db/migrations /app/db/migrations
 
 # Set any required env variables and
 ENV RUST_LOG="info"
