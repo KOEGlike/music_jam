@@ -31,8 +31,6 @@ async fn get_static_file(
         .uri(uri.clone())
         .body(Body::empty())
         .unwrap();
-    use tower::ServiceExt;
-    // `ServeDir` implements `tower::Service` so we can call it with `tower::ServiceExt::oneshot`
     // This path is relative to the cargo root
     match ServeDir::new(root).oneshot(req).await {
         Ok(res) => Ok(res.into_response()),

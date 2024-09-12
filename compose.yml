@@ -8,7 +8,8 @@ services:
     env_file:
       - .env
     environment:
-      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
       - POSTGRES_USER=jammer
       - POSTGRES_DB=jam_db
     healthcheck:
@@ -18,7 +19,12 @@ services:
       start_period: 30s
       timeout: 10s
   app:
+    container_name: app
     build: .
+    env_file:
+      - .env
+    environment:
+       - DATABASE_URL="postgresql://jammer:${POSTGRES_PASSWORD}@jam_db:5432/jam_db"
     ports:
       - 8080:8080
     depends_on:

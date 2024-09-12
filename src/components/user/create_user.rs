@@ -15,7 +15,15 @@ async fn create_user(
     use crate::model::{functions::create_user as create_user_fn, types::AppState};
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
-    match create_user_fn(&jam_id, &pfp_url, &name, pool).await {
+    match create_user_fn(
+        &jam_id,
+        &pfp_url,
+        &name,
+        pool,
+        &app_state.leptos_options.site_root,
+    )
+    .await
+    {
         Ok(user_id) => {
             notify(user_id.1, vec![], &jam_id, pool).await?;
             Ok(user_id.0)

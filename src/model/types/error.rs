@@ -103,7 +103,7 @@ impl Error {
 #[cfg(feature = "ssr")]
 impl From<sqlx::Error> for Error {
     fn from(e: sqlx::Error) -> Self {
-        Error::Database(format!("sqlx error: {:?}", e))
+        Error::Database(format!("sqlx error: {:?}", e.to_string()))
     }
 }
 

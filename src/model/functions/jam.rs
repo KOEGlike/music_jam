@@ -1,5 +1,5 @@
 use crate::model::types::*;
-use leptos::logging::*;
+use leptos::{logging::*, server_fn::redirect};
 use rand::seq::SliceRandom;
 use real_time::Changed;
 use rspotify::Credentials;
@@ -24,6 +24,7 @@ pub async fn create_host(
     spotify_credentials: &SpotifyCredentials,
     reqwest_client: &reqwest::Client,
     pool: &sqlx::PgPool,
+    redirect_uri: &str,
 ) -> Result<(), Error> {
     use http::StatusCode;
     use serde::{Deserialize, Serialize};
@@ -32,7 +33,7 @@ pub async fn create_host(
     let body = {
         let mut body = HashMap::new();
         body.insert("code", code.as_str());
-        body.insert("redirect_uri", "http://localhost:3000/create-host");
+        body.insert("redirect_uri", redirect_uri);
         body.insert("grant_type", "authorization_code");
         body.insert("client_id", &spotify_credentials.id);
         body.insert("client_secret", &spotify_credentials.secret);

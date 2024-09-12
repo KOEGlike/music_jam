@@ -71,6 +71,8 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
 
                 class:remove=song_type.is_remove()
                 on:click={
+                    // this is because when we add a song it dosent have a id generated yet, so we use the spotify id
+                    // but when we remove a song we need to use the id, because the spotify id is not unique
                     let spotify_song_id = song.spotify_id.clone();
                     let song_id = song.id.clone().unwrap_or_default();
                     move |_| {

@@ -11,41 +11,47 @@
       {
         "ordinal": 1,
         "name": "id",
-        "type_info": "Varchar"
+        "type_info": "Bpchar"
       },
       {
         "ordinal": 2,
-        "name": "name",
+        "name": "spotify_id",
         "type_info": "Varchar"
       },
       {
         "ordinal": 3,
-        "name": "album",
+        "name": "name",
         "type_info": "Varchar"
       },
       {
         "ordinal": 4,
+        "name": "album",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
         "name": "duration",
         "type_info": "Int4"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "artists",
         "type_info": "VarcharArray"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "image_url",
         "type_info": "Varchar"
       }
     ],
     "parameters": {
       "Left": [
-        "Text",
+        "Bpchar",
         "Bpchar"
       ]
     },
     "nullable": [
+      false,
       false,
       false,
       false,

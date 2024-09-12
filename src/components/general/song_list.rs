@@ -104,7 +104,7 @@ pub fn SongList(
                         >
                             {move || {
                                 format!(
-                                    "Add ({} / {})",
+                                    "Your ({} / {})",
                                     your_songs().unwrap_or_default().len(),
                                     max_song_count(),
                                 )

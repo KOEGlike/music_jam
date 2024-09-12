@@ -5,7 +5,10 @@ use leptos_router::*;
 async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError> {
     use crate::model::functions::create_host;
     use crate::model::AppState;
+    use leptos_axum::*;
+    use axum::http::Uri;
     let app_state = expect_context::<AppState>();
+    let uri:Uri=extract().await?;
 
     if let Err(e) = create_host(
         code,
@@ -13,6 +16,7 @@ async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError>
         &app_state.spotify_credentials,
         &app_state.reqwest_client,
         &app_state.db.pool,
+        uri.authority().unwrap().as_ref(),
     )
     .await
     {

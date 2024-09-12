@@ -12,6 +12,8 @@ env.sample
 
 .vscode/
 
+.env
+
 # uploaded pfp s
 public/uploads/*
 

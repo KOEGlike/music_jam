@@ -74,6 +74,7 @@ pub async fn create_user(
     image_url: &str,
     name: &str,
     pool: &sqlx::PgPool,
+    root: &str
 ) -> Result<(String, real_time::Changed), Error> {
     use data_url::DataUrl;
 
@@ -109,7 +110,7 @@ pub async fn create_user(
         .crop_imm(0, 0, 256, 256);
 
     let user_id = cuid2::create_id();
-    let image_path = format!("./site/uploads/{}.webp", user_id);
+    let image_path = format!("{}/uploads/{}.webp", root, user_id);
 
     match image.save(image_path) {
         Ok(_) => (),

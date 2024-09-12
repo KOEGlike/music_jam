@@ -6,7 +6,9 @@ async fn main() {
     use music_jam::router;
     use music_jam::{app::*, model::types::AppState};
 println!("Starting server...");
-    dotenvy::dotenv().unwrap();
+    if dotenvy::dotenv().is_err(){
+        eprintln!("didn't find env file")
+    };
     println!("Loading configuration...");
     let conf = get_configuration(None).await.unwrap();
     println!("Configuration loaded...");
