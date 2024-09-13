@@ -8,21 +8,22 @@ pub struct AppState {
     pub reqwest_client: reqwest::Client,
     pub spotify_credentials: SpotifyCredentials,
     pub leptos_options: leptos::LeptosOptions,
+    pub site_url: String,
 }
 
 impl AppState {
-    pub async fn new(leptos_options: leptos::LeptosOptions) -> Result<Self, Error> {
-        println!("Loading configuration for app_state...");
-        if dotenvy::dotenv().is_err(){
-            eprintln!("didn't find env file")
-        };
-        let reqwest_client = reqwest::Client::new();
-        let spotify_id = std::env::var("SPOTIFY_ID")?;
-        let spotify_secret = std::env::var("SPOTIFY_SECRET")?;
-        let db_url = std::env::var("DATABASE_URL")?;
-        println!("Connecting to database...",);
+    pub async fn new(
+        leptos_options: leptos::LeptosOptions,
+        spotify_id: String,
+        spotify_secret: String,
+        db_url: String,
+        site_url: String,
+    ) -> Result<Self, Error> {
         
-        let db=Db::new(db_url).await?;
+        let reqwest_client = reqwest::Client::new();
+        println!("Connecting to database...",);
+
+        let db = Db::new(db_url).await?;
         println!("Connected to database...");
 
         let spotify_credentials = SpotifyCredentials {
@@ -35,6 +36,7 @@ impl AppState {
             reqwest_client,
             spotify_credentials,
             leptos_options,
+            site_url,
         })
     }
 }

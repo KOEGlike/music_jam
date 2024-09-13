@@ -6,9 +6,10 @@ use leptos_router::*;
 #[server]
 async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
     use crate::model::AppState;
-    use leptos_axum::redirect;
+    use leptos_axum::*;
     use sqlx::*;
     let app_state = expect_context::<AppState>();
+  
 
     let host_id = cuid2::create_id();
     let query = query!("INSERT INTO hosts(id) VALUES ($1)", &host_id);
@@ -16,10 +17,10 @@ async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
     query.execute(&pool).await?;
     redirect(
         format!(
-            "https://accounts.spotify.com/authorize?response_type=code&client_id={}&scope={}&redirect_uri={}&state={}&show_dialog=false"
+            "https://accounts.spotify.com/authorize?response_type=code&client_id={}&scope={}&redirect_uri={}/create-host&state={}&show_dialog=false"
             ,app_state.spotify_credentials.id
             ,"user-read-playback-state user-modify-playback-state user-read-currently-playing streaming user-read-private user-read-email"
-            ,"http://localhost:3000/create-host"
+            ,app_state.site_url
             ,host_id
         ).as_str()
     );
