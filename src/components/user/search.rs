@@ -2,6 +2,7 @@ use crate::components::{Song, SongAction};
 use crate::model::{types::real_time::SearchResult, *};
 use icondata::AiSearchOutlined;
 use leptos::{prelude::*, *};
+use logging::log;
 
 #[component]
 pub fn Search(
@@ -20,11 +21,10 @@ pub fn Search(
 
     create_effect(move |_| {
         if let Some(search_result) = search_result() {
-            if search_result.search_id.is_empty() {
-                set_current_result(search_result.songs.clone());
-            }
+            set_current_result(search_result.songs.clone());
         }
     });
+    
     view! {
         <div class="search">
             <div class="search-input">
@@ -94,8 +94,8 @@ pub fn Search(
             </div>
             <div class="search-result">
                 <For
-                    each=move || current_result().into_iter()
-                    key=|song| song.id.clone()
+                    each=move | | current_result().into_iter()
+                    key=|song| song.spotify_id.clone()
                     children=move |song| {
                         view! {
                             <Song song=Some(song.clone()) song_type=SongAction::Add(add_song)/>

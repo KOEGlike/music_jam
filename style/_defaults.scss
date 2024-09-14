@@ -49,7 +49,7 @@ main{
 }
 
 @media (max-width: 1200px), (orientation: portrait) {
-	main{
+	main>*{
 		scale: 0.8;
 	}
 }
@@ -107,9 +107,8 @@ body::before {
 	display: inline-block;
 	content: '';
 	position: absolute;
-	$margin-minus: -15px;
-	width: calc(100vw + -2 * $margin-minus);
-	height: calc(100vh + -2 * $margin-minus);
+	width: calc(100vw + -2 * -10vw);
+	height: calc(100vh + -2 * -10vh);
 	background:inherit;
 	filter: blur(8px);
 	-webkit-filter: blur(8px);
@@ -117,7 +116,7 @@ body::before {
 	padding: 0;
 	margin: 0;
 	border:none;
-	margin: $margin-minus;
+	margin: -10vh -10vw;
 }
 
 .glass {

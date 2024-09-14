@@ -84,7 +84,7 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                                         remove_vote(song_id.clone())
                                     } else {
                                         log!("Adding vote");
-                                        add_vote(spotify_song_id.clone())
+                                        add_vote(song_id.clone())
                                     }
                                 }
                             }

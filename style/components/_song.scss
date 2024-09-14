@@ -149,5 +149,11 @@
 }
 
 .voted {
-    background-color: rgba(#a0ac8e, map-get($opacities, "selected"));
+    //background-color: rgba(#a0ac8e, map-get($opacities, "selected"));
+    border-width: 5px;
+    padding-left: 0;
+    padding-bottom: 0;
+    padding-top: 0;
+
+    border-color: rgba(white, 0.5);
 }

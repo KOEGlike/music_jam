@@ -1,5 +1,5 @@
 use crate::model::types::*;
-use leptos::{logging::*, server_fn::redirect};
+use leptos::{ev::play, logging::*, server_fn::redirect};
 use rand::seq::SliceRandom;
 use real_time::Changed;
 use rspotify::Credentials;
@@ -136,6 +136,7 @@ pub async fn create_jam(
     host_id: &str,
     max_song_count: i16,
     pool: &sqlx::PgPool,
+    spotify_credentials: SpotifyCredentials,
 ) -> Result<JamId, Error> {
     let jam_id = cuid2::CuidConstructor::new()
         .with_length(6)
@@ -179,19 +180,57 @@ pub async fn create_jam(
     .await?;
 
     transaction.commit().await?;
-    tokio::spawn(occasional_notify(pool.clone(), jam_id.clone()));
+    tokio::spawn(occasional_notify(
+        pool.clone(),
+        jam_id.clone(),
+        spotify_credentials,
+    ));
 
     Ok(jam_id)
 }
 
-pub async fn occasional_notify(pool: sqlx::PgPool, jam_id: String) -> Result<(), Error> {
+async fn occasional_notify(
+    pool: sqlx::PgPool,
+    jam_id: String,
+    spotify_credentials: SpotifyCredentials,
+) -> Result<(), Error> {
     use std::time::Duration;
     while dose_jam_exist(&jam_id, &pool).await.unwrap_or(true) {
         log!("Occasional notify");
         if let Err(e) = notify(real_time::Changed::all(), vec![], &jam_id, &pool).await {
             eprintln!("Error notifying all, in occasional notify: {:?}", e);
         };
+        tokio::spawn(play_the_current_song_if_player_is_not_playing_it(
+            jam_id.clone(),
+            pool.clone(),
+            spotify_credentials.clone(),
+        ));
         tokio::time::sleep(Duration::from_secs(10)).await;
+    }
+
+    Ok(())
+}
+
+async fn play_the_current_song_if_player_is_not_playing_it(
+    jam_id: String,
+    pool: sqlx::PgPool,
+    credentials: SpotifyCredentials,
+) -> Result<(), Error> {
+    use super::{get_current_song_from_player, play_song};
+    let jam_id = &jam_id;
+    let pool = &pool;
+    let current_song = get_current_song(jam_id, pool).await?;
+    let song = match current_song {
+        Some(song) => song,
+        None => return Ok(()),
+    };
+    let player_current_song =
+        get_current_song_from_player(jam_id, pool, credentials.clone()).await?;
+    if player_current_song
+        .map(|s| s.spotify_id != song.spotify_id)
+        .unwrap_or(true)
+    {
+        play_song(&song.spotify_id, jam_id, pool, credentials).await?;
     }
     Ok(())
 }
@@ -265,7 +304,7 @@ pub async fn get_current_song(
     }))
 }
 
-/// doesn't need to have the id as some, it will generate a new one, either way
+/// doesn't need to have the song id as some, it will generate a new one, either way
 pub async fn set_current_song(
     song: &Song,
     jam_id: &str,
@@ -274,7 +313,7 @@ pub async fn set_current_song(
     sqlx::query!("DELETE FROM songs WHERE user_id=$1", jam_id)
         .execute(pool)
         .await?;
-    let song_id= cuid2::create_id();
+    let song_id = cuid2::create_id();
 
     sqlx::query!(
         "INSERT INTO songs (id, user_id, name, album, duration, artists, image_url, spotify_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
@@ -336,9 +375,8 @@ pub async fn next_song(
     if let Some(song) = top_song {
         changed = changed.merge_with_other(set_current_song(&song, id.jam_id(), pool).await?);
         changed = changed.merge_with_other(reset_votes(id.jam_id(), pool).await?);
-        
-            play_song(&song.spotify_id, id.jam_id(), pool, credentials).await?;
-        
+
+        play_song(&song.spotify_id, id.jam_id(), pool, credentials).await?;
     };
 
     Ok(changed)

@@ -56,6 +56,18 @@ $gap-number: 10;
     }
 }
 
+@media (max-width: 1200px),
+(orientation: portrait) {
+	.bar {
+        width:350px;
+    }
+}
+
+@media (min-width: 1200px) {
+	.bar {
+        width: 100%;
+    }
+}
 
 
 .user {

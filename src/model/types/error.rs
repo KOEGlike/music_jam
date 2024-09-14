@@ -1,3 +1,4 @@
+use gloo::utils::format;
 use leptos::ServerFnError;
 use serde::{Serialize, Deserialize};
 
@@ -74,13 +75,13 @@ use rspotify::ClientError;
 
 impl From<ClientError> for Error {
     fn from(e: ClientError) -> Self {
-        Error::Spotify(e.to_string())
+        Error::Spotify(format!("client error: {:?}", e))
     }
 }
 
 impl From<IdError> for Error {
     fn from(e: IdError) -> Self {
-        Error::Spotify(e.to_string())
+        Error::Spotify(format!("id error: {:?}", e))
     }
 }
 

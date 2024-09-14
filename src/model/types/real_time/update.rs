@@ -1,8 +1,8 @@
+use super::SearchResult;
 #[cfg(feature = "ssr")]
 use crate::model::functions;
 use crate::model::types::*;
 use serde::{Deserialize, Serialize};
-use super::SearchResult;
 
 /// The update that is sent to the client
 /// if the field is some then it was updated
@@ -34,7 +34,6 @@ impl Update {
     }
 
     #[cfg(feature = "ssr")]
-    ///only the jam id id used from the id
     pub async fn users_from_jam(self, id: &Id, pool: &sqlx::PgPool) -> Self {
         match functions::get_users(pool, id).await {
             Ok(users) => self.users(users),
@@ -126,49 +125,112 @@ impl Update {
         }
     }
 
-    pub fn merge_with_other(self, other: Self) -> Self {
-        Self {
-            users: other.users.or(self.users),
-            songs: other.songs.or(self.songs),
-            errors: self
-                .errors
-                .into_iter()
-                .chain(other.errors)
-                .collect(),
-            votes: other.votes.or(self.votes),
-            search: other.search.or(self.search),
-            ended: other.ended.or(self.ended),
-            position: other.position.or(self.position),
-            current_song: other.current_song.or(self.current_song),
+    pub fn merge_with_other(self, other: Self, prioritize_other: bool) -> Self {
+        if prioritize_other {
+            Self {
+                users: other.users.or(self.users),
+                songs: other.songs.or(self.songs),
+                errors: self.errors.into_iter().chain(other.errors).collect(),
+                votes: other.votes.or(self.votes),
+                search: other.search.or(self.search),
+                ended: other.ended.or(self.ended),
+                position: other.position.or(self.position),
+                current_song: other.current_song.or(self.current_song),
+            }
+        } else {
+            Self {
+                users: self.users.or(other.users),
+                songs: self.songs.or(other.songs),
+                errors: self.errors.into_iter().chain(other.errors).collect(),
+                votes: self.votes.or(other.votes),
+                search: self.search.or(other.search),
+                ended: self.ended.or(other.ended),
+                position: self.position.or(other.position),
+                current_song: self.current_song.or(other.current_song),
+            }
         }
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn from_changed(changed:real_time::Changed, id: &Id, pool: &sqlx::PgPool) -> Self {
-        let mut update = Update::new();
-        if changed.users {
-            update = update.users_from_jam(id, pool).await;
-        }
-        if changed.songs {
-            update = update.songs_from_jam(id, pool).await;
-        }
-        if changed.votes {
-            update = update.votes_from_jam(id, pool).await;
-        }
-        if changed.ended {
-            update = update.ended();
-        }
-        if changed.position {
-            update = update.position_from_jam(id.jam_id(), pool).await;
-        }
-        if changed.current_song {
-            update = update.current_song_from_jam(id.jam_id(), pool).await;
-        }
+    pub async fn from_changed(changed: real_time::Changed, id: &Id, pool: &sqlx::PgPool) -> Self {
+        let update = Update::new();
+
+        let users_future = async {
+            if changed.users {
+                update.clone().users_from_jam(id, pool).await
+            } else {
+                update.clone()
+            }
+        };
+
+        let songs_future = async {
+            if changed.songs {
+                update.clone().songs_from_jam(id, pool).await
+            } else {
+                update.clone()
+            }
+        };
+
+        let votes_future = async {
+            if changed.votes {
+                update.clone().votes_from_jam(id, pool).await
+            } else {
+                update.clone()
+            }
+        };
+
+        let ended_future = async {
+            if changed.ended {
+                update.clone().ended()
+            } else {
+                update.clone()
+            }
+        };
+
+        let position_future = async {
+            if changed.position {
+                update.clone().position_from_jam(id.jam_id(), pool).await
+            } else {
+                update.clone()
+            }
+        };
+
+        let current_song_future = async {
+            if changed.current_song {
+                update
+                    .clone()
+                    .current_song_from_jam(id.jam_id(), pool)
+                    .await
+            } else {
+                update.clone()
+            }
+        };
+
+        let (
+            users_update,
+            songs_update,
+            votes_update,
+            ended_update,
+            position_update,
+            current_song_update,
+        ) = tokio::join!(
+            users_future,
+            songs_future,
+            votes_future,
+            ended_future,
+            position_future,
+            current_song_future
+        );
+
         update
+            .merge_with_other(users_update, false)
+            .merge_with_other(songs_update, false)
+            .merge_with_other(votes_update, false)
+            .merge_with_other(ended_update, false)
+            .merge_with_other(position_update, false)
+            .merge_with_other(current_song_update, false)
     }
-
 }
-
 
 impl From<Votes> for Update {
     fn from(votes: Votes) -> Self {

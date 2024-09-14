@@ -141,6 +141,7 @@ async fn handle_message(
                     changed = changed.merge_with_other(changed_new);
                 }
                 Err(e) => {
+                    println!("Error adding vote: {:?}", e);
                     errors.push(e);
                 }
             };
@@ -162,6 +163,7 @@ async fn handle_message(
                     changed = changed.merge_with_other(changed_new);
                 }
                 Err(e) => {
+                    println!("Error removing vote: {:?}", e);
                     errors.push(e);
                 }
             };
@@ -236,6 +238,7 @@ async fn handle_message(
         }
     }
 
+    
 
     if let Err(e) = notify(changed, errors, id.jam_id(), pool).await {
         handle_error(e.into(), false, &sender).await;

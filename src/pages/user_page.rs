@@ -175,6 +175,7 @@ pub fn UserPage() -> impl IntoView {
         create_effect(move |_| {
             if let Some(update) = message() {
                 if let Some(result) = update.search {
+                    //log!("Got search result: {:#?}", result);
                     set_search_result(Some(result));
                 }
                 if let Some(songs) = update.songs {

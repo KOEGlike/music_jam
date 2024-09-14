@@ -24,7 +24,7 @@ pub trait ToVotes {
 impl ToVotes for Vec<Song> {
     fn to_votes(self) -> Option<Votes> {
         if self.iter().map(|s| s.id.is_none()).contains(&true) {
-            return None;
+            None
         } else {
             Some(self.into_iter().map(|s| (s.id.unwrap(), s.votes)).collect())
         }

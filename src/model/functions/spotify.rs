@@ -123,6 +123,10 @@ pub async fn search(
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
 
+    if query.is_empty() {
+        return Ok(vec![]);
+    }
+
     let token = get_access_token(pool, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let result = client
@@ -138,7 +142,7 @@ pub async fn search(
     let songs = if let SearchResult::Tracks(tracks) = result {
         tracks
     } else {
-        return Err(Error::Spotify("Error in search".to_string()));
+        return Err(Error::Spotify("Error in search, returned other then tracks".to_string()));
     };
 
     let songs_in_jam = sqlx::query!(
@@ -158,8 +162,28 @@ pub async fn search(
         .collect::<Vec<_>>();
 
     let songs = songs.into_iter().map(track_to_song).collect::<Vec<Song>>();
+    println!("got search result: {:?}", songs);
 
     Ok(songs)
+}
+
+pub async fn get_current_song_from_player(
+    jam_id: &str,
+    pool: &sqlx::PgPool,
+    credentials: SpotifyCredentials,
+) -> Result<Option<Song>, Error> {
+    let token = get_access_token(pool, jam_id, credentials).await?;
+    let client = AuthCodeSpotify::from_token(token);
+    let current = client.current_playing(None, None::<Vec<_>>).await?;
+    let current = match current {
+        Some(song) => song,
+        None => return Ok(None),
+    };
+    let current = match current.item {
+        Some(rspotify::model::PlayableItem::Track(track))=> track,
+        _ => return Ok(None),
+    };
+    Ok(Some(track_to_song(current)))
 }
 
 pub async fn get_next_song_from_player(

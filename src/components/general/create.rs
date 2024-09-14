@@ -39,7 +39,7 @@ async fn create_jam(
     let credentials=app_state.spotify_credentials;
     
 
-     match create_jam(&name, &host_id, max_song_count, pool).await {
+     match create_jam(&name, &host_id, max_song_count, pool, credentials.clone()).await {
         Ok(jam_id) => {
             let song=match get_next_song_from_player(&jam_id, pool, credentials.clone()).await {
                 Ok(song)=>match song {
@@ -51,7 +51,7 @@ async fn create_jam(
                 Err(e)=>return Err(e.into())
             };
             if let Err(e) =set_current_song(&song, &jam_id, pool).await{
-                return Err(ServerFnError::Request("Error setting current song".to_string()));
+                return Err(ServerFnError::Request(format!("Error setting current song: {:?}", e)));
             }
             Ok(jam_id)
         },

@@ -42,7 +42,7 @@ CREATE TABLE songs (
 
 
 CREATE TABLE votes (
-  id varchar(46) UNIQUE PRIMARY KEY NOT NULL,
+  id char(48) UNIQUE PRIMARY KEY NOT NULL,
   user_id char(24) NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  song_id varchar(22) NOT NULL REFERENCES songs (id) ON DELETE CASCADE
+  song_id char(24) NOT NULL REFERENCES songs (id) ON DELETE CASCADE
 );

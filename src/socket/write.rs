@@ -32,6 +32,7 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: Id, app_state: AppStat
                     }
                 };
 
+
                 let mut changed=update.changed;
                 let errors=update.errors;
                 if id.is_host() {
@@ -40,7 +41,7 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: Id, app_state: AppStat
                 }
 
                 let message = real_time::Update::from_changed(changed, &id, &pool).await.error_vec(errors);
-             
+
 
                 let bin = match rmp_serde::to_vec(&message) {
                     Ok(bin) => bin,

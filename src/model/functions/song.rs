@@ -160,16 +160,15 @@ pub async fn add_song(
     use rspotify::AuthCodeSpotify;
     log!("adding song, with id: {}", spotify_song_id);
 
-    let mut transaction=pool.begin().await?;
+    let mut transaction = pool.begin().await?;
 
-    let does_song_exist = sqlx::query!("SELECT EXISTS(SELECT 1 FROM songs WHERE spotify_id=$1)", spotify_song_id)
+    let does_song_exist = sqlx::query!("SELECT EXISTS(SELECT 1 FROM songs WHERE spotify_id=$1 AND user_id IN (SELECT id FROM users WHERE jam_id=$2))", spotify_song_id, jam_id)
         .fetch_one(&mut *transaction)
         .await?;
 
     if does_song_exist.exists.unwrap_or(false) {
         return Err(Error::SongAlreadyInJam);
     }
-    
 
     let amount_of_songs = sqlx::query!("SELECT COUNT(*) FROM songs WHERE user_id=$1", user_id)
         .fetch_one(&mut *transaction)
