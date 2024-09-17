@@ -162,7 +162,6 @@ pub async fn search(
         .collect::<Vec<_>>();
 
     let songs = songs.into_iter().map(track_to_song).collect::<Vec<Song>>();
-    println!("got search result: {:?}", songs);
 
     Ok(songs)
 }

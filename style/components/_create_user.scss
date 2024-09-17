@@ -12,13 +12,16 @@
     border-radius: 40px;
 
     >.image-container {
-        >* {
+        >video ,>img {
             @extend .glass;
             object-fit: cover;
             object-position: center;
             width: 300px;
             height: 300px;
             border-radius: 150px;
+        }
+        >input{
+           opacity: 0;
         }
     }
 
@@ -31,6 +34,12 @@
         gap: 10px;
         flex-direction: row;
         align-items: center;
+
+        >label{
+            background:none;
+            border: none;
+            z-index: 20;
+        }
 
         >button {
             background: none;

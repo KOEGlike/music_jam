@@ -17,7 +17,7 @@ pub async fn add_vote(
     .await?;
 
     if vote_exists.exists.unwrap_or(false) {
-        println!("vote exists, returning error");
+        eprintln!("vote exists, returning error");
         return Err(Error::Forbidden(
             "user has already voted for this song".to_string(),
         ));
@@ -49,7 +49,7 @@ pub async fn remove_vote(
     .await?;
 
     if !vote_exists.exists.unwrap_or(false) {
-        println!("vote does not exist, returning error");
+        eprintln!("vote does not exist, returning error");
         return Err(Error::Forbidden(
             "user has not voted for this song".to_string(),
         ));

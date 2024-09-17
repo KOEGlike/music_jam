@@ -1,9 +1,17 @@
 use crate::components::user::set_bg_img;
-use gloo::storage::{LocalStorage, Storage};
-use leptos::{logging::error, prelude::*, *};
+use gloo::{
+    events::EventListener,
+    storage::{LocalStorage, Storage},
+};
+use leptos::{
+    logging::{error, log},
+    prelude::*,
+    *,
+};
 use leptos_router::*;
 use std::rc::Rc;
-use web_sys::MediaStream;
+use wasm_bindgen::{prelude::Closure, JsCast};
+use web_sys::{FileReader, HtmlInputElement, MediaStream, Url};
 
 #[server]
 async fn create_user(
@@ -61,6 +69,12 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             }
         });
     }
+
+    create_effect(move |_| {
+        if camera_request_state.with(|s| s.is_denied()) {
+            file_picker(set_image_url, "image-picker");
+        }
+    });
 
     let take_picture = move || {
         camera.value().with(|response| {
@@ -141,6 +155,14 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                     prop:src=image_url
                     alt="The screen capture will appear in this box."
                 />
+                <input
+                    type="file"
+                    id="image-picker"
+                    name="image-picker"
+                    accept=".webp, .png, .jpg, .gif, .jpeg"
+                    multiple="false"
+                    capture="user"
+                />
             </div>
             <input
                 type="text"
@@ -149,10 +171,43 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 on:input=move |ev| set_name(event_target_value(&ev))
             />
             <div class="buttons">
+                <label
+                    for="image-picker"
+                    style:display=move || {
+                        if image_url.with(|url| !url.is_empty())
+                            || !camera_request_state.with(|s| s.is_denied())
+                        {
+                            "none"
+                        } else {
+                            "inline "
+                        }
+                    }
+                >
+
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="100"
+                        height="100"
+                        viewBox="0 0 100 100"
+                        fill="none"
+                    >
+                        <path
+                            d="M100 50C100 77.6142 77.6142 100 50 100C22.3858 100 0 77.6142 0 50C0 22.3858 22.3858 0 50 0C77.6142 0 100 22.3858 100 50ZM7.5 50C7.5 73.4721 26.5279 92.5 50 92.5C73.4721 92.5 92.5 73.4721 92.5 50C92.5 26.5279 73.4721 7.5 50 7.5C26.5279 7.5 7.5 26.5279 7.5 50Z"
+                            fill="white"
+                        ></path>
+                    </svg>
+                </label>
+
                 <button
                     class="capture-button"
                     style:display=move || {
-                        if image_url.with(|url| !url.is_empty()) { "none" } else { "inline " }
+                        if image_url.with(|url| !url.is_empty())
+                            || camera_request_state.with(|s| s.is_denied())
+                        {
+                            "none"
+                        } else {
+                            "inline "
+                        }
                     }
 
                     on:click=move |_| {
@@ -300,6 +355,18 @@ enum CameraRequestState {
     Denied,
     Asking,
     Granted,
+}
+
+impl CameraRequestState {
+    pub fn is_denied(&self) -> bool {
+        matches!(self, CameraRequestState::Denied)
+    }
+    pub fn is_asking(&self) -> bool {
+        matches!(self, CameraRequestState::Asking)
+    }
+    pub fn is_granted(&self) -> bool {
+        matches!(self, CameraRequestState::Granted)
+    }
 }
 
 struct CameraResponse {
@@ -463,4 +530,39 @@ async fn camera(
         take_picture: capture,
         close_camera,
     })
+}
+
+///sets the image url every time the selected file changes
+fn file_picker(image_url: WriteSignal<String>, file_input_id: &str) {
+    let input = window()
+        .document()
+        .unwrap()
+        .get_element_by_id(file_input_id)
+        .unwrap()
+        .dyn_into::<HtmlInputElement>()
+        .unwrap();
+    let listener = EventListener::new(&input, "change", {
+        let input = input.clone();
+        move |_| {
+            let files = input.files().unwrap();
+            if files.length() > 0 {
+                let file_reader = FileReader::new().unwrap();
+                let file = files.item(0).unwrap();
+                file_reader.read_as_data_url(&file).unwrap();
+                let cb = {
+                    let file_reader = file_reader.clone();
+                    Closure::wrap(Box::new(move || {
+                        let url = file_reader.result().unwrap().as_string().unwrap();
+                        log!("file url:{}", url);
+                        image_url(url);
+                    }) as Box<dyn FnMut()>)
+                };
+                file_reader.set_onload(Some(cb.as_ref().unchecked_ref()));
+                cb.forget();
+            } else {
+                image_url(String::new());
+            }
+        }
+    });
+    listener.forget();
 }

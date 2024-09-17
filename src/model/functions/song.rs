@@ -158,7 +158,7 @@ pub async fn add_song(
 ) -> Result<real_time::Changed, Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
-    log!("adding song, with id: {}", spotify_song_id);
+    println!("adding song, with id: {}", spotify_song_id);
 
     let mut transaction = pool.begin().await?;
 

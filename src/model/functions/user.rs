@@ -90,7 +90,7 @@ pub async fn create_user(
         return Err(Error::Decode("not an image".to_string()));
     }
     let image_format = match data_url.mime_type().subtype.as_str() {
-        "jpeg" => image::ImageFormat::Jpeg,
+        "jpeg"|"jpg" => image::ImageFormat::Jpeg,
         "png" => image::ImageFormat::Png,
         "gif" => image::ImageFormat::Gif,
         "webp" => image::ImageFormat::WebP,

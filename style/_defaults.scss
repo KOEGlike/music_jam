@@ -32,10 +32,43 @@ $element-heights: (
 	"medium": 85px,
 );
 
-
-
 $blur: blur(12px);
 
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	font-family: $font-stack;
+}
+
+body {
+	background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%);
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: cover;
+	width: 100vw;
+	height: 100vh;
+	overflow: hidden;
+	position: absolute;
+	margin: 0;
+}
+
+body::before {
+	display: inline-block;
+	content: '';
+	position: absolute;
+	overflow: hidden;
+	width: calc(100vw + -1 * -10vw);
+	height: calc(100vh + -1 * -10vh);
+	background:inherit;
+	filter: blur(8px);
+	-webkit-filter: blur(8px);
+	z-index: -1;
+	padding: 0;
+	margin: 0;
+	border:none;
+	margin: -10vh -10vw;
+}
 
 
 main{
@@ -52,13 +85,6 @@ main{
 	main>*{
 		scale: 0.8;
 	}
-}
-
-* {
-	margin: 0;
-	padding: 0;
-	box-sizing: border-box;
-	font-family: $font-stack;
 }
 
 /* width */
@@ -85,38 +111,6 @@ main{
 /* Handle on hover */
 *::-webkit-scrollbar-thumb:hover {
 	opacity: map-get($opacities, "hover" );
-}
-
-body {
-	
-
-	/* Center and scale the image nicely */
-
-	background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%);
-	background-position: center;
-	background-repeat: no-repeat;
-	background-size: cover;
-	width: 100vw;
-	height: 100vh;
-	overflow: hidden;
-	position: absolute;
-	margin: 0;
-}
-
-body::before {
-	display: inline-block;
-	content: '';
-	position: absolute;
-	width: calc(100vw + -2 * -10vw);
-	height: calc(100vh + -2 * -10vh);
-	background:inherit;
-	filter: blur(8px);
-	-webkit-filter: blur(8px);
-	z-index: -1;
-	padding: 0;
-	margin: 0;
-	border:none;
-	margin: -10vh -10vw;
 }
 
 .glass {

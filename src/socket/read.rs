@@ -56,22 +56,29 @@ async fn handle_message(
     match message {
         real_time::Request::KickUser { user_id } => {
             let your_id = match &id.id {
-                IdType::User(id) => id,
-                IdType::Host(_) | IdType::General => {
+                IdType::User(id) | IdType::Host(id) => id,
+                IdType::General => {
                     let error = Error::Forbidden(
-                        "Only users can kick other users, this is a bug, terminating socket connection"
+                        "Only users and hosts can kick users (users themselves), this is a bug, terminating socket connection"
                             .to_string(),
                     );
                     handle_error(error, true, &sender).await;
                     return;
                 }
             };
-            if !(&user_id == your_id || user_id.is_empty()) {
+            if !(&user_id == your_id || user_id.is_empty()) && id.is_user() {
                 let error = Error::Forbidden(
                     "A user only can kick themselves, this is a bug, terminating socket connection"
                         .to_string(),
                 );
                 handle_error(error, true, &sender).await;
+                return;
+            }
+            if user_id.is_empty() && id.is_host() {
+                let error = Error::InvalidRequest(
+                    "the user id is empty and you are not a user".to_string(),
+                );
+                handle_error(error, false, &sender).await;
                 return;
             }
             let mut user_id = &user_id;
@@ -141,7 +148,7 @@ async fn handle_message(
                     changed = changed.merge_with_other(changed_new);
                 }
                 Err(e) => {
-                    println!("Error adding vote: {:?}", e);
+                    eprintln!("Error adding vote: {:?}", e);
                     errors.push(e);
                 }
             };
@@ -163,7 +170,7 @@ async fn handle_message(
                     changed = changed.merge_with_other(changed_new);
                 }
                 Err(e) => {
-                    println!("Error removing vote: {:?}", e);
+                    eprintln!("Error removing vote: {:?}", e);
                     errors.push(e);
                 }
             };
@@ -237,8 +244,6 @@ async fn handle_message(
             }
         }
     }
-
-    
 
     if let Err(e) = notify(changed, errors, id.jam_id(), pool).await {
         handle_error(e.into(), false, &sender).await;

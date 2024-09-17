@@ -44,11 +44,12 @@ web-sys = { version = "0.3", features = [
     'HtmlCanvasElement',
     'Window',
     "MediaDevices",
-    "DisplayMediaStreamConstraints",
     "HtmlVideoElement",
     "HtmlImageElement",
     "MediaStream",
-    "MediaStreamConstraints",
+    "HtmlInputElement",
+    "FileReader",
+    "Blob"
 ] }
 wasm-bindgen-futures = { version = "0.4" }
 js-sys = { version = "=0.3" }
