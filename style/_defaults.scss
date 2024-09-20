@@ -41,6 +41,10 @@ $blur: blur(12px);
 	font-family: $font-stack;
 }
 
+html{
+	overflow: hidden;
+}
+
 body {
 	background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%);
 	background-position: center;
