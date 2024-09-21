@@ -1,7 +1,7 @@
 use crate::components::Modal;
 use crate::model::*;
 use leptos::{logging::log, prelude::*, *};
-use leptos_router::*;
+use leptos_router::{hooks::use_navigate, *};
 
 #[server]
 async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
@@ -64,13 +64,13 @@ async fn create_jam(
 pub fn CreateIsland() -> impl IntoView {
     use gloo::storage::{errors::StorageError, LocalStorage, Storage};
 
-    let (name, set_name) = create_signal(String::new());
-    let (max_song_count, set_max_song_count) = create_signal::<i16>(1);
+    let (name, set_name) = signal(String::new());
+    let (max_song_count, set_max_song_count) = signal::<i16>(1);
     let (error_message, set_error_message) =
-        create_signal(String::from("there is no error lol, this is a bug"));
-    let (show_dialog, set_show_dialog) = create_signal(false);
+        signal(String::from("there is no error lol, this is a bug"));
+    let (show_dialog, set_show_dialog) = signal(false);
 
-    let redirect_to_oauth = create_action(move |_| {
+    let redirect_to_oauth = Action::new(move |_| {
         if let Err(err) = LocalStorage::set("jam_name", name()) {
             log!("Error setting jam name to local storage: {}", err);
         }
@@ -83,7 +83,7 @@ pub fn CreateIsland() -> impl IntoView {
         }
     });
 
-    let create = create_action(move |_: &()| {
+    let create = Action::new(move |_: &()| {
         let name = name();
         let max_song_count = max_song_count();
         async move {
@@ -101,13 +101,13 @@ pub fn CreateIsland() -> impl IntoView {
                         set_show_dialog(true);
                     }
                 },
-                Err(StorageError::KeyNotFound(_)) => redirect_to_oauth.dispatch(()),
+                Err(StorageError::KeyNotFound(_)) => {redirect_to_oauth.dispatch(());},
                 Err(e) => log!("Error getting host id from local storage: {}", e),
             };
         }
     });
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let name: Result<String, StorageError> = LocalStorage::get("jam_name");
         match name {
             Ok(name) => set_name(name),
@@ -152,7 +152,7 @@ pub fn CreateIsland() -> impl IntoView {
                 </div>
             </div>
 
-            <button on:click=move |_| create.dispatch(()) class="button">
+            <button on:click=move |_| {create.dispatch(());} class="button">
                 "Create"
             </button>
         </div>

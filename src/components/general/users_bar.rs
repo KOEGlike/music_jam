@@ -1,6 +1,6 @@
 use crate::model::*;
 use icondata::IoClose;
-use leptos::{logging::log, prelude::*, *};
+use leptos::{either::Either, logging::log, prelude::*, *};
 use std::rc::Rc;
 
 #[component]
@@ -12,7 +12,7 @@ pub fn UsersBar(
     view! {
         <div class="bar">
             <button on:click=move |_| {
-                close(());
+                close.run(());
             }>
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -34,9 +34,9 @@ pub fn UsersBar(
                         for _ in 0..5 {
                             vec.push(view! { <div></div> });
                         }
-                        vec.into_view()
+                        Either::Left(vec.into_view())
                     } else {
-                        ().into_view()
+                        Either::Right(())
                     }
                 }}
                 <For
@@ -45,30 +45,30 @@ pub fn UsersBar(
                     children=move |user| {
                         let user_id = Rc::new(user.id);
                         view! {
-                            <div title=&user.name class="user">
+                            <div title=user.name.clone() class="user">
                                 <img
                                     src=format!("/uploads/{}.webp", user_id)
-                                    alt=format!("This is the profile picture of {}", &user.name)
+                                    alt=format!("This is the profile picture of {}", user.name.clone())
                                 />
-
                                 {if let Some(kick_user) = kick_user {
-                                    view! {
-                                        <svg
-                                            on:click={
-                                                let user_id = Rc::clone(&user_id);
-                                                move |_| {
-                                                    log!("kicking user {}", user_id);
-                                                    kick_user((*user_id).clone());
+                                    Either::Left(
+                                        view! {
+                                            <svg
+                                                on:click={
+                                                    let user_id = Rc::clone(&user_id);
+                                                    move |_| {
+                                                        log!("kicking user {}", user_id);
+                                                        kick_user.run((*user_id).clone());
+                                                    }
                                                 }
-                                            }
 
-                                            viewBox=IoClose.view_box
-                                            inner_html=IoClose.data
-                                        ></svg>
-                                    }
-                                        .into_view()
+                                                viewBox=IoClose.view_box
+                                                inner_html=IoClose.data
+                                            ></svg>
+                                        },
+                                    )
                                 } else {
-                                    ().into_view()
+                                    Either::Right(())
                                 }}
 
                             </div>

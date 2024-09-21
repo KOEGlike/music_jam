@@ -1,6 +1,6 @@
 use crate::components::{Song, SongAction};
 use crate::model::{self, Vote, *};
-use leptos::{logging::log, prelude::*, *};
+use leptos::{logging::log, prelude::*, *, either::Either};
 
 #[derive(Clone, Debug, Copy)]
 pub enum SongListAction {
@@ -33,7 +33,7 @@ pub fn SongList(
     song_list_action: SongListAction,
 ) -> impl IntoView
 {
-    let (button_state, set_button_state) = create_signal(false);
+    let (button_state, set_button_state) = signal(false);
     let songs = move || {
         if let Some(songs) = songs() {
             let votes = votes();
@@ -61,10 +61,10 @@ pub fn SongList(
         }
     };
     let songs = Signal::derive(songs);
-    create_effect(move |_| {
+    Effect::new(move |_| {
         log!("votes: {:#?}", votes());
     });
-    create_effect(move |_| {
+    Effect::new(move |_| {
         log!("songs: {:#?}", songs());
     });
 
@@ -88,34 +88,34 @@ pub fn SongList(
     view! {
         <div class="song-list">
             {if song_list_action.is_vote() {
-                view! {
-                    <div class="header">
-                        <button
-                            class="vote"
-                            on:click=move |_| set_button_state(false)
-                            class:active=move || !button_state()
-                        >
-                            "Vote"
-                        </button>
-                        <button
-                            class="add"
-                            on:click=move |_| set_button_state(true)
-                            class:active=button_state
-                        >
-                            {move || {
-                                format!(
-                                    "Your ({} / {})",
-                                    your_songs().unwrap_or_default().len(),
-                                    max_song_count(),
-                                )
-                            }}
-
-                        </button>
-                    </div>
-                }
-                    .into_view()
+               
+                    Either::Left( view! {
+                        <div class="header">
+                            <button
+                                class="vote"
+                                on:click=move |_| set_button_state(false)
+                                class:active=move || !button_state()
+                            >
+                                "Vote"
+                            </button>
+                            <button
+                                class="add"
+                                on:click=move |_| set_button_state(true)
+                                class:active=button_state
+                            >
+                                {move || {
+                                    format!(
+                                        "Your ({} / {})",
+                                        your_songs().unwrap_or_default().len(),
+                                        max_song_count(),
+                                    )
+                                }}
+    
+                            </button>
+                        </div>
+                    })
             } else {
-                ().into_view()
+                Either::Right(())
             }}
             <div class="songs">
                 {move || {
@@ -131,9 +131,9 @@ pub fn SongList(
                                 },
                             );
                         }
-                        vec.into_view()
+                       Either::Left(vec.into_view())
                     } else {
-                        ().into_view()
+                        Either::Right(())
                     }
                 }}
                 <div style:display=move || if !button_state() { "flex" } else { "none" }>
@@ -143,7 +143,7 @@ pub fn SongList(
                         key=|song| song.id.clone()
                         children=move |song| {
                             let id = song.id.clone();
-                            let votes = create_memo(move |_| {
+                            let votes = Memo::new(move |_| {
                                 others_songs
                                     .with(|songs| {
                                         {
@@ -165,7 +165,7 @@ pub fn SongList(
                                     })
                             });
                             let name = song.name.clone();
-                            create_effect(move |_| {
+                            Effect::new(move |_| {
                                 log!("votes: {:#?}, song name:{}", votes(), name);
                             });
                             let song_action = match song_list_action {
@@ -196,7 +196,7 @@ pub fn SongList(
                         children=move |song| {
                             if let SongListAction::Vote { remove_song, .. } = song_list_action {
                                 let id = song.id.clone();
-                                let votes = create_memo(move |_| {
+                                let votes = Memo::new(move |_| {
                                     your_songs
                                         .with(|songs| {
                                             {
@@ -221,9 +221,9 @@ pub fn SongList(
                                     remove: remove_song,
                                     vote: votes.into(),
                                 };
-                                view! { <Song song=Some(song) song_type=song_action/> }.into_view()
+                                Either::Left(view! { <Song song=Some(song) song_type=song_action/> })
                             } else {
-                                ().into_view()
+                                Either::Right(())
                             }
                         }
                     />

@@ -17,6 +17,7 @@ pub struct Song {
     pub votes: Vote,
 }
 
+
 pub trait ToVotes {
     fn to_votes(self) -> Option<Votes>;
 }

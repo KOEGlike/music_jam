@@ -4,14 +4,15 @@ use gloo::{
     storage::{LocalStorage, Storage},
 };
 use leptos::{
+    either::Either,
     logging::{error, log},
     prelude::*,
     *,
 };
-use leptos_router::*;
+use leptos_router::{hooks::use_navigate, *};
 use std::rc::Rc;
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::{FileReader, HtmlInputElement, MediaStream, Url};
+use web_sys::{FileReader, HtmlInputElement, MediaStream};
 
 #[server]
 async fn create_user(
@@ -44,22 +45,122 @@ async fn create_user(
 pub fn CreateUser(jam_id: String) -> impl IntoView {
     let jam_id = Rc::new(jam_id);
 
-    let (image_url, set_image_url) = create_signal(String::new());
-    let (camera_request_state, set_camera_request_state) =
-        create_signal(CameraRequestState::Asking);
-    let video_id = "video";
+    let (image_url, set_image_url) = signal(String::new());
+    let (camera_request_state, set_camera_request_state) = signal(CameraRequestState::Asking);
 
-    let camera = create_action(move |_: &()| async move {
-        camera(set_image_url, set_camera_request_state, video_id).await
-    });
+    let (take_picture, set_take_picture) = signal_local(None);
+    let (close_camera, set_close_camera) = signal_local(None);
+
+    let video_ref: NodeRef<html::Video> = NodeRef::new();
+    let canvas_ref: NodeRef<html::Canvas> = NodeRef::new();
+
+    let camera = move || {
+        leptos::spawn::spawn_local(async move {
+            use wasm_bindgen::{JsCast, JsValue};
+            use wasm_bindgen_futures::JsFuture;
+
+            let window = web_sys::window().unwrap();
+            let canvas = canvas_ref.get().unwrap();
+            let context = canvas.get_context("2d").unwrap().unwrap();
+            let context = context
+                .dyn_into::<web_sys::CanvasRenderingContext2d>()
+                .unwrap();
+            let video = video_ref.get().unwrap();
+
+            let camera = match window.navigator().media_devices() {
+                Ok(media_devices) => media_devices,
+                Err(e) => {
+                    error!("Error getting media devices: {:?}", e);
+                    return;
+                }
+            };
+
+            let camera_constraints = web_sys::MediaStreamConstraints::new();
+            camera_constraints.set_video(&JsValue::from(true));
+            camera_constraints.set_audio(&JsValue::from(false));
+
+            let camera = match camera.get_user_media_with_constraints(&camera_constraints) {
+                Ok(camera) => camera,
+                Err(e) => {
+                    error!("Error getting camera promise: {:?}", e);
+                    return;
+                }
+            };
+            set_camera_request_state(CameraRequestState::Asking);
+            let camera = match JsFuture::from(camera).await {
+                Ok(camera) => camera,
+                Err(e) => {
+                    set_camera_request_state(CameraRequestState::Denied);
+                    error!("Error resolving camera future: {:?}", e);
+                    return;
+                }
+            };
+            set_camera_request_state(CameraRequestState::Granted);
+            let camera = match camera.dyn_into::<MediaStream>() {
+                Ok(camera) => camera,
+                Err(e) => {
+                    error!("Error mapping camera to object: {:?}", e);
+                    return;
+                }
+            };
+
+            video.set_src_object(Some(&camera));
+            let promise = match video.play() {
+                Ok(promise) => promise,
+                Err(e) => {
+                    error!("Error playing video: {:?}", e);
+                    return;
+                }
+            };
+            match JsFuture::from(promise).await {
+                Ok(_) => (),
+                Err(e) => {
+                    error!("Error resolving play promise: {:?}", e);
+                    return;
+                }
+            };
+
+            let capture = {
+                let video = video.clone();
+                Box::new(move || {
+                    canvas.set_width(video.video_width());
+                    canvas.set_height(video.video_height());
+                    context
+                        .draw_image_with_html_video_element_and_dw_and_dh(
+                            &video,
+                            0.0,
+                            0.0,
+                            video.video_width() as f64,
+                            video.video_height() as f64,
+                        )
+                        .unwrap();
+                    let data_url = canvas.to_data_url_with_type("image/webp").unwrap();
+                    set_image_url(data_url.clone());
+                })
+            };
+
+            let close_camera = Box::new(move || {
+                video.pause().unwrap();
+                video.set_src("");
+                video.set_src_object(None);
+                camera.get_tracks().iter().for_each(|track| {
+                    let track = track.dyn_into::<web_sys::MediaStreamTrack>().unwrap();
+                    track.stop();
+                });
+            });
+
+            set_take_picture(Some(capture));
+            set_close_camera(Some(close_camera));
+        })
+    };
 
     {
         let jam_id = Rc::clone(&jam_id);
-        create_effect(move |_| {
+        Effect::new(move |_| {
             let jam_id: &str = &jam_id;
             let user_id: String = LocalStorage::get(jam_id).unwrap_or_default();
             if user_id.is_empty() {
-                camera.dispatch(());
+                camera();
             } else if user_id == "kicked" {
                 let navigate = use_navigate();
                 navigate("/", NavigateOptions::default());
@@ -70,45 +171,24 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
         });
     }
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if camera_request_state.with(|s| s.is_denied()) {
             file_picker(set_image_url, "image-picker");
         }
     });
+    let (name, set_name) = signal(String::new());
 
-    let take_picture = move || {
-        camera.value().with(|response| {
-            if let Some(response) = response {
-                match response {
-                    Ok(response) => (response.take_picture)(),
-                    Err(e) => error!("Error taking picture: {:?}", e),
-                }
-            }
-        })
-    };
-    let close_camera = move || {
-        camera.value().with(|response| {
-            if let Some(response) = response {
-                match response {
-                    Ok(response) => (response.close_camera)(),
-                    Err(e) => error!("Error taking picture: {:?}", e),
-                }
-            }
-        })
-    };
-    let (name, set_name) = create_signal(String::new());
-
-    let create_user = create_action({
-        let jam_id = jam_id.clone();
+    let create_user = Action::new({
+        let jam_id = (*jam_id).clone();
         move |_: &()| {
             let name = name.get();
             let pfp_url = image_url.get();
-            let jam_id = (*jam_id).clone();
+            let jam_id = (*jam_id).to_string();
             async move { create_user(jam_id, name, pfp_url).await }
         }
     });
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(res) = create_user.value().get() {
             match res {
                 Ok(id) => {
@@ -124,7 +204,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
         };
     });
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         image_url.with(|url| {
             set_bg_img(url);
         })
@@ -141,8 +221,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                     playsinline="false"
                     disablepictureinpicture
                     disableremoteplayback
-
-                    id=video_id
+                    node_ref=video_ref
                 >
                     "Video stream not available."
                 </video>
@@ -151,7 +230,6 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                     style:display=move || {
                         if image_url.with(|url| url.is_empty()) { "none" } else { "inline " }
                     }
-
                     prop:src=image_url
                     alt="The screen capture will appear in this box."
                 />
@@ -163,6 +241,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                     multiple="false"
                     capture="user"
                 />
+                <canvas style:display="none" node_ref=canvas_ref></canvas>
             </div>
             <input
                 type="text"
@@ -219,65 +298,67 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
 
                     {move || {
                         if let CameraRequestState::Asking = camera_request_state.get() {
-                            view! {
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="1em"
-                                    height="1em"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <circle cx="18" cy="12" r="0">
-                                        <animate
-                                            attributeName="r"
-                                            begin=".67"
-                                            calcMode="spline"
-                                            dur="1.5s"
-                                            keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-                                            repeatCount="indefinite"
-                                            values="0;2;0;0"
-                                        ></animate>
-                                    </circle>
-                                    <circle cx="12" cy="12" r="0">
-                                        <animate
-                                            attributeName="r"
-                                            begin=".33"
-                                            calcMode="spline"
-                                            dur="1.5s"
-                                            keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-                                            repeatCount="indefinite"
-                                            values="0;2;0;0"
-                                        ></animate>
-                                    </circle>
-                                    <circle cx="6" cy="12" r="0">
-                                        <animate
-                                            attributeName="r"
-                                            begin="0"
-                                            calcMode="spline"
-                                            dur="1.5s"
-                                            keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-                                            repeatCount="indefinite"
-                                            values="0;2;0;0"
-                                        ></animate>
-                                    </circle>
-                                </svg>
-                            }
-                                .into_view()
+                            Either::Left(
+                                view! {
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="1em"
+                                        height="1em"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle cx="18" cy="12" r="0">
+                                            <animate
+                                                attributeName="r"
+                                                begin=".67"
+                                                calcMode="spline"
+                                                dur="1.5s"
+                                                keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+                                                repeatCount="indefinite"
+                                                values="0;2;0;0"
+                                            ></animate>
+                                        </circle>
+                                        <circle cx="12" cy="12" r="0">
+                                            <animate
+                                                attributeName="r"
+                                                begin=".33"
+                                                calcMode="spline"
+                                                dur="1.5s"
+                                                keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+                                                repeatCount="indefinite"
+                                                values="0;2;0;0"
+                                            ></animate>
+                                        </circle>
+                                        <circle cx="6" cy="12" r="0">
+                                            <animate
+                                                attributeName="r"
+                                                begin="0"
+                                                calcMode="spline"
+                                                dur="1.5s"
+                                                keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+                                                repeatCount="indefinite"
+                                                values="0;2;0;0"
+                                            ></animate>
+                                        </circle>
+                                    </svg>
+                                },
+                            )
                         } else {
-                            view! {
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="100"
-                                    height="100"
-                                    viewBox="0 0 100 100"
-                                    fill="none"
-                                >
-                                    <path
-                                        d="M100 50C100 77.6142 77.6142 100 50 100C22.3858 100 0 77.6142 0 50C0 22.3858 22.3858 0 50 0C77.6142 0 100 22.3858 100 50ZM7.5 50C7.5 73.4721 26.5279 92.5 50 92.5C73.4721 92.5 92.5 73.4721 92.5 50C92.5 26.5279 73.4721 7.5 50 7.5C26.5279 7.5 7.5 26.5279 7.5 50Z"
-                                        fill="white"
-                                    ></path>
-                                </svg>
-                            }
-                                .into_view()
+                            Either::Right(
+                                view! {
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="100"
+                                        height="100"
+                                        viewBox="0 0 100 100"
+                                        fill="none"
+                                    >
+                                        <path
+                                            d="M100 50C100 77.6142 77.6142 100 50 100C22.3858 100 0 77.6142 0 50C0 22.3858 22.3858 0 50 0C77.6142 0 100 22.3858 100 50ZM7.5 50C7.5 73.4721 26.5279 92.5 50 92.5C73.4721 92.5 92.5 73.4721 92.5 50C92.5 26.5279 73.4721 7.5 50 7.5C26.5279 7.5 7.5 26.5279 7.5 50Z"
+                                            fill="white"
+                                        ></path>
+                                    </svg>
+                                },
+                            )
                         }
                     }}
 
@@ -369,167 +450,32 @@ impl CameraRequestState {
     }
 }
 
-struct CameraResponse {
-    take_picture: Box<dyn Fn()>,
-    close_camera: Box<dyn Fn()>,
+trait FnClone: Fn() {
+    fn clone_box(&self) -> Box<dyn FnClone>;
 }
 
-async fn camera(
-    image_url: WriteSignal<String>,
-    camera_request_state: WriteSignal<CameraRequestState>,
-    video_id: &str,
-) -> Result<CameraResponse, String> {
-    use wasm_bindgen::prelude::*;
-    use wasm_bindgen_futures::JsFuture;
+// Implement FnClone for all types that implement Fn() and Clone
+impl<T> FnClone for T
+where
+    T: 'static + Fn() + Clone,
+{
+    fn clone_box(&self) -> Box<dyn FnClone> {
+        Box::new(self.clone())
+    }
+}
 
-    let window = match web_sys::window() {
-        Some(window) => window,
-        None => {
-            error!("Error getting window object");
-            return Err("Error getting window object".to_string());
-        }
-    };
-    let document = match window.document() {
-        Some(document) => document,
-        None => {
-            error!("Error getting document object");
-            return Err("Error getting document object".to_string());
-        }
-    };
+// Implement Clone for Box<dyn FnClone>
+impl Clone for Box<dyn FnClone> {
+    fn clone(&self) -> Box<dyn FnClone> {
+        self.clone_box()
+    }
+}
 
-    let canvas = match document.create_element("canvas") {
-        Ok(canvas) => canvas,
-        Err(e) => {
-            error!("Error creating canvas element: {:?}", e);
-            return Err(format!("Error creating canvas element: {:?}", e));
-        }
-    };
-
-    let canvas = match canvas
-        .dyn_into::<web_sys::HtmlCanvasElement>()
-        .map_err(|_| ())
-    {
-        Ok(canvas) => canvas,
-        Err(e) => {
-            error!("Error mapping canvas element to canvas object: {:?}", e);
-            return Err(format!(
-                "Error mapping canvas element to canvas object: {:?}",
-                e
-            ));
-        }
-    };
-
-    let context = match canvas.get_context("2d") {
-        Ok(Some(context)) => context,
-        Ok(None) => {
-            error!("Error getting context: {:?}", "No context");
-            return Err("No context".to_string());
-        }
-        Err(e) => {
-            error!("Error getting context: {:?}", e);
-            return Err(format!("Error getting context: {:?}", e));
-        }
-    };
-    let context = match context.dyn_into::<web_sys::CanvasRenderingContext2d>() {
-        Ok(context) => context,
-        Err(e) => {
-            error!("Error mapping context to object: {:?}", e);
-            return Err(format!("Error mapping context to object: {:?}", e));
-        }
-    };
-
-    let camera = match window.navigator().media_devices() {
-        Ok(media_devices) => media_devices,
-        Err(e) => {
-            error!("Error getting media devices: {:?}", e);
-            return Err(format!("Error getting media devices: {:?}", e));
-        }
-    };
-
-    let camera_constraints = web_sys::MediaStreamConstraints::new();
-    camera_constraints.set_video(&JsValue::from(true));
-    camera_constraints.set_audio(&JsValue::from(false));
-
-    let camera = match camera.get_user_media_with_constraints(&camera_constraints) {
-        Ok(camera) => camera,
-        Err(e) => {
-            error!("Error getting camera promise: {:?}", e);
-            return Err(format!("Error getting camera promise: {:?}", e));
-        }
-    };
-    camera_request_state.set(CameraRequestState::Asking);
-    let camera = match JsFuture::from(camera).await {
-        Ok(camera) => camera,
-        Err(e) => {
-            camera_request_state.set(CameraRequestState::Denied);
-            error!("Error resolving camera future: {:?}", e);
-            return Err(format!("Error resolving camera future: {:?}", e));
-        }
-    };
-    camera_request_state.set(CameraRequestState::Granted);
-    let camera = match camera.dyn_into::<MediaStream>() {
-        Ok(camera) => camera,
-        Err(e) => {
-            error!("Error mapping camera to object: {:?}", e);
-            return Err(format!("Error mapping camera to object: {:?}", e));
-        }
-    };
-
-    let video = document.get_element_by_id(video_id).unwrap();
-    let video = video
-        .dyn_into::<web_sys::HtmlVideoElement>()
-        .map_err(|_| ())
-        .unwrap();
-
-    video.set_src_object(Some(&camera));
-    let promise = match video.play() {
-        Ok(promise) => promise,
-        Err(e) => {
-            error!("Error playing video: {:?}", e);
-            return Err(format!("Error playing video: {:?}", e));
-        }
-    };
-    match JsFuture::from(promise).await {
-        Ok(_) => (),
-        Err(e) => {
-            error!("Error resolving play promise: {:?}", e);
-            return Err(format!("Error resolving play promise: {:?}", e));
-        }
-    };
-
-    let capture = {
-        let video = video.clone();
-        Box::new(move || {
-            canvas.set_width(video.video_width());
-            canvas.set_height(video.video_height());
-            context
-                .draw_image_with_html_video_element_and_dw_and_dh(
-                    &video,
-                    0.0,
-                    0.0,
-                    video.video_width() as f64,
-                    video.video_height() as f64,
-                )
-                .unwrap();
-            let data_url = canvas.to_data_url_with_type("image/webp").unwrap();
-            image_url(data_url.clone());
-        })
-    };
-
-    let close_camera = Box::new(move || {
-        video.pause().unwrap();
-        video.set_src("");
-        video.set_src_object(None);
-        camera.get_tracks().iter().for_each(|track| {
-            let track = track.dyn_into::<web_sys::MediaStreamTrack>().unwrap();
-            track.stop();
-        });
-    });
-
-    Ok(CameraResponse {
-        take_picture: capture,
-        close_camera,
-    })
+// Use the new trait in your CameraResponse struct
+#[derive(Clone)]
+struct CameraResponse {
+    take_picture: Box<dyn FnClone>,
+    close_camera: Box<dyn FnClone>,
 }
 
 ///sets the image url every time the selected file changes

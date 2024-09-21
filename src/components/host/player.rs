@@ -1,11 +1,13 @@
 use crate::components::user;
 use gloo::timers::callback::Interval;
 use leptos::{
+    either::*,
     logging::{error, log},
     prelude::*,
     *,
 };
 use rust_spotify_web_playback_sdk::prelude as sp;
+use spawn::spawn_local;
 
 use crate::model;
 
@@ -17,14 +19,14 @@ pub fn Player(
 ) -> impl IntoView {
     let set_global_song_position = set_song_position;
 
-    let (player_is_connected, set_player_is_connected) = create_signal(false);
+    let (player_is_connected, set_player_is_connected) = signal(false);
 
-    //let (current_song_id, set_current_song_id) = create_signal(String::new());
-    //let current_song_id = create_memo(move |_| current_song_id());
+    //let (current_song_id, set_current_song_id) = signal(String::new());
+    //let current_song_id = Memo::new(move |_| current_song_id());
 
-    let (current_song, set_current_song) = create_signal(None::<model::Song>);
-    let (song_position, set_song_position) = create_signal(0);
-    let (playing, set_playing) = create_signal(false);
+    let (current_song, set_current_song) = signal(None::<model::Song>);
+    let (song_position, set_song_position) = signal(0);
+    let (playing, set_playing) = signal(false);
 
     let on_update = move |state_change: sp::StateChange| {
         set_song_position(state_change.position);
@@ -32,7 +34,7 @@ pub fn Player(
         let mut current_song = state_change.track_window.current_track;
         set_current_song(Some(model::Song {
             id: None,
-            spotify_id:current_song.id,
+            spotify_id: current_song.id,
             user_id: None,
             name: current_song.name,
             artists: current_song.artists.into_iter().map(|a| a.name).collect(),
@@ -47,7 +49,7 @@ pub fn Player(
     };
 
     let token = {
-        create_action(move |_: &()| {
+        Action::new(move |_: &()| {
             log!("getting token for host_id:{:?}", host_id.get_untracked());
             async move {
                 if let Some(host_id) = host_id.get_untracked() {
@@ -61,7 +63,7 @@ pub fn Player(
     };
 
     let switch_device = {
-        create_action(move |device_id: &String| {
+        Action::new(move |device_id: &String| {
             let device_id = device_id.clone();
             async move {
                 if let Some(host_id) = host_id.get_untracked() {
@@ -75,19 +77,20 @@ pub fn Player(
         })
     };
 
-    let connect = create_action(move |_: &()| async move { sp::connect().await });
+    let connect = move || {
+        spawn_local(async move {
+            match sp::connect().await {
+                Ok(_) => {
+                    set_player_is_connected(true);
+                }
+                Err(e) => {
+                    error!("error while connecting to spotify:{:?}", e);
+                }
+            }
+        })
+    };
 
-    create_effect(move |_| match connect.value().get() {
-        Some(Ok(_)) => {
-            set_player_is_connected(true);
-        }
-        Some(Err(e)) => {
-            error!("error while connecting to spotify:{:?}", e);
-        }
-        None => {}
-    });
-
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if !sp::player_ready() && host_id.with(Option::is_some) {
             if let Some(Ok(token_value)) = token.value().get() {
                 log!("initializing player with token: {:?}", token_value);
@@ -102,7 +105,7 @@ pub fn Player(
                             switch_device.dispatch(player.device_id);
                         })
                         .unwrap();
-                        connect.dispatch(());
+                        connect();
                     },
                     "jam",
                     1.0,
@@ -114,30 +117,33 @@ pub fn Player(
         }
     });
 
-    let is_loaded = create_memo(move |_| player_is_connected() && host_id.with(Option::is_some));
+    let is_loaded = Memo::new(move |_| player_is_connected() && host_id.with(Option::is_some));
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         log!("player is connected:{}", is_loaded());
     });
 
-    let toggle_play = create_action(move |_: &()| async {
-        if let Err(e) = sp::toggle_play().await {
-            error!("Error toggling play: {:?}", e);
-        }
-    });
-
-    let position_update = create_action(move |_: &()| async move {
-        if is_loaded.get_untracked() {
-            if let Ok(Some(state)) = sp::get_current_state().await {
-                set_song_position(state.position);
+    let toggle_play = move || {
+        spawn_local(async move {
+            if let Err(e) = sp::toggle_play().await {
+                error!("Error toggling play: {:?}", e);
             }
-        }
-    });
+        })
+    };
+    let position_update = move || {
+        spawn_local(async move {
+            if is_loaded.get_untracked() {
+                if let Ok(Some(state)) = sp::get_current_state().await {
+                    set_song_position(state.position);
+                }
+            }
+        })
+    };
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if is_loaded() {
             let position_update = Interval::new(100, move || {
-                position_update.dispatch(());
+                position_update();
             });
             position_update.forget();
         }
@@ -148,15 +154,15 @@ pub fn Player(
             / current_song.with(|s| s.as_ref().map(|s| s.duration).unwrap_or(1)) as f32
     });
 
-    create_effect(move |_| {
-        set_global_song_position(position_percentage());
+    Effect::new(move |_| {
+        set_global_song_position.run(position_percentage());
     });
 
-    let can_go_to_next_song = create_memo(move |_| position_percentage() > 0.995);
+    let can_go_to_next_song = Memo::new(move |_| position_percentage() > 0.995);
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if can_go_to_next_song() && player_is_connected() {
-            next_song(());
+            next_song.run(());
         }
     });
 
@@ -169,28 +175,35 @@ pub fn Player(
     view! {
         <user::Player current_song position=position_percentage>
             <button
-                on:click=move |_| toggle_play.dispatch(())
+                on:click=move |_| {
+                    toggle_play();
+                }
+
                 class="play-pause"
                 title="play-pause"
             >
                 {move || match playing() {
                     true => {
-                        view! {
-                            <svg
-                                viewBox=icondata::FaPauseSolid.view_box
-                                inner_html=icondata::FaPauseSolid.data
-                                class="pause"
-                            ></svg>
-                        }
+                        Either::Left(
+                            view! {
+                                <svg
+                                    viewBox=icondata::FaPauseSolid.view_box
+                                    inner_html=icondata::FaPauseSolid.data
+                                    class="pause"
+                                ></svg>
+                            },
+                        )
                     }
                     false => {
-                        view! {
-                            <svg
-                                viewBox=icondata::BsPlayFill.view_box
-                                inner_html=icondata::BsPlayFill.data
-                                class="play"
-                            ></svg>
-                        }
+                        Either::Right(
+                            view! {
+                                <svg
+                                    viewBox=icondata::BsPlayFill.view_box
+                                    inner_html=icondata::BsPlayFill.data
+                                    class="play"
+                                ></svg>
+                            },
+                        )
                     }
                 }}
 

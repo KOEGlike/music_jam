@@ -3,15 +3,18 @@ use leptos::{
     logging::{error, log},
     prelude::*,
     *,
+    either::Either
 };
+
+
 
 #[component]
 pub fn Player(
     #[prop(into)] position: Signal<f32>,
-    #[prop(into)] current_song: Signal<Option<Song>>,
+    #[prop(into)] current_song: ReadSignal<Option<Song>>,
     #[prop(optional)] children: Option<Children>,
 ) -> impl IntoView {
-    create_effect(move |_| {
+    Effect::new(move |_| {
         current_song.with(|song| {
             if let Some(song) = song {
                 set_bg_img(&song.image_url);
@@ -19,16 +22,19 @@ pub fn Player(
         });
     });
 
-    let song_length = move || current_song().map(|s| s.duration).unwrap_or_default();
-    let (title_overflow, set_title_overflow) = create_signal(false);
-    let (artist_overflow, set_artist_overflow) = create_signal(false);
+    
 
-    create_effect(move |_| {
+    let song_length = move || current_song().map(|s| s.duration).unwrap_or_default();
+    let (title_overflow, set_title_overflow) = signal(false);
+    let (artist_overflow, set_artist_overflow) = signal(false);
+    
+
+    Effect::new(move |_| {
         current_song.track();
         set_artist_overflow(will_element_overflow("artist", Some("info")));
     });
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         current_song.track();
         set_title_overflow(will_element_overflow("title", Some("info")));
     });
@@ -40,6 +46,7 @@ pub fn Player(
                 title="the album cover of the current song"
                 alt="img not found, wait for a few seconds"
                 onerror="this.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';"
+                
             />
             <div
                 class="info"
@@ -109,9 +116,9 @@ pub fn Player(
             </div>
 
             {if let Some(extra_elements) = children {
-                extra_elements().into_view()
+                Either::Left(extra_elements())
             } else {
-                view! {}.into_view()
+                Either::Right(())
             }}
 
         </div>

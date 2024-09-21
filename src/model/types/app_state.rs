@@ -7,13 +7,13 @@ pub struct AppState {
     pub db: Db,
     pub reqwest_client: reqwest::Client,
     pub spotify_credentials: SpotifyCredentials,
-    pub leptos_options: leptos::LeptosOptions,
+    pub leptos_options: leptos::prelude::LeptosOptions,
     pub site_url: String,
 }
 
 impl AppState {
     pub async fn new(
-        leptos_options: leptos::LeptosOptions,
+        leptos_options: leptos::prelude::LeptosOptions,
         spotify_id: String,
         spotify_secret: String,
         db_url: String,

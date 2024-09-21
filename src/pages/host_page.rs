@@ -4,21 +4,21 @@ use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
 use leptos::{logging::*, prelude::*, *};
 use leptos_meta::Title;
-use leptos_router::{use_navigate, use_params_map, NavigateOptions};
+use leptos_router::{hooks::{use_navigate, use_params_map,}, NavigateOptions};
 use leptos_use::{use_websocket, UseWebSocketReturn};
 use real_time::Changed;
 
 #[component]
 pub fn HostPage() -> impl IntoView {
-    let (host_id, set_host_id) = create_signal(String::new());
-    let host_id = create_memo(move |_| {
+    let (host_id, set_host_id) = signal(String::new());
+    let host_id = Memo::new(move |_| {
         if host_id.with(String::is_empty) {
             None
         } else {
             Some(host_id.get_untracked())
         }
     });
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let host_id: String = LocalStorage::get("host_id").unwrap_or_default();
         if host_id.is_empty() {
             let navigator = use_navigate();
@@ -27,25 +27,25 @@ pub fn HostPage() -> impl IntoView {
         set_host_id(host_id);
     });
 
-    let jam_id = move || use_params_map().with(|params| params.get("id").cloned());
+    let jam_id = move || use_params_map().with(|params| params.get("id"));
     let jam_id = Signal::derive(jam_id);
-    let (jam_id_new, set_jam_id) = create_signal(String::new());
-    create_effect(move |_| {
+    let (jam_id_new, set_jam_id) = signal(String::new());
+    Effect::new(move |_| {
         let jam_id = jam_id();
         if let Some(jam_id) = jam_id {
             set_jam_id(jam_id);
         }
     });
-    create_effect(move |_| log!("jam_id:{:?}", jam_id()));
+    Effect::new(move |_| log!("jam_id:{:?}", jam_id()));
     let jam_id = jam_id_new;
 
-    let jam = create_action(move |_: &()| async move {
+    let jam = Action::new(move |_: &()| async move {
         let jam_id = jam_id.get_untracked();
 
         get_jam(jam_id).await
     });
-    create_effect(move |_| jam.dispatch(()));
-    create_effect(move |_| {
+    Effect::new(move |_| jam.dispatch(()));
+    Effect::new(move |_| {
         if let Some(jam_val) = jam.value().get() {
             if jam_val.is_err() {
                 jam.dispatch(());
@@ -53,44 +53,44 @@ pub fn HostPage() -> impl IntoView {
         }
     });
 
-    let (users, set_users) = create_signal(None);
-    let (songs, set_songs) = create_signal(None::<Vec<Song>>);
-    let (votes, set_votes) = create_signal(Votes::new());
+    let (users, set_users) = signal(None);
+    let (songs, set_songs) = signal(None::<Vec<Song>>);
+    let (votes, set_votes) = signal(Votes::new());
 
-    let (send_request, set_send_request) = create_signal(Callback::new(|_: real_time::Request| {
+    let (send_request, set_send_request) = signal(Callback::new(|_: real_time::Request| {
         warn!("wanted to send a message to ws, but the ws is not ready yet");
     }));
-    let (close, set_close) = create_signal(Callback::new(|_: ()| {
+    let (close, set_close) = signal(Callback::new(|_: ()| {
         warn!("wanted to close ws, but the ws is not ready yet");
     }));
 
     let remove_song = move |id| {
         let request = real_time::Request::RemoveSong { song_id: id };
-        send_request.get_untracked()(request);
+        send_request.get_untracked().run(request);
     };
     let remove_song = Callback::new(remove_song);
 
     let kick_user = move |id| {
         let request = real_time::Request::KickUser { user_id: id };
-        send_request.get_untracked()(request);
+        send_request.get_untracked().run(request);
     };
     let kick_user = Callback::new(kick_user);
 
     let next_song = move |_: ()| {
         let request = real_time::Request::NextSong;
-        send_request.get_untracked()(request);
+        send_request.get_untracked().run(request);
     };
     let next_song = Callback::new(next_song);
 
     let set_song_position = move |percentage| {
         let request = real_time::Request::Position { percentage };
-        send_request.get_untracked()(request);
+        send_request.get_untracked().run(request);
     };
     let set_song_position = Callback::new(set_song_position);
 
-    create_effect(move |_| log!("host_id:{:?}", host_id()));
+    Effect::new(move |_| log!("host_id:{:?}", host_id()));
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let host_id = match host_id() {
             Some(host_id) => host_id,
             None => return,
@@ -110,7 +110,7 @@ pub fn HostPage() -> impl IntoView {
         let send_request = Callback::new(move |request| send(&request));
         set_send_request(send_request);
 
-        let delete_jam = create_action(move |_: &()| {
+        let delete_jam = Action::new(move |_: &()| {
             let host_id = host_id.clone();
             async move { delete_jam(host_id).await }
         });
@@ -119,7 +119,7 @@ pub fn HostPage() -> impl IntoView {
         });
         set_close(close);
 
-        create_effect(move |_| {
+        Effect::new(move |_| {
             if let Some(update) = message() {
                 if let Some(users) = update.users {
                     set_users(Some(users));
@@ -152,7 +152,7 @@ pub fn HostPage() -> impl IntoView {
     });
 
     let close = Callback::new(move |_| {
-        close.get_untracked()(());
+        close.get_untracked().run(());
     });
     view! {
         <Title text=move || {
@@ -195,8 +195,8 @@ async fn delete_jam(host_id: String) -> Result<(), ServerFnError> {
         return Err(ServerFnError::Request("id is not a host id".to_string()));
     }
     model::delete_jam(&id.jam_id, pool).await?;
-    notify(Changed::new().ended(), vec![], &id.jam_id, pool).await?;
     leptos_axum::redirect("/");
+    notify(Changed::new().ended(), vec![], &id.jam_id, pool).await?;
     Ok(())
 }
 

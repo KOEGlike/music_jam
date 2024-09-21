@@ -1,40 +1,100 @@
 use crate::model;
 use crate::model::real_time::SearchResult;
-use leptos::*;
+use leptos::{
+    prelude::*,
+    spawn::{self, spawn_local},
+};
 use leptos_meta::*;
-use leptos_router::*;
+use leptos_router::{
+    components::{Route, Router, Routes},
+    StaticSegment, *,
+};
+use tachys::view;
 
 use crate::components::error_template::*;
 use crate::pages;
+
+pub fn shell(options: LeptosOptions) -> impl IntoView {
+    view! {
+        <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <AutoReload options=options.clone()/>
+                <HydrationScripts options/>
+                <MetaTags/>
+            </head>
+            <body>
+                <App/>
+            </body>
+        </html>
+    }
+}
 
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
     view! {
-        <Stylesheet id="leptos" href="/pkg/music_jam.css"/>
-
-        <Title text="Welcome to Leptos"/>
-
-        <Router fallback=|| {
-            let mut outside_errors = Errors::default();
-            outside_errors.insert_with_default_key(AppError::NotFound);
-            view! { <ErrorTemplate outside_errors/> }.into_view()
-        }>
+        <Router>
             <main>
-                <Routes>
-                    <Route path="/" view=pages::HomePage/>
-                    <Route path="/create-host" view=pages::CreateHostPage/>
-                    <Route path="/create-user/:id" view=pages::CreateUserPage/>
-                    <Route path="/jam/host/:id" view=pages::HostPage/>
-                    <Route path="/jam/:id" view=pages::UserPage/>
-                    <Route path="/test-bar" view=UserBartTest/>
-                    <Route path="/test-share" view=ShareTest/>
-                    <Route path="/test-search" view=SearchTest/>
-                    <Route path="/test-user-player" view=UserPlayerTest/>
+                <Routes fallback=|| "Page not found.".into_view()>
+                    <Route path=path!("/") view=pages::HomePage/>
+                    <Route path=path!("/create-host") view=pages::CreateHostPage/>
+                    <Route path=path!("/create-user/:id") view=pages::CreateUserPage/>
+                    <Route path=path!("/jam/host/:id") view=pages::HostPage/>
+                    <Route path=path!("/jam/:id") view=pages::UserPage/>
+                    <Route path=path!("/test-bar") view=UserBartTest/>
+                    <Route path=path!("/test-share") view=ShareTest/>
+                    <Route path=path!("/test-search") view=SearchTest/>
+                    <Route path=path!("/test-user-player") view=UserPlayerTest/>
+                    <Route path=path!("/test-player") view=Player/>
+                    <Route path=path!("/test-song-list") view=SongListTest/>
                 </Routes>
             </main>
         </Router>
     }
+}
+
+#[component]
+pub fn SongListTest() -> impl IntoView {
+    use crate::components::SongList;
+    use crate::model::Song;
+    use leptos::logging::*;
+
+    let song = Song {
+        id: Some("lol".to_string()),
+        spotify_id: "lol".to_string(),
+        user_id: None,
+        name: "Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy".to_string(),
+        artists: vec!["Beatles".to_string()],
+        album: "Help!".to_string(),
+        duration: 240,
+        image_url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
+        votes: model::Vote {
+            votes: 0,
+            have_you_voted: None,
+        },
+    };
+    let songs = {
+        let mut songs = Vec::new();
+        for i in 0..10 {
+            let mut song = song.clone();
+            song.id = Some("a".repeat(i));
+            songs.push(song);
+        }
+        songs
+    };
+    use crate::components::SongListAction;
+    let (songs, set_songs) = signal(Some(songs));
+    let (votes, set_votes) = signal(model::Votes::new());
+    let max_song_count = Signal::derive(|| 10);
+    let song_list_action = SongListAction::Vote {
+        add_vote: Callback::new(|id| log!("add vote with id:{}", id)),
+        remove_vote: Callback::new(|id| log!("remove vote with id:{}", id)),
+        remove_song: Callback::new(|id| log!("remove song with id:{}", id)),
+    };
+    view! { <SongList songs votes max_song_count song_list_action/> }
 }
 
 #[component]
@@ -89,11 +149,11 @@ pub fn UserBartTest() -> impl IntoView {
             name: "kakamakanaka".to_string(),
         },
     ];
-    let (users, set_users) = create_signal(Some(users));
+    let (users, set_users) = signal(Some(users));
     let kick_user = |id| {
         log!("kicking user {}", id);
     };
-    let kick_user = Callback::from(kick_user);
+    let kick_user = Callback::new(kick_user);
     let close = Callback::new(move |_: ()| log!("close"));
 
     view! {
@@ -145,21 +205,21 @@ fn SearchTest() -> impl IntoView {
         }
         songs
     };
-    let (search_result, set_search_result) = create_signal(Some(SearchResult {
+    let (search_result, set_search_result) = signal(Some(SearchResult {
         search_id: "lol".to_string(),
-        songs:songs.clone(),
+        songs: songs.clone(),
     }));
     let search = move |id: (String, String)| {
         set_search_result(Some(SearchResult {
-            songs:songs.clone(),
+            songs: songs.clone(),
             search_id: id.1,
         }));
         log!("search with id:{}", id.0)
     };
-    let search = Callback::from(search);
+    let search = Callback::new(search);
 
     let add_song = move |id| log!("add with id:{}", id);
-    let add_song = Callback::from(add_song);
+    let add_song = Callback::new(add_song);
     let loaded = Signal::derive(|| true);
 
     view! { <Search search_result search add_song loaded/> }
@@ -168,47 +228,48 @@ fn SearchTest() -> impl IntoView {
 #[component]
 fn UserPlayerTest() -> impl IntoView {
     use crate::components::user::Player;
-    use leptos::logging::*;
 
-    let current_song = Signal::derive(move || {
-        Some(model::Song {
-            id: Some("lol".to_string()),
-            spotify_id: "lol".to_string(),
-            user_id: None,
-            name: "Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy".to_string(),
-            artists: vec!["Beatles".to_string()],
-            album: "Help!".to_string(),
-            duration: 240,
-            image_url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa"
+    let (current_song, _) = signal(Some(model::Song {
+        id: Some("lol".to_string()),
+        spotify_id: "lol".to_string(),
+        user_id: None,
+        name:
+            "Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
                 .to_string(),
-            votes: model::Vote {
-                votes: 0,
-                have_you_voted: None,
-            },
-        })
-    });
+        artists: vec!["Beatles".to_string()],
+        album: "Help!".to_string(),
+        duration: 240,
+        image_url: "https://i.scdn.co/image/ab67616d0000b273e3e3b64cea45265469d4cafa".to_string(),
+        votes: model::Vote {
+            votes: 0,
+            have_you_voted: None,
+        },
+    }));
     let position = Signal::derive(|| 0.7);
 
-    view! { <Player position current_song/> }
+    view! { <Player position current_song=current_song/> }
 }
 
 #[component]
 fn Player() -> impl IntoView {
+    use leptos::either::EitherOf3;
     use leptos::logging::log;
     use rust_spotify_web_playback_sdk::prelude as sp;
 
-    let (current_song_name, set_current_song_name) = create_signal(String::new());
+    let (current_song_name, set_current_song_name) = signal(String::new());
 
     let token = "BQAZ4oo4rm2B6DVW7SSrBgN9k9K6jw3Nk0UHKXnz9W1HU-oPWWPdXd3j7KjKFtO0dr399QrjEG-HkBd_dpEJi5VtijInn_WPPaffGK3TNHSnBxIiaeudshoGz3gDJsVpZNbqocpVc-7CCCe1kb0jGnDCLE2HpvWJYnkNR2w2pkkuxTedEg0KhfW40Ejs8tKyE7AsJS1oPeGIkmheR2p9SaIxn08C3ztxMXoi";
 
-    let connect = create_action(|_| async {
-        match sp::connect().await {
-            Ok(_) => log!("connected"),
-            Err(e) => log!("error {:?}", e),
-        };
-    });
+    let connect = move || {
+        spawn::spawn_local(async move {
+            match sp::connect().await {
+                Ok(_) => log!("connected"),
+                Err(e) => log!("error {:?}", e),
+            };
+        })
+    };
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         sp::init(
             || {
                 log!("oauth was called");
@@ -216,7 +277,7 @@ fn Player() -> impl IntoView {
             },
             move || {
                 log!("ready");
-                connect.dispatch(());
+                connect();
 
                 sp::add_listener!("player_state_changed", move |state: sp::StateChange| {
                     log!("state changed: {:#?}", state);
@@ -230,27 +291,39 @@ fn Player() -> impl IntoView {
         );
     });
 
-    let get_state = create_action(|_| async {
-        let state = sp::get_current_state().await.unwrap();
-        log!("state: {:#?}", state);
-    });
+    let get_state = move || {
+        spawn_local(async move {
+            let state = sp::get_current_state().await.unwrap();
+            log!("state: {:#?}", state);
+        })
+    };
 
-    let activate_player = create_action(|_| async { sp::activate_element().await });
+    let (err, set_err) = signal(Option::None);
+    let activate_player = move || {
+        spawn_local(async move {
+            set_err(Some(sp::activate_element().await));
+        })
+    };
 
     view! {
         <h1>"Welcome to Leptos"</h1>
-        <button on:click=move |_| activate_player.dispatch(())>"activate player"</button>
+        <button on:click=move |_| {
+            activate_player();
+        }>"activate player"</button>
 
-        {move || match activate_player.value().get() {
+        {move || match err() {
             Some(Ok(_)) => {
-                view! {
-                    <button on:click=move |_| get_state.dispatch(())>"log state in console"</button>
-                    <p>"Current song: " {current_song_name}</p>
-                }
-                    .into_view()
+                EitherOf3::A(
+                    view! {
+                        <button on:click=move |_| {
+                            get_state();
+                        }>"log state in console"</button>
+                        <p>"Current song: " {current_song_name}</p>
+                    },
+                )
             }
-            Some(Err(e)) => view! { <p>"Error activating player: " {e}</p> }.into_view(),
-            None => view! { <p>"Activating player..."</p> }.into_view(),
+            Some(Err(e)) => EitherOf3::B(view! { <p>"Error activating player: " {e}</p> }),
+            None => EitherOf3::C(view! { <p>"Activating player..."</p> }),
         }}
     }
 }

@@ -1,7 +1,7 @@
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-    use leptos::*;
+    use leptos::prelude::*;
     use leptos_axum::generate_route_list;
     use music_jam::router;
     use music_jam::{app::*, model::types::AppState};
@@ -16,7 +16,7 @@ async fn main() {
     let site_url = std::env::var("SITE_URL").expect("SITE_URL must be set");
 
     println!("Loading configuration...");
-    let conf = get_configuration(None).await.unwrap();
+    let conf = get_configuration(None).unwrap();
     println!("Configuration loaded...");
 
     let leptos_options: LeptosOptions = conf.leptos_options;
@@ -26,12 +26,20 @@ async fn main() {
     println!("Starting server on: {}", addr);
 
     println!("Loading state...");
-    let state = AppState::new(leptos_options, spotify_id, spotify_secret, db_url, site_url).await.unwrap();
+    let state = AppState::new(
+        leptos_options.clone(),
+        spotify_id,
+        spotify_secret,
+        db_url,
+        site_url,
+    )
+    .await
+    .unwrap();
     println!("State loaded...");
 
     println!("creating router...");
     // build our application with a route
-    let app = router::new(routes, state);
+    let app = router::new(routes, state, leptos_options.clone());
 
     println!("creating listener...");
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();

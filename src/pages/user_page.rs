@@ -9,30 +9,30 @@ use gloo::storage::{LocalStorage, Storage};
 use itertools::Itertools;
 use leptos::{logging::*, prelude::*, *};
 use leptos_meta::Title;
-use leptos_router::*;
+use leptos_router::{*, hooks::*};
 use leptos_use::{core::ConnectionReadyState, use_websocket, UseWebSocketReturn};
 
 #[component]
 pub fn UserPage() -> impl IntoView {
-    let jam_id = move || use_params_map().with(|params| params.get("id").cloned());
+    let jam_id = move || use_params_map().with(|params| params.get("id"));
     let jam_id = Signal::derive(jam_id);
-    let (jam_id_new, set_jam_id) = create_signal(String::new());
-    create_effect(move |_| {
+    let (jam_id_new, set_jam_id) = signal(String::new());
+    Effect::new(move |_| {
         let jam_id = jam_id();
         if let Some(jam_id) = jam_id {
             set_jam_id(jam_id);
         }
     });
-    create_effect(move |_| log!("jam_id:{:?}", jam_id()));
+    Effect::new(move |_| log!("jam_id:{:?}", jam_id()));
     let jam_id = jam_id_new;
 
-    let jam = create_action(move |_: &()| async move {
+    let jam = Action::new(move |_: &()| async move {
         let jam_id = jam_id.get_untracked();
         get_jam(jam_id).await
     });
 
-    create_effect(move |_| jam.dispatch(()));
-    create_effect(move |_| {
+    Effect::new(move |_| jam.dispatch(()));
+    Effect::new(move |_| {
         if let Some(jam_val) = jam.value().get() {
             if jam_val.is_err() {
                 jam.dispatch(());
@@ -40,8 +40,8 @@ pub fn UserPage() -> impl IntoView {
         }
     });
 
-    let (user_id, set_user_id) = create_signal(String::new());
-    create_effect(move |_| {
+    let (user_id, set_user_id) = signal(String::new());
+    Effect::new(move |_| {
         let navigator = use_navigate();
         if jam_id.with(String::is_empty) {
             navigator("/", NavigateOptions::default());
@@ -55,18 +55,18 @@ pub fn UserPage() -> impl IntoView {
         set_user_id(user_id);
     });
 
-    let (search_result, set_search_result) = create_signal(None);
-    let (songs, set_songs) = create_signal(None);
-    let (votes, set_votes) = create_signal(model::Votes::new());
-    let (users, set_users) = create_signal(None);
-    let (position, set_position) = create_signal(0.0);
-    let (current_song, set_current_song) = create_signal(None);
-    let (ready_state, set_ready_state) = create_signal(ConnectionReadyState::Connecting);
+    let (search_result, set_search_result) = signal(None);
+    let (songs, set_songs) = signal(None);
+    let (votes, set_votes) = signal(model::Votes::new());
+    let (users, set_users) = signal(None);
+    let (position, set_position) = signal(0.0);
+    let (current_song, set_current_song) = signal(None);
+    let (ready_state, set_ready_state) = signal(ConnectionReadyState::Connecting);
 
-    let (send_request, set_send_request) = create_signal(Callback::new(|_: real_time::Request| {
+    let (send_request, set_send_request) = signal(Callback::new(|_: real_time::Request| {
         warn!("wanted to send a message to ws, but the ws is not ready yet");
     }));
-    let (close, set_close) = create_signal(Callback::new(|_: ()| {
+    let (close, set_close) = signal(Callback::new(|_: ()| {
         warn!("wanted to close ws, but the ws is not ready yet");
     }));
 
@@ -75,7 +75,7 @@ pub fn UserPage() -> impl IntoView {
             query: query_id.0,
             id: query_id.1,
         };
-        send_request.get_untracked()(request);
+        send_request.get_untracked().run(request);
     };
     let search = Callback::new(search);
 
@@ -105,7 +105,7 @@ pub fn UserPage() -> impl IntoView {
             > your_song_count as u8
         {
             let request = real_time::Request::AddSong { song_id };
-            send_request.get_untracked()(request);
+            send_request.get_untracked().run(request);
         } else {
             warn!("You have reached the maximum song count");
         }
@@ -115,20 +115,20 @@ pub fn UserPage() -> impl IntoView {
     let add_vote = move |song_id: String| {
         log!("Adding vote for song: {}", song_id);
         let request = real_time::Request::AddVote { song_id };
-        send_request.get_untracked()(request);
+        send_request.get_untracked().run(request);
     };
     let add_vote = Callback::new(add_vote);
 
     let remove_vote = move |song_id: String| {
         log!("Removing vote for song: {}", song_id);
         let request = real_time::Request::RemoveVote { song_id };
-        send_request.get_untracked()(request);
+        send_request.get_untracked().run(request);
     };
     let remove_vote = Callback::new(remove_vote);
 
     let remove_song = move |song_id: String| {
         let request = real_time::Request::RemoveSong { song_id };
-        send_request.get_untracked()(request);
+        send_request.get_untracked().run(request);
     };
     let remove_song = Callback::new(remove_song);
 
@@ -136,7 +136,7 @@ pub fn UserPage() -> impl IntoView {
         let request = real_time::Request::KickUser {
             user_id: user_id.get_untracked(),
         };
-        send_request.get_untracked()(request);
+        send_request.get_untracked().run(request);
     };
 
     let delete_user_id_from_local_storage = move |_: ()| {
@@ -144,7 +144,7 @@ pub fn UserPage() -> impl IntoView {
     };
     let delete_user_id_from_local_storage = Callback::new(delete_user_id_from_local_storage);
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if user_id.with(String::is_empty) || jam_id.with(String::is_empty) {
             return;
         }
@@ -160,7 +160,7 @@ pub fn UserPage() -> impl IntoView {
             user_id.get_untracked()
         ));
 
-        create_effect(move |_| {
+        Effect::new(move |_| {
             set_ready_state(ready_state.get());
         });
 
@@ -172,7 +172,7 @@ pub fn UserPage() -> impl IntoView {
 
         let close_ws = Callback::new(move |_: ()| close_ws());
 
-        create_effect(move |_| {
+        Effect::new(move |_| {
             if let Some(update) = message() {
                 if let Some(result) = update.search {
                     //log!("Got search result: {:#?}", result);
@@ -190,7 +190,7 @@ pub fn UserPage() -> impl IntoView {
                         .map(|user| &user.id)
                         .contains(&user_id.get_untracked())
                     {
-                        close_ws(());
+                        close_ws.run(());
                         jam_id.with_untracked(|jam_id| {
                             if LocalStorage::set(jam_id, "kicked").is_err() {
                                 error!("Failed to set local storage to kicked");
@@ -209,8 +209,8 @@ pub fn UserPage() -> impl IntoView {
                     set_current_song(song);
                 }
                 if update.ended.is_some() {
-                    close_ws(());
-                    delete_user_id_from_local_storage(());
+                    close_ws.run(());
+                    delete_user_id_from_local_storage.run(());
                     let navigator = use_navigate();
                     navigator("/", NavigateOptions::default());
                 }
@@ -222,8 +222,8 @@ pub fn UserPage() -> impl IntoView {
 
         let leave = move |_: ()| {
             leave();
-            close_ws(());
-            delete_user_id_from_local_storage(());
+            close_ws.run(());
+            delete_user_id_from_local_storage.run(());
             let navigator = use_navigate();
             navigator("/", NavigateOptions::default());
         };
@@ -232,7 +232,7 @@ pub fn UserPage() -> impl IntoView {
     });
 
     let close = Callback::new(move |_| {
-        close()(());
+        close().run(());
     });
 
     view! {

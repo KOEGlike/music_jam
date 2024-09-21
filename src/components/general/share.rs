@@ -21,7 +21,7 @@ async fn save_to_clipboard(text: &str) {
 
 #[component]
 pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
-    let (base_url, set_base_url) = create_signal(String::new());
+    let (base_url, set_base_url) = signal(String::new());
 
     if cfg!(target_arch = "wasm32") {
         let window = web_sys::window().unwrap();
@@ -56,7 +56,7 @@ pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
                 class="button"
                 on:click=move |_| {
                     jam_id.with_untracked(|id| log!("{}", id));
-                    spawn_local(async move { save_to_clipboard(&jam_id.get_untracked()).await });
+                    spawn::spawn_local(async move { save_to_clipboard(&jam_id.get_untracked()).await });
                 }
             >
 

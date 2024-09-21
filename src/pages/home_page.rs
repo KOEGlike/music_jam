@@ -1,5 +1,5 @@
 use crate::components::*;
-use leptos::*;
+use leptos::prelude::*;
 
 #[component]
 pub fn HomePage() -> impl IntoView{

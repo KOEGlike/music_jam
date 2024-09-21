@@ -1,9 +1,14 @@
 use crate::components::user::{get_width_of_element, millis_to_min_sec, will_element_overflow};
 use crate::model::types::*;
 use icondata::IoClose;
-use leptos::{logging::*, prelude::*, *};
+use leptos::{
+    either::{Either, EitherOf3},
+    logging::*,
+    prelude::*,
+    *,
+};
+use std::f32::consts::E;
 use std::rc::Rc;
-
 
 #[derive(Clone, Debug, Copy)]
 pub enum SongAction {
@@ -34,33 +39,28 @@ impl SongAction {
 #[component]
 pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction) -> impl IntoView {
     let loaded = move |song: Song| {
-        let title_id = song.spotify_id.clone() + "title";
-        let title_id=Rc::new(title_id);
-        let artist_id = song.spotify_id.clone() + "artist";
-        let artist_id=Rc::new(artist_id);
-    
-        let mut width:u16=180;
+        let id_ref: NodeRef<html::Div> = NodeRef::new();
+        let title_ref: NodeRef<html::Div> = NodeRef::new();
+        let artist_ref: NodeRef<html::Div> = NodeRef::new();
+
+        let mut width: u16 = 180;
         if song_type.is_add() {
-            width=150;
+            width = 150;
         }
 
-        let (title_overflowing, set_title_overflowing) = create_signal(false);
-        let (artist_overflowing, set_artist_overflowing) = create_signal(false);
+        let title_overflowing = move || {
+            let title_width = title_ref.get().unwrap().client_width();
+            title_width > width as i32
+        };
+        let artist_overflowing = move || {
+            let artist_width = artist_ref.get().unwrap().client_width();
+            artist_width > width as i32
+        };
 
-        {
-            let title_id = Rc::clone(&title_id);
-            let artist_id = Rc::clone(&artist_id);
-            create_effect(move |_| {
-                if cfg!(target_arch = "wasm32") {
-                    set_title_overflowing(will_element_overflow(&title_id, Some("info-text")));
-                    set_artist_overflowing(get_width_of_element(&artist_id) > 110);
-                }
-            });
-        }
         view! {
             <div
                 class="song"
-                title=&song.name
+                title=song.name
                 class:voted=move || {
                     if let SongAction::Vote { vote, .. } = song_type {
                         vote().have_you_voted.unwrap_or(false)
@@ -71,8 +71,6 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
 
                 class:remove=song_type.is_remove()
                 on:click={
-                    // this is because when we add a song it dosent have a id generated yet, so we use the spotify id
-                    // but when we remove a song we need to use the id, because the spotify id is not unique
                     let spotify_song_id = song.spotify_id.clone();
                     let song_id = song.id.clone().unwrap_or_default();
                     move |_| {
@@ -81,15 +79,15 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                                 if let Some(vote) = vote().have_you_voted {
                                     if vote {
                                         log!("Removing vote");
-                                        remove_vote(song_id.clone())
+                                        remove_vote.run(song_id.clone())
                                     } else {
                                         log!("Adding vote");
-                                        add_vote(song_id.clone())
+                                        add_vote.run(song_id.clone())
                                     }
                                 }
                             }
-                            SongAction::Remove { remove, .. } => remove(song_id.clone()),
-                            SongAction::Add(add) => add(spotify_song_id.clone()),
+                            SongAction::Remove { remove, .. } => remove.run(song_id.clone()),
+                            SongAction::Add(add) => add.run(spotify_song_id.clone()),
                         }
                     }
                 }
@@ -97,44 +95,45 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
 
                 {move || {
                     if song_type.is_remove() {
-                        view! {
-                            <svg
-                                class="remove"
-                                viewBox=IoClose.view_box
-                                inner_html=IoClose.data
-                            ></svg>
-                        }
-                            .into_view()
+                        Either::Left(
+                            view! {
+                                <svg
+                                    class="remove"
+                                    viewBox=IoClose.view_box
+                                    inner_html=IoClose.data
+                                ></svg>
+                            },
+                        )
                     } else {
-                        ().into_view()
+                        Either::Right(())
                     }
                 }}
 
-                <div class="info" id="info" >
+                <div class="info" id="info">
                     <img
-                        src=&song.image_url
-                        alt=format!("This is the album cover of {}", &song.name)
+                        src=song.image_url
+                        alt=format!("This is the album cover of {}", song.name)
                     />
-                    <div class="info-text" id="info-txt" style:width=move||{format!("{}px", width)}>
+                    <div
+                        class="info-text"
+                        id="info-txt"
+                        style:width=move || { format!("{}px", width) }
+                        node_ref=id_ref
+                    >
                         <div
                             class="title"
-                            id={let id:&String=&title_id; id}
+                            node_ref=title_ref
+
                             class:scroll=title_overflowing
                         >
-
-                            {move || {
-                                std::iter::repeat(song.name.clone())
-                                    .take(if title_overflowing() { 2 } else { 1 })
-                                    .collect::<Vec<String>>()
-                                    .join(" ")
-                            }}
-
+                            {song.name.clone()}
                         </div>
                         <div class="small-info">
                             <div class="artist-wrapper" id="artist-wrapper">
                                 <div
                                     class="artist"
-                                    id={let id:&String=&artist_id; id}
+                                    node_ref=artist_ref
+
                                     class:scroll=artist_overflowing
                                 >
                                     {move || {
@@ -154,23 +153,23 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                 </div>
 
                 <div class="action">
-
                     {match song_type {
                         SongAction::Vote { vote, .. } => {
-                            view! { <div class="votes">{move || vote().votes}</div> }.into_view()
+                            EitherOf3::A(view! { <div class="votes">{move || vote().votes}</div> })
                         }
                         SongAction::Add(_) => {
-                            view! {
-                                <svg
-                                    class="add"
-                                    viewBox=IoClose.view_box
-                                    inner_html=IoClose.data
-                                ></svg>
-                            }
-                                .into_view()
+                            EitherOf3::B(
+                                view! {
+                                    <svg
+                                        class="add"
+                                        viewBox=IoClose.view_box
+                                        inner_html=IoClose.data
+                                    ></svg>
+                                },
+                            )
                         }
                         SongAction::Remove { vote, .. } => {
-                            view! { {move || vote().votes} }.into_view()
+                            EitherOf3::C(view! { {move || vote().votes} })
                         }
                     }}
 
@@ -184,8 +183,8 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
 
     view! {
         {move || match song.clone() {
-            Some(song) => loaded(song.clone()),
-            None => loading(),
+            Some(song) => Either::Left(loaded(song)),
+            None => Either::Right(loading()),
         }}
     }
 }

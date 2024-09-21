@@ -5,8 +5,8 @@
 	@extend .glass;
 	position: fixed;
 	z-index: 100;
-	top: 50%;
-	left: 50%;
+	top: 50vh;
+	left: 50vw;
 	transform: translate(-50%, -50%);
 	border-radius: map-get($border-radiuses, "medium");
 	width: 600px;

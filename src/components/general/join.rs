@@ -1,11 +1,11 @@
 use leptos::{prelude::*, *};
-use leptos_router::{use_navigate, NavigateOptions};
+use leptos_router::{hooks::use_navigate, NavigateOptions};
 
 
 
 #[component]
 pub fn JoinIsland() -> impl IntoView {
-    let (jam_code, set_jam_code) = create_signal(String::new());
+    let (jam_code, set_jam_code) = signal(String::new());
     let on_click = move |_| {
         let navigator=use_navigate();
         let url=format!("/create-user/{}", jam_code.get_untracked());

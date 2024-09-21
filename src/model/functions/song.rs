@@ -149,6 +149,7 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::
     Ok(songs)
 }
 
+
 pub async fn add_song(
     spotify_song_id: &str,
     user_id: &str,

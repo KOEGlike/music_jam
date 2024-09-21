@@ -1,5 +1,5 @@
-use leptos::{logging::*, *};
-use leptos_router::*;
+use leptos::{logging::*, *, prelude::*};
+use leptos_router::{*, hooks::*, params::*};
 
 #[server]
 async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError> {
@@ -27,10 +27,10 @@ async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError>
 #[component]
 pub fn CreateHostPage() -> impl IntoView {
     let queries = use_query_map();
-    let code = move || queries.with(|queries| queries.get("code").cloned());
-    let host_id = move || queries.with(|queries| queries.get("state").cloned());
+    let code = move || queries.with(|queries| queries.get("code"));
+    let host_id = move || queries.with(|queries| queries.get("state"));
 
-    let create_host_action = create_action(|input: &(String, String)| {
+    let create_host_action = Action::new(|input: &(String, String)| {
         use gloo::storage::{LocalStorage, Storage};
 
         let input = input.clone();
@@ -43,9 +43,9 @@ pub fn CreateHostPage() -> impl IntoView {
         }
     });
 
-    let (feedback, set_feedback) = create_signal(String::from("creating host..."));
+    let (feedback, set_feedback) = signal(String::from("creating host..."));
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let (Some(code), Some(state)) = (code(), host_id()) {
             log!("Creating host with code: {} and state: {}", code, state);
             create_host_action.dispatch((code, state));
@@ -53,7 +53,7 @@ pub fn CreateHostPage() -> impl IntoView {
         }
     });
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(res) = create_host_action.value().get() {
             match res {
                 Ok(_) => {

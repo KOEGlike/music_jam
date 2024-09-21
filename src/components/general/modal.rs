@@ -1,8 +1,9 @@
-use leptos::*;
+use leptos::prelude::*;
 
 #[component]
 pub fn Modal(
-    visible: ReadSignal<bool>,
+    #[prop(into)]
+    visible: Signal<bool>,
     children: Children
 ) -> impl IntoView {
     view! {
