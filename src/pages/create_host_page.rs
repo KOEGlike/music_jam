@@ -1,14 +1,13 @@
-use leptos::{logging::*, *, prelude::*};
-use leptos_router::{*, hooks::*, params::*};
+use leptos::{logging::*, prelude::*, *};
+use leptos_router::{hooks::*, *};
 
 #[server]
 async fn create_host(code: String, host_id: String) -> Result<(), ServerFnError> {
-    use crate::model::functions::create_host;
+    use crate::model::functions;
     use crate::model::AppState;
     let app_state = expect_context::<AppState>();
-   
 
-    if let Err(e) = create_host(
+    if let Err(e) = functions::create_host(
         code,
         host_id,
         &app_state.spotify_credentials,

@@ -1,6 +1,6 @@
 use crate::components::{Song, SongAction};
 use crate::model::{self, Vote, *};
-use leptos::{logging::log, prelude::*, *, either::Either};
+use leptos::{logging::log, prelude::*, either::Either};
 
 #[derive(Clone, Debug, Copy)]
 pub enum SongListAction {

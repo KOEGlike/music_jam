@@ -1,7 +1,7 @@
 use crate::components::{Song, SongAction};
 use crate::model::{types::real_time::SearchResult, *};
 use icondata::AiSearchOutlined;
-use leptos::{either::Either, prelude::*, *};
+use leptos::{either::Either, prelude::*};
 
 #[component]
 pub fn Search(

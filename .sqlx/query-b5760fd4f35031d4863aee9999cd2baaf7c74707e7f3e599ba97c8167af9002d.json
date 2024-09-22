@@ -5,9 +5,9 @@
     "columns": [],
     "parameters": {
       "Left": [
-        "Varchar",
         "Bpchar",
-        "Varchar"
+        "Bpchar",
+        "Bpchar"
       ]
     },
     "nullable": []

@@ -7,7 +7,7 @@ use crate::model::{self, *};
 use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
 use itertools::Itertools;
-use leptos::{logging::*, prelude::*, *};
+use leptos::{logging::*, prelude::*};
 use leptos_meta::Title;
 use leptos_router::{*, hooks::*};
 use leptos_use::{core::ConnectionReadyState, use_websocket, UseWebSocketReturn};

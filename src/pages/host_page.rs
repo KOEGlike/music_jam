@@ -2,11 +2,13 @@ use crate::components::{host::Player, Share, SongList, SongListAction, UsersBar}
 use crate::model::types::*;
 use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
-use leptos::{logging::*, prelude::*, *};
+use leptos::{logging::*, prelude::*};
 use leptos_meta::Title;
-use leptos_router::{hooks::{use_navigate, use_params_map,}, NavigateOptions};
+use leptos_router::{
+    hooks::{use_navigate, use_params_map},
+    NavigateOptions,
+};
 use leptos_use::{use_websocket, UseWebSocketReturn};
-use real_time::Changed;
 
 #[component]
 pub fn HostPage() -> impl IntoView {
@@ -120,7 +122,7 @@ pub fn HostPage() -> impl IntoView {
         set_close(close);
 
         Effect::new(move |_| {
-            if let Some(update) = message() {
+            if let Some(update) = message.get() {
                 if let Some(users) = update.users {
                     set_users(Some(users));
                 }
@@ -196,6 +198,7 @@ async fn delete_jam(host_id: String) -> Result<(), ServerFnError> {
     }
     model::delete_jam(&id.jam_id, pool).await?;
     leptos_axum::redirect("/");
+    use crate::model::real_time::Changed;
     notify(Changed::new().ended(), vec![], &id.jam_id, pool).await?;
     Ok(())
 }

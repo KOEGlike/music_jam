@@ -1,6 +1,6 @@
 use crate::model::*;
 use icondata::IoClose;
-use leptos::{either::Either, logging::log, prelude::*, *};
+use leptos::{either::Either, logging::log, prelude::*};
 use std::rc::Rc;
 
 #[component]

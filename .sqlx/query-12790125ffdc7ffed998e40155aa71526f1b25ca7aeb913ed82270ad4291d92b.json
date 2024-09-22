@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT EXISTS(SELECT 1 FROM songs WHERE spotify_id=$1)",
+  "query": "SELECT EXISTS(SELECT 1 FROM songs WHERE spotify_id=$1 AND user_id IN (SELECT id FROM users WHERE jam_id=$2))",
   "describe": {
     "columns": [
       {
@@ -11,12 +11,13 @@
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Text",
+        "Bpchar"
       ]
     },
     "nullable": [
       null
     ]
   },
-  "hash": "7b2ef7a4dcb2b6703c17f403ef383ca4e179a3a641ef2ad201a0cfc40f1d414f"
+  "hash": "12790125ffdc7ffed998e40155aa71526f1b25ca7aeb913ed82270ad4291d92b"
 }

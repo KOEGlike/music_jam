@@ -1,6 +1,6 @@
-use leptos::{prelude::*, *};
-use leptos_router::{*, hooks::*, params::*};
 use crate::components::user::CreateUser;
+use leptos::prelude::*;
+use leptos_router::{hooks::*, params::*, *};
 
 #[component]
 pub fn CreateUserPage() -> impl IntoView {
@@ -22,11 +22,11 @@ pub fn CreateUserPage() -> impl IntoView {
                 })
         })
     };
-    let jam_id = Signal::derive( jam_id);
+    let jam_id = Signal::derive(jam_id);
 
-    view!{
+    view! {
         <div class="create-user-page">
-            <CreateUser jam_id={jam_id.get_untracked()} />
+            <CreateUser jam_id=jam_id.get_untracked()/>
         </div>
     }
 }

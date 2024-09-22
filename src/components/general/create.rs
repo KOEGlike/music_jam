@@ -1,6 +1,6 @@
 use crate::components::Modal;
 use crate::model::*;
-use leptos::{logging::log, prelude::*, *};
+use leptos::{logging::log, prelude::*};
 use leptos_router::{hooks::use_navigate, *};
 
 #[server]

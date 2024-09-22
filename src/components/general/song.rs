@@ -1,4 +1,4 @@
-use crate::components::user::{get_width_of_element, millis_to_min_sec, will_element_overflow};
+use crate::components::user::millis_to_min_sec;
 use crate::model::types::*;
 use icondata::IoClose;
 use leptos::{
@@ -7,8 +7,6 @@ use leptos::{
     prelude::*,
     *,
 };
-use std::f32::consts::E;
-use std::rc::Rc;
 
 #[derive(Clone, Debug, Copy)]
 pub enum SongAction {
