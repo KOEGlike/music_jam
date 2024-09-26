@@ -1,7 +1,7 @@
 use super::host_page::get_jam;
 use crate::components::{
-    user::{Player, Search},
-    SongList, SongListAction, UsersBar,
+    user::{ Search},
+    SongList, SongListAction, UsersBar, Player,
 };
 use crate::model::{self, *};
 use codee::binary::MsgpackSerdeCodec;

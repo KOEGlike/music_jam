@@ -41,8 +41,6 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
         }
     };
 
-    
-
     let bridge_task = tokio::spawn(send(mpsc_receiver, sender));
     let recv_task = tokio::spawn(read::read(
         receiver,
@@ -57,11 +55,20 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
         app_state.clone(),
     ));
 
-    if let Err(e) = notify(real_time::Changed::all(), vec![], id.jam_id(), &app_state.db.pool).await {
+    if let Err(e) = notify(
+        real_time::Changed::all(),
+        vec![],
+        id.jam_id(),
+        &app_state.db.pool,
+    )
+    .await
+    {
         handle_error(e.into(), false, &mpsc_sender).await;
     }
 
-    bridge_task.await.unwrap();
+    if let Err(e) = bridge_task.await {
+        eprintln!("Error in bridge task: {:?}", e);
+    };
     send_task.abort();
     recv_task.abort();
 }
@@ -71,14 +78,21 @@ async fn handle_error(error: Error, close: bool, sender: &mpsc::Sender<ws::Messa
 
     if close {
         let close_frame = error.to_close_frame();
-        sender
-            .send(ws::Message::Close(Some(close_frame)))
-            .await
-            .unwrap();
+        if let Err(e) = sender.send(ws::Message::Close(Some(close_frame))).await {
+            eprintln!("Error sending close frame: {:?}", e);
+        }
     } else {
         let update = real_time::Update::new().error(error);
-        let bin = rmp_serde::to_vec(&update).unwrap();
-        sender.send(ws::Message::Binary(bin)).await.unwrap();
+        let bin = match rmp_serde::to_vec(&update) {
+            Ok(bin) => bin,
+            Err(e) => {
+                eprintln!("Error encoding error update: {:?}", e);
+                return;
+            }
+        };
+        if let Err(e) = sender.send(ws::Message::Binary(bin)).await {
+            eprintln!("Error sending error update: {:?}", e);
+        }
     }
 }
 

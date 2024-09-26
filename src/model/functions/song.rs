@@ -46,7 +46,7 @@ pub async fn get_top_song(pool: &sqlx::PgPool, jam_id: String) -> Result<Option<
 
     let mut songs = songs.into_iter().max_set_by_key(|s| s.votes.votes);
     songs.shuffle(&mut thread_rng());
-    Ok(Some(songs.into_iter().next().unwrap()))
+    Ok(songs.into_iter().next())
 }
 
 pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::Error> {
@@ -148,7 +148,6 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::
 
     Ok(songs)
 }
-
 
 pub async fn add_song(
     spotify_song_id: &str,

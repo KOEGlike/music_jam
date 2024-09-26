@@ -1,4 +1,4 @@
-use crate::components::user;
+use crate::components::general;
 use gloo::timers::callback::Interval;
 use leptos::{
     either::*,
@@ -167,13 +167,15 @@ pub fn Player(
     });
 
     on_cleanup(move || {
-        if let Err(e) = sp::disconnect() {
-            error!("Error disconnecting player: {:?}", e);
-        };
+        if cfg!(target_arch = "wasm32") {
+            if let Err(e) = sp::disconnect() {
+                error!("Error disconnecting player: {:?}", e);
+            };
+        }
     });
 
     view! {
-        <user::Player current_song position=position_percentage>
+        <general::Player current_song position=position_percentage>
             <button
                 on:click=move |_| {
                     toggle_play();
@@ -208,7 +210,7 @@ pub fn Player(
                 }}
 
             </button>
-        </user::Player>
+        </general::Player>
     }
 }
 

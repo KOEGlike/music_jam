@@ -10,7 +10,13 @@ pub async fn notify(
 ) -> Result<(), sqlx::Error> {
     if changed.has_changed() {
         let update = real_time::ChannelUpdate { errors, changed };
-        let update = serde_json::to_string(&update).unwrap();
+        let update = match serde_json::to_string(&update) {
+            Ok(update) => update,
+            Err(e) => {
+                eprintln!("error serializing update: {}", e);
+                return Ok(());
+            }
+        };
 
         sqlx::query!("SELECT pg_notify($1,$2)", jam_id, update)
             .execute(pool)

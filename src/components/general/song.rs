@@ -1,4 +1,4 @@
-use crate::components::user::millis_to_min_sec;
+use crate::components::general::millis_to_min_sec;
 use crate::model::types::*;
 use icondata::IoClose;
 use leptos::{

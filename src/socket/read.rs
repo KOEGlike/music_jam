@@ -199,7 +199,14 @@ async fn handle_message(
             };
 
             let update = real_time::Update::new().search(SearchResult { songs, search_id });
-            let message = rmp_serde::to_vec(&update).unwrap();
+            let message = match rmp_serde::to_vec(&update) {
+                Ok(m) => m,
+                Err(e) => {
+                    let error = Error::Decode(format!("Error encoding search result: {:#?}", e));
+                    handle_error(error, true, &sender).await;
+                    return;
+                }
+            };
             let message = ws::Message::Binary(message);
             if let Err(e) = sender.send(message).await {
                 eprintln!("Error sending ws message: {:?}", e);

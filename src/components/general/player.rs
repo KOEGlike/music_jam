@@ -1,12 +1,10 @@
 use crate::model::types::Song;
 use leptos::{
+    either::Either,
     logging::{error, log},
     prelude::*,
     *,
-    either::Either
 };
-
-
 
 #[component]
 pub fn Player(
@@ -22,12 +20,9 @@ pub fn Player(
         });
     });
 
-    
-
     let song_length = move || current_song().map(|s| s.duration).unwrap_or_default();
     let (title_overflow, set_title_overflow) = signal(false);
     let (artist_overflow, set_artist_overflow) = signal(false);
-    
 
     Effect::new(move |_| {
         current_song.track();
@@ -46,8 +41,8 @@ pub fn Player(
                 title="the album cover of the current song"
                 alt="img not found, wait for a few seconds"
                 onerror="this.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';"
-                
             />
+
             <div
                 class="info"
                 id="info"
@@ -126,17 +121,33 @@ pub fn Player(
 }
 
 pub fn set_bg_img(url: &str) {
-    let body = web_sys::window()
-        .unwrap()
-        .document()
-        .unwrap()
-        .body()
-        .unwrap();
-    body
-    .style()
-    .set_property(
-        "background-image", 
-        &format!("radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%), url({})", url)).unwrap();
+    match web_sys::window() {
+        Some(window) => match window.document() {
+            Some(document) => match document.document_element() {
+                Some(element) => {
+                    match element
+                        .set_attribute("style", &format!("--background-url: url(\"{}\")", url))
+                    {
+                        Ok(_) => {
+                            log!("background image set to {}", url);
+                        }
+                        Err(e) => {
+                            error!("error setting background image: {:?}", e);
+                        }
+                    }
+                }
+                None => {
+                    error!("document element not found");
+                }
+            },
+            None => {
+                error!("document not found");
+            }
+        },
+        None => {
+            error!("window not found");
+        }
+    }
 }
 
 pub fn will_element_overflow(element_id: &str, parent_id: Option<&str>) -> bool {

@@ -226,7 +226,7 @@ fn SearchTest() -> impl IntoView {
 
 #[component]
 fn UserPlayerTest() -> impl IntoView {
-    use crate::components::user::Player;
+    use crate::components::general::Player;
 
     let (current_song, _) = signal(Some(model::Song {
         id: Some("lol".to_string()),

@@ -1,4 +1,4 @@
-use crate::components::user::set_bg_img;
+use crate::components::general::set_bg_img;
 use gloo::{
     events::EventListener,
     storage::{LocalStorage, Storage},
@@ -10,7 +10,7 @@ use leptos::{
     *,
 };
 use leptos_router::{hooks::use_navigate, *};
-use std::rc::Rc;
+use std::{rc::Rc, time::Duration};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{FileReader, HtmlInputElement, MediaStream};
 
@@ -53,19 +53,54 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
 
     let video_ref: NodeRef<html::Video> = NodeRef::new();
     let canvas_ref: NodeRef<html::Canvas> = NodeRef::new();
+    let input_ref: NodeRef<html::Input> = NodeRef::new();
 
     let camera = move || {
         leptos::spawn::spawn_local(async move {
             use wasm_bindgen::{JsCast, JsValue};
             use wasm_bindgen_futures::JsFuture;
 
-            let window = web_sys::window().unwrap();
-            let canvas = canvas_ref.get().unwrap();
-            let context = canvas.get_context("2d").unwrap().unwrap();
-            let context = context
-                .dyn_into::<web_sys::CanvasRenderingContext2d>()
-                .unwrap();
-            let video = video_ref.get().unwrap();
+            gloo::timers::future::sleep(Duration::from_millis(500)).await;
+
+            let window = match web_sys::window() {
+                Some(window) => window,
+                None => {
+                    error!("window not found");
+                    return;
+                }
+            };
+            let canvas = match canvas_ref.get() {
+                Some(canvas) => canvas,
+                None => {
+                    error!("canvas not found");
+                    return;
+                }
+            };
+            let context = match canvas.get_context("2d") {
+                Ok(Some(context)) => context,
+                Ok(None) => {
+                    error!("2d context not found");
+                    return;
+                }
+                Err(e) => {
+                    error!("error getting 2d context: {:?}", e);
+                    return;
+                }
+            };
+            let context = match context.dyn_into::<web_sys::CanvasRenderingContext2d>() {
+                Ok(context) => context,
+                Err(e) => {
+                    error!("error casting 2d context: {:?}", e);
+                    return;
+                }
+            };
+            let video = match video_ref.get() {
+                Some(video) => video,
+                None => {
+                    error!("video not found");
+                    return;
+                }
+            };
 
             let camera = match window.navigator().media_devices() {
                 Ok(media_devices) => media_devices,
@@ -123,28 +158,45 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             let capture = {
                 let video = video.clone();
                 Box::new(move || {
+                    log!("Capturing image");
                     canvas.set_width(video.video_width());
                     canvas.set_height(video.video_height());
-                    context
-                        .draw_image_with_html_video_element_and_dw_and_dh(
-                            &video,
-                            0.0,
-                            0.0,
-                            video.video_width() as f64,
-                            video.video_height() as f64,
-                        )
-                        .unwrap();
-                    let data_url = canvas.to_data_url_with_type("image/webp").unwrap();
+                    if let Err(e) = context.draw_image_with_html_video_element_and_dw_and_dh(
+                        &video,
+                        0.0,
+                        0.0,
+                        video.video_width() as f64,
+                        video.video_height() as f64,
+                    ) {
+                        error!("Error drawing image: {:?}", e);
+                    }
+
+                    let data_url = match canvas.to_data_url_with_type("image/webp") {
+                        Ok(data_url) => data_url,
+                        Err(e) => {
+                            error!("Error getting data url: {:?}", e);
+                            return;
+                        }
+                    };
                     set_image_url(data_url.clone());
                 })
             };
 
             let close_camera = Box::new(move || {
-                video.pause().unwrap();
+                log!("Closing camera");
+                if let Err(e) = video.pause() {
+                    error!("Error pausing video: {:?}", e);
+                };
                 video.set_src("");
                 video.set_src_object(None);
                 camera.get_tracks().iter().for_each(|track| {
-                    let track = track.dyn_into::<web_sys::MediaStreamTrack>().unwrap();
+                    let track = match track.dyn_into::<web_sys::MediaStreamTrack>() {
+                        Ok(track) => track,
+                        Err(e) => {
+                            error!("Error casting track: {:?}", e);
+                            return;
+                        }
+                    };
                     track.stop();
                 });
             });
@@ -173,7 +225,9 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
 
     Effect::new(move |_| {
         if camera_request_state.with(|s| s.is_denied()) {
-            file_picker(set_image_url, "image-picker");
+            if let Some(input) = input_ref.get() {
+                file_picker(set_image_url, input);
+            }
         }
     });
     let (name, set_name) = signal(String::new());
@@ -230,12 +284,13 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                     style:display=move || {
                         if image_url.with(|url| url.is_empty()) { "none" } else { "inline " }
                     }
+
                     prop:src=image_url
                     alt="The screen capture will appear in this box."
                 />
                 <input
                     type="file"
-                    id="image-picker"
+                    node_ref=input_ref
                     name="image-picker"
                     accept=".webp, .png, .jpg, .gif, .jpeg"
                     multiple="false"
@@ -291,7 +346,9 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
 
                     on:click=move |_| {
                         if image_url.with(|url| url.is_empty()) {
-                            take_picture();
+                            if let Some(take) = take_picture() {
+                                take();
+                            }
                         }
                     }
                 >
@@ -398,7 +455,9 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                     class="create-button"
                     on:click=move |_| {
                         create_user.dispatch(());
-                        close_camera();
+                        if let Some(close) = close_camera() {
+                            close();
+                        }
                     }
 
                     style:display=move || {
@@ -479,26 +538,54 @@ struct CameraResponse {
 }
 
 ///sets the image url every time the selected file changes
-fn file_picker(image_url: WriteSignal<String>, file_input_id: &str) {
-    let input = window()
-        .document()
-        .unwrap()
-        .get_element_by_id(file_input_id)
-        .unwrap()
-        .dyn_into::<HtmlInputElement>()
-        .unwrap();
+fn file_picker(image_url: WriteSignal<String>, file_input: HtmlInputElement) {
+    let input = file_input;
     let listener = EventListener::new(&input, "change", {
         let input = input.clone();
         move |_| {
-            let files = input.files().unwrap();
+            let files = match input.files() {
+                Some(files) => files,
+                None => {
+                    error!("no files found");
+                    return;
+                }
+            };
             if files.length() > 0 {
-                let file_reader = FileReader::new().unwrap();
-                let file = files.item(0).unwrap();
-                file_reader.read_as_data_url(&file).unwrap();
+                let file_reader = match FileReader::new() {
+                    Ok(file_reader) => file_reader,
+                    Err(e) => {
+                        error!("error creating file reader: {:?}", e);
+                        return;
+                    }
+                };
+                let file = match files.item(0) {
+                    Some(file) => file,
+                    None => {
+                        error!("no file found");
+                        return;
+                    }
+                };
+                if let Err(e) = file_reader.read_as_data_url(&file) {
+                    error!("error reading file as data url: {:?}", e);
+                    return;
+                };
                 let cb = {
                     let file_reader = file_reader.clone();
                     Closure::wrap(Box::new(move || {
-                        let url = file_reader.result().unwrap().as_string().unwrap();
+                        let result = match file_reader.result() {
+                            Ok(result) => result,
+                            Err(e) => {
+                                error!("error getting file reader result: {:?}", e);
+                                return;
+                            }
+                        };
+                        let url = match result.as_string() {
+                            Some(url) => url,
+                            None => {
+                                error!("no url found");
+                                return;
+                            }
+                        };
                         log!("file url:{}", url);
                         image_url(url);
                     }) as Box<dyn FnMut()>)

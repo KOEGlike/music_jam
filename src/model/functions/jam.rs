@@ -335,7 +335,7 @@ pub async fn dose_jam_exist(jam_id: &str, pool: &sqlx::PgPool) -> Result<bool, E
     sqlx::query!("SELECT EXISTS(SELECT 1 FROM jams WHERE id=$1)", jam_id)
         .fetch_one(pool)
         .await
-        .map(|b| b.exists.unwrap())
+        .map(|b| b.exists.unwrap_or(false))
         .map_err(|e| e.into())
 }
 

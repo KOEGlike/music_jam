@@ -14,13 +14,7 @@ pub fn UsersBar(
             <button on:click=move |_| {
                 close.run(());
             }>
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="31"
-                    height="30"
-                    viewBox="0 0 31 30"
-                    fill="none"
-                >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31 30">
                     <path
                         d="M3.5 30L0.5 27L12.5 15L0.5 3L3.5 0L15.5 12L27.5 0L30.5 3L18.5 15L30.5 27L27.5 30L15.5 18L3.5 30Z"
                         fill="#EBF6E8"
@@ -48,7 +42,10 @@ pub fn UsersBar(
                             <div title=user.name.clone() class="user">
                                 <img
                                     src=format!("/uploads/{}.webp", user_id)
-                                    alt=format!("This is the profile picture of {}", user.name.clone())
+                                    alt=format!(
+                                        "This is the profile picture of {}",
+                                        user.name.clone(),
+                                    )
                                 />
                                 {if let Some(kick_user) = kick_user {
                                     Either::Left(

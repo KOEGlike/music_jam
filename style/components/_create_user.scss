@@ -12,7 +12,9 @@
     border-radius: 40px;
 
     >.image-container {
-        >video ,>img {
+
+        >video,
+        >img {
             @extend .glass;
             object-fit: cover;
             object-position: center;
@@ -20,8 +22,9 @@
             height: 300px;
             border-radius: 150px;
         }
-        >input{
-           opacity: 0;
+
+        >input {
+            opacity: 0;
         }
     }
 
@@ -35,8 +38,13 @@
         flex-direction: row;
         align-items: center;
 
-        >label{
-            background:none;
+        >* {
+            width: 100px;
+            height: 100px;
+        }
+
+        >label {
+            background: none;
             border: none;
             z-index: 20;
         }
@@ -47,9 +55,10 @@
             padding: 0px;
             margin: 0px;
 
+            
+
             >svg {
-                width: 100px;
-                height: 100px;
+
                 fill: white;
                 opacity: 0.8;
                 transition: opacity 0.1s ease;

@@ -43,13 +43,13 @@ $blur: blur(12px);
 
 html{
 	overflow: hidden;
+	--background-url: url("https://images.unsplash.com/photo-1627300000000-0b3b3b3b3b3b");
 }
 
+
+
 body {
-	background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%);
-	background-position: center;
-	background-repeat: no-repeat;
-	background-size: cover;
+
 	width: 100vw;
 	height: 100vh;
 	overflow: hidden;
@@ -57,32 +57,38 @@ body {
 	margin: 0;
 }
 
-body::before {
-	display: inline-block;
-	content: '';
-	position: absolute;
-	overflow: hidden;
-	width: calc(100vw + -1 * -10vw);
-	height: calc(100vh + -1 * -10vh);
-	background:inherit;
-	filter: blur(8px);
-	-webkit-filter: blur(8px);
-	z-index: -1;
-	padding: 0;
-	margin: 0;
-	border:none;
-	margin: -10vh -10vw;
-}
+
 
 
 main{
+	background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%), var(--background-url);
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: cover;
 	width: 100vw;
 	height: 100vh;
 	margin: 0;
 	padding: 0;
 	position: absolute;
 	border: none;
-	overflow: scroll;
+	overflow-y: scroll;
+	overflow-x: hidden;
+}
+
+main::before {
+	display: inline-block;
+	content: '';
+	position: fixed;
+	overflow: hidden;
+	width: calc(100% + -2 * -10vw);
+	height: calc(100% + -2 * -10vh);
+	background:inherit;
+	filter: blur(8px);
+	padding: 0;
+	margin: 0;
+	border:none;
+	margin: -10vh -10vw;
+	max-width:calc(100vw + -1 * -10vw) ;
 }
 
 @media (max-width: 1200px), (orientation: portrait) {
