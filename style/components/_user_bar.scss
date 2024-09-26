@@ -51,21 +51,21 @@ $gap-number: 10;
         white-space: nowrap; // Ensure elements don't wrap
         flex-shrink: 0; // Prevent shrinking
         min-height: calc($icon-size + (2 * $gap));
-        $space-available:calc((100% - (75px + 60px + $gap)));
-        
-        width:$space-available;
+        $space-available: calc((100% - (75px + 60px + $gap)));
+
+        width: $space-available;
     }
 }
 
 @media (max-width: 1200px),
 (orientation: portrait) {
-	.bar {
-        width:350px;
+    .bar {
+        width: 350px;
     }
 }
 
 @media (min-width: 1200px) {
-	.bar {
+    .bar {
         width: 100%;
     }
 }
@@ -101,8 +101,10 @@ $gap-number: 10;
         position: absolute;
     }
 
-    >svg:hover {
-        opacity: 1;
-        background-color: #00000042;
+    @media (any-hover: hover) {
+        >svg:hover {
+            opacity: 1;
+            background-color: #00000042;
+        }
     }
 }

@@ -185,8 +185,12 @@ pub fn Player(
                 }
 
                 class="play-pause"
-                title="play-pause"
+                title=move || match playing() {
+                    true => "pause",
+                    false => "play",
+                }
             >
+
                 {move || match playing() {
                     true => {
                         Either::Left(

@@ -74,7 +74,7 @@ dependencies = [
 [[package]]
 name = "any_spawner"
 version = "0.1.1"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "futures",
  "thiserror",
@@ -551,7 +551,7 @@ dependencies = [
 [[package]]
 name = "const_str_slice_concat"
 version = "0.1.0"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 
 [[package]]
 name = "convert_case"
@@ -842,7 +842,7 @@ dependencies = [
 [[package]]
 name = "either_of"
 version = "0.1.0"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "pin-project-lite",
 ]
@@ -1515,7 +1515,7 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 [[package]]
 name = "hydration_context"
 version = "0.2.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "futures",
  "js-sys",
@@ -1999,7 +1999,7 @@ checksum = "03087c2bad5e1034e8cace5926dec053fb3790248370865f5117a7d0213354c8"
 [[package]]
 name = "leptos"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "any_spawner",
  "base64 0.22.1",
@@ -2059,7 +2059,7 @@ dependencies = [
 [[package]]
 name = "leptos_axum"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "any_spawner",
  "axum",
@@ -2085,7 +2085,7 @@ dependencies = [
 [[package]]
 name = "leptos_config"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "config",
  "regex",
@@ -2097,7 +2097,7 @@ dependencies = [
 [[package]]
 name = "leptos_dom"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "js-sys",
  "or_poisoned",
@@ -2111,7 +2111,7 @@ dependencies = [
 [[package]]
 name = "leptos_hot_reload"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "anyhow",
  "camino",
@@ -2128,7 +2128,7 @@ dependencies = [
 [[package]]
 name = "leptos_integration_utils"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "futures",
  "hydration_context",
@@ -2142,7 +2142,7 @@ dependencies = [
 [[package]]
 name = "leptos_macro"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "attribute-derive",
  "cfg-if",
@@ -2163,7 +2163,7 @@ dependencies = [
 [[package]]
 name = "leptos_meta"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "futures",
  "indexmap",
@@ -2178,7 +2178,7 @@ dependencies = [
 [[package]]
 name = "leptos_router"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "any_spawner",
  "either_of",
@@ -2204,7 +2204,7 @@ dependencies = [
 [[package]]
 name = "leptos_router_macro"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -2214,7 +2214,7 @@ dependencies = [
 [[package]]
 name = "leptos_server"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "any_spawner",
  "base64 0.22.1",
@@ -2518,7 +2518,7 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 [[package]]
 name = "next_tuple"
 version = "0.1.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 
 [[package]]
 name = "nom"
@@ -2656,7 +2656,7 @@ dependencies = [
 [[package]]
 name = "oco_ref"
 version = "0.2.0"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "serde",
  "thiserror",
@@ -2715,7 +2715,7 @@ dependencies = [
 [[package]]
 name = "or_poisoned"
 version = "0.1.0"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 
 [[package]]
 name = "parking"
@@ -3156,7 +3156,7 @@ dependencies = [
 [[package]]
 name = "reactive_graph"
 version = "0.1.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "any_spawner",
  "async-lock",
@@ -3607,9 +3607,9 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
-version = "0.6.7"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb5b1b31579f3811bf615c144393417496f152e12ac8b7663bf664f4a815306d"
+checksum = "87607cb1398ed59d48732e575a4c28a7a8ebf2454b964fe3f224f2afc07909e1"
 dependencies = [
  "serde",
 ]
@@ -3629,7 +3629,7 @@ dependencies = [
 [[package]]
 name = "server_fn"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "axum",
  "bytes",
@@ -3664,7 +3664,7 @@ dependencies = [
 [[package]]
 name = "server_fn_macro"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "const_format",
  "convert_case",
@@ -3677,7 +3677,7 @@ dependencies = [
 [[package]]
 name = "server_fn_macro_default"
 version = "0.7.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "server_fn_macro",
  "syn 2.0.77",
@@ -4137,7 +4137,7 @@ dependencies = [
 [[package]]
 name = "tachys"
 version = "0.1.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "any_spawner",
  "const_str_slice_concat",
@@ -4206,7 +4206,7 @@ dependencies = [
 [[package]]
 name = "throw_error"
 version = "0.2.0-beta6"
-source = "git+https://github.com/leptos-rs/leptos/#96e2b5cba10d2296f262820be19cac9b615b0d23"
+source = "git+https://github.com/leptos-rs/leptos/#2bf1f46b88755e3ef43b46b07c5752968e8498ba"
 dependencies = [
  "pin-project-lite",
 ]
@@ -4415,7 +4415,7 @@ dependencies = [
  "serde",
  "serde_spanned",
  "toml_datetime",
- "winnow 0.6.19",
+ "winnow 0.6.20",
 ]
 
 [[package]]
@@ -5051,9 +5051,9 @@ dependencies = [
 
 [[package]]
 name = "winnow"
-version = "0.6.19"
+version = "0.6.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c52ac009d615e79296318c1bcce2d422aaca15ad08515e344feeda07df67a587"
+checksum = "36c1fec1a2bb5866f07c25f68c26e565c4c200aebb96d7e55710c19d3e8ac49b"
 dependencies = [
  "memchr",
 ]

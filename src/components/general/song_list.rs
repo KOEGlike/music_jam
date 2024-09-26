@@ -1,6 +1,6 @@
 use crate::components::{Song, SongAction};
 use crate::model::{self, Vote, *};
-use leptos::{logging::log, prelude::*, either::Either};
+use leptos::{either::Either, logging::log, prelude::*};
 
 #[derive(Clone, Debug, Copy)]
 pub enum SongListAction {
@@ -31,8 +31,7 @@ pub fn SongList(
     #[prop(into)] votes: Signal<model::Votes>,
     #[prop(into)] max_song_count: Signal<u8>,
     song_list_action: SongListAction,
-) -> impl IntoView
-{
+) -> impl IntoView {
     let (button_state, set_button_state) = signal(false);
     let songs = move || {
         if let Some(songs) = songs() {
@@ -43,10 +42,13 @@ pub fn SongList(
             let mut songs = songs
                 .into_iter()
                 .map(|mut song| {
-                    let votes = votes.get(song.id.as_ref().unwrap_or_default()).copied().unwrap_or(Vote {
-                        votes: 0,
-                        have_you_voted: None,
-                    });
+                    let votes = votes
+                        .get(song.id.as_ref().map(|s| s.as_str()).unwrap_or(""))
+                        .copied()
+                        .unwrap_or(Vote {
+                            votes: 0,
+                            have_you_voted: None,
+                        });
                     song.votes = votes;
                     song
                 })
@@ -88,8 +90,8 @@ pub fn SongList(
     view! {
         <div class="song-list">
             {if song_list_action.is_vote() {
-               
-                    Either::Left( view! {
+                Either::Left(
+                    view! {
                         <div class="header">
                             <button
                                 class="vote"
@@ -110,10 +112,11 @@ pub fn SongList(
                                         max_song_count(),
                                     )
                                 }}
-    
+
                             </button>
                         </div>
-                    })
+                    },
+                )
             } else {
                 Either::Right(())
             }}
@@ -131,7 +134,7 @@ pub fn SongList(
                                 },
                             );
                         }
-                       Either::Left(vec.into_view())
+                        Either::Left(vec.into_view())
                     } else {
                         Either::Right(())
                     }
@@ -221,7 +224,9 @@ pub fn SongList(
                                     remove: remove_song,
                                     vote: votes.into(),
                                 };
-                                Either::Left(view! { <Song song=Some(song) song_type=song_action/> })
+                                Either::Left(
+                                    view! { <Song song=Some(song) song_type=song_action/> },
+                                )
                             } else {
                                 Either::Right(())
                             }

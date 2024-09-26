@@ -41,7 +41,7 @@ $blur: blur(12px);
 	font-family: $font-stack;
 }
 
-html{
+html {
 	overflow: hidden;
 	--background-url: url("https://images.unsplash.com/photo-1627300000000-0b3b3b3b3b3b");
 }
@@ -60,7 +60,7 @@ body {
 
 
 
-main{
+main {
 	background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0.75) 100%), var(--background-url);
 	background-position: center;
 	background-repeat: no-repeat;
@@ -82,17 +82,18 @@ main::before {
 	overflow: hidden;
 	width: calc(100% + -2 * -10vw);
 	height: calc(100% + -2 * -10vh);
-	background:inherit;
+	background: inherit;
 	filter: blur(8px);
 	padding: 0;
 	margin: 0;
-	border:none;
+	border: none;
 	margin: -10vh -10vw;
-	max-width:calc(100vw + -1 * -10vw) ;
+	max-width: calc(100vw + -1 * -10vw);
 }
 
-@media (max-width: 1200px), (orientation: portrait) {
-	main>*{
+@media (max-width: 1200px),
+(orientation: portrait) {
+	main>* {
 		scale: 0.8;
 	}
 }
@@ -113,15 +114,19 @@ main::before {
 
 /* Handle */
 *::-webkit-scrollbar-thumb {
-	background: map-get($colors, "glass" );
-	opacity: map-get($opacities, "bg" );
+	background: map-get($colors, "glass");
+	opacity: map-get($opacities, "bg");
 	border-radius: 10px;
 }
 
 /* Handle on hover */
-*::-webkit-scrollbar-thumb:hover {
-	opacity: map-get($opacities, "hover" );
+@media (any-hover: hover) {
+	*::-webkit-scrollbar-thumb:hover {
+		opacity: map-get($opacities, "hover");
+	}
 }
+
+
 
 .glass {
 	box-sizing: border-box;
@@ -138,8 +143,11 @@ main::before {
 	transition: all 0.2s ease-in-out;
 }
 
-.glass-element:hover {
-	background-color: rgba(map-get($colors, "glass"), map-get($opacities, "hover"));
+
+@media (any-hover: hover) {
+	.glass-element:hover {
+		background-color: rgba(map-get($colors, "glass"), map-get($opacities, "hover"));
+	}
 }
 
 .glass-element:active {
@@ -152,8 +160,10 @@ main::before {
 	background-color: rgba(map-get($colors, "err"), map-get($opacities, "bg"));
 }
 
-.glass-element_err:hover {
-	background-color: rgba(map-get($colors, "err"), map-get($opacities, "hover"));
+@media (any-hover: hover) {
+	.glass-element_err:hover {
+		background-color: rgba(map-get($colors, "err"), map-get($opacities, "hover"));
+	}
 }
 
 .glass-element_err:active {
@@ -166,8 +176,10 @@ main::before {
 	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "bg"));
 }
 
-.glass-element_ok:hover {
-	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "hover"));
+@media (any-hover: hover) {
+	.glass-element_ok:hover {
+		background-color: rgba(map-get($colors, "ok"), map-get($opacities, "hover"));
+	}
 }
 
 .glass-element_ok:active {
