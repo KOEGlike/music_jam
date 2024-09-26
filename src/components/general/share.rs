@@ -42,19 +42,22 @@ pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
         }
     }
 
-    let qr = move || {
-        QrCode::with_version(
-            jam_id.with(move |id| base_url.with(move |url| format!("{}/create-user/{}", url, id))),
-            Version::Normal(10),
-            EcLevel::Q,
-        )
-        .unwrap()
-        .render()
-        .quiet_zone(false)
-        .min_dimensions(400, 400)
-        .dark_color(svg::Color("#ffffff"))
-        .light_color(svg::Color("#00000000"))
-        .build()
+    let qr = move || match QrCode::with_version(
+        jam_id.with(move |id| base_url.with(move |url| format!("{}/create-user/{}", url, id))),
+        Version::Normal(10),
+        EcLevel::Q,
+    ) {
+        Ok(qr) => qr
+            .render()
+            .quiet_zone(false)
+            .min_dimensions(400, 400)
+            .dark_color(svg::Color("#ffffff"))
+            .light_color(svg::Color("#00000000"))
+            .build(),
+        Err(e) => {
+            error!("error generating qr code: {:?}", e);
+            "".to_string()
+        }
     };
     let jam_id = move || jam_id().to_uppercase();
     let jam_id = Signal::derive(jam_id);

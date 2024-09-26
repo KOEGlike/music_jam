@@ -47,12 +47,22 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
         }
 
         let title_overflowing = move || {
-            let title_width = title_ref.get().unwrap().client_width();
-            title_width > width as i32
+            match title_ref.get() {
+                Some(title) => title.client_width() > width as i32,
+                None => {
+                    error!("title_ref is None");
+                    false
+                },
+            }
         };
         let artist_overflowing = move || {
-            let artist_width = artist_ref.get().unwrap().client_width();
-            artist_width > width as i32
+            match artist_ref.get() {
+                Some(artist) => artist.client_width() > width as i32,
+                None => {
+                    error!("artist_ref is None");
+                    false
+                },
+            }
         };
 
         view! {

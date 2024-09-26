@@ -100,11 +100,14 @@ pub fn Player(
                         token_value.access_token.clone()
                     },
                     move || {
-                        sp::add_listener!("player_state_changed", on_update).unwrap();
-                        sp::add_listener!("ready", move |player: sp::Player| {
+                        if let Err(e) = sp::add_listener!("player_state_changed", on_update) {
+                            error!("Error adding listener: {:?}", e);
+                        }
+                        if let Err(e) = sp::add_listener!("ready", move |player: sp::Player| {
                             switch_device.dispatch(player.device_id);
-                        })
-                        .unwrap();
+                        }) {
+                            error!("Error adding listener: {:?}", e);
+                        }
                         connect();
                     },
                     "jam",

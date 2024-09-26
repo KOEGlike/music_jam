@@ -134,6 +134,9 @@
         align-items: center;
 
         >svg {
+            margin: none;
+            border: none;
+            padding: none;
             fill: white;
         }
 

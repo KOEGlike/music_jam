@@ -1,7 +1,6 @@
-pub mod user;
-pub mod host;
 pub mod general;
-pub mod error_template;
+pub mod host;
+pub mod user;
 
 #[allow(unused_imports)]
 pub use general::*;
