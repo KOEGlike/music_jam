@@ -20,7 +20,6 @@ services:
       timeout: 10s
   app:
     container_name: app
-    image: koeglikemike/music-jam:latest
     build: .
     env_file:
       - .env

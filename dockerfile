@@ -7,11 +7,9 @@ FROM rustlang/rust:nightly-bookworm as builder
 # Install cargo-binstall, which makes it easier to install other
 # cargo extensions like cargo-leptos
 RUN wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-RUN tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
-RUN cp cargo-binstall /usr/local/cargo/bin
 
 # Install cargo-leptos
-RUN cargo binstall cargo-leptos -y
+RUN cargo install cargo-leptos
 
 # Add the WASM target
 RUN rustup target add wasm32-unknown-unknown
@@ -38,7 +36,7 @@ RUN apt-get update -y \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/*
 
-# -- NB: update binary name from "leptos_start" to match your app name in Cargo.toml --
+
 # Copy the server binary to the /app directory
 COPY --from=builder /app/target/release/music_jam /app/
 
@@ -59,7 +57,6 @@ ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
 ENV LEPTOS_SITE_ROOT="site"
 EXPOSE 8080
 
-VOLUME [ "site/uploads" ]
-# -- NB: update binary name from "leptos_start" to match your app name in Cargo.toml --
+VOLUME [ "/app/site/uploads" ]
 # Run the server
 CMD ["/app/music_jam"]
