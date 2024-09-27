@@ -58,6 +58,8 @@ ENV RUST_BACKTRACE="full"
 ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
 ENV LEPTOS_SITE_ROOT="site"
 EXPOSE 8080
+
+VOLUME [ "site/uploads" ]
 # -- NB: update binary name from "leptos_start" to match your app name in Cargo.toml --
 # Run the server
 CMD ["/app/music_jam"]
