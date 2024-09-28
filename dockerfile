@@ -1,8 +1,5 @@
 # Get started with a build env with Rust nightly
-FROM rustlang/rust:nightly-bookworm as builder
-
-# If you’re using stable, use this instead
-# FROM rust:1.74-bullseye as builder
+FROM rustlang/rust:nightly-bookworm AS builder
 
 # Install cargo-binstall, which makes it easier to install other
 # cargo extensions like cargo-leptos
@@ -28,7 +25,7 @@ ENV LETPOS_WASM_OPT_VERSION=0.9.0
 RUN cargo leptos build --release -vv
 
 
-FROM debian:bookworm-slim as runtime
+FROM debian:bookworm-slim AS runtime
 WORKDIR /app
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends openssl ca-certificates \
@@ -55,7 +52,9 @@ ENV RUST_LOG="info"
 ENV RUST_BACKTRACE="full"
 ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
 ENV LEPTOS_SITE_ROOT="site"
+
 EXPOSE 8080
+EXPOSE 443
 
 VOLUME [ "/app/site/uploads" ]
 # Run the server
