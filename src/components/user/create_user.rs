@@ -62,13 +62,6 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
 
             gloo::timers::future::sleep(Duration::from_millis(500)).await;
 
-            let window = match web_sys::window() {
-                Some(window) => window,
-                None => {
-                    error!("window not found");
-                    return;
-                }
-            };
             let canvas = match canvas_ref.get() {
                 Some(canvas) => canvas,
                 None => {
@@ -76,6 +69,30 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                     return;
                 }
             };
+            let video = match video_ref.get() {
+                Some(video) => video,
+                None => {
+                    error!("video not found");
+                    return;
+                }
+            };
+
+            let window = match web_sys::window() {
+                Some(window) => window,
+                None => {
+                    error!("window not found");
+                    return;
+                }
+            };
+
+            let camera = match window.navigator().media_devices() {
+                Ok(media_devices) => media_devices,
+                Err(e) => {
+                    error!("Error getting media devices: {:?}", e);
+                    return;
+                }
+            };
+
             let context = match canvas.get_context("2d") {
                 Ok(Some(context)) => context,
                 Ok(None) => {
@@ -91,21 +108,6 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 Ok(context) => context,
                 Err(e) => {
                     error!("error casting 2d context: {:?}", e);
-                    return;
-                }
-            };
-            let video = match video_ref.get() {
-                Some(video) => video,
-                None => {
-                    error!("video not found");
-                    return;
-                }
-            };
-
-            let camera = match window.navigator().media_devices() {
-                Ok(media_devices) => media_devices,
-                Err(e) => {
-                    error!("Error getting media devices: {:?}", e);
                     return;
                 }
             };
@@ -230,7 +232,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             }
         }
     });
-    let (name, set_name) = signal(String::new());
+    let (name, set_name) = signal(String::from(" "));
 
     let create_user = Action::new({
         let jam_id = (*jam_id).clone();
@@ -238,7 +240,12 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             let name = name.get();
             let pfp_url = image_url.get();
             let jam_id = (*jam_id).to_string();
-            async move { create_user(jam_id, name, pfp_url).await }
+            async move {
+                if name.is_empty() {
+                    return Err(ServerFnError::ServerError("Name is empty".into()));
+                }
+                create_user(jam_id, name, pfp_url).await
+            }
         }
     });
 
@@ -302,7 +309,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 type="text"
                 class="text-input"
                 placeholder="Name"
-                class:glass-element-err=name.with(String::is_empty)
+                class:glass-element-err=move || name.with(String::is_empty)
                 on:input=move |ev| set_name(event_target_value(&ev))
             />
             <div class="buttons">

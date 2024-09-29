@@ -74,9 +74,13 @@ pub async fn create_user(
     image_url: &str,
     name: &str,
     pool: &sqlx::PgPool,
-    root: &str
+    root: &str,
 ) -> Result<(String, real_time::Changed), Error> {
     use data_url::DataUrl;
+
+    if name.is_empty() {
+        return Err(Error::InvalidRequest("name is empty".to_string()));
+    }
 
     let data_url = match DataUrl::process(image_url) {
         Ok(data_url) => data_url,
@@ -90,7 +94,7 @@ pub async fn create_user(
         return Err(Error::Decode("not an image".to_string()));
     }
     let image_format = match data_url.mime_type().subtype.as_str() {
-        "jpeg"|"jpg" => image::ImageFormat::Jpeg,
+        "jpeg" | "jpg" => image::ImageFormat::Jpeg,
         "png" => image::ImageFormat::Png,
         "gif" => image::ImageFormat::Gif,
         "webp" => image::ImageFormat::WebP,

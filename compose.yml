@@ -22,7 +22,10 @@ services:
     #   - app-network
   app:
     container_name: app
-    build: .
+    image: ghcr.io/koeglike/music_jam:main
+    build:
+      context: .
+      dockerfile: Dockerfile
     env_file:
       - .env
     environment:

@@ -14,11 +14,6 @@
 	height: 85px;
 }
 
-.text-input:focus {
-	outline: none;
-	background-color: rgba(map-get($colors, "font"), map-get($opacities, "selected"));
-}
-
 .input-with-label {
 	display: flex;
 	flex-direction: column;
