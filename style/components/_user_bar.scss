@@ -1,1 +1,110 @@
-@use '../defaults'
+@use '../defaults' as *;
+@use 'button' as *;
+
+$icon-size: 60px;
+$icon-size-number: 60;
+$gap: 10px;
+$gap-number: 10;
+
+.bar {
+    display: flex;
+    width: 100%;
+    padding: 10px 0px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 60px;
+    flex-shrink: 0;
+
+    >button {
+        @extend .button;
+
+        display: flex;
+        width: 75px;
+        height: 75px;
+        padding: 6px 5px;
+        justify-content: center;
+        align-items: center;
+        gap: $gap;
+        flex-shrink: 0;
+
+        border-radius: 37.5px;
+
+        >svg {
+            width: 30px;
+            height: 30px;
+            flex-shrink: 0;
+            fill: var(--solid-text, #EBF6E8);
+        }
+    }
+
+    >.users {
+        @extend .glass;
+        display: flex;
+        flex-direction: row;
+        width: auto;
+        padding: $gap;
+        padding-bottom: 0px;
+        gap: $gap;
+        border-radius: 40px;
+        overflow-x: scroll;
+        overflow-y: hidden;
+        white-space: nowrap; // Ensure elements don't wrap
+        flex-shrink: 0; // Prevent shrinking
+        min-height: calc($icon-size + (2 * $gap));
+        $space-available: calc((100% - (75px + 60px + $gap)));
+
+        width: $space-available;
+    }
+}
+
+@media (max-width: 1200px),
+(orientation: portrait) {
+    .bar {
+        width: 350px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .bar {
+        width: 100%;
+    }
+}
+
+
+.user {
+    height: $icon-size;
+    width: $icon-size;
+    border-radius: $icon-size / 2;
+    overflow: hidden;
+    flex-shrink: 0; // Prevent shrinking
+    overflow-y: hidden;
+    overflow-x: scroll;
+
+    >* {
+        width: $icon-size;
+        height: $icon-size;
+        border-radius: $icon-size/2;
+    }
+
+    >img {
+
+        object-fit: cover;
+        object-position: center;
+        position: absolute;
+    }
+
+    >svg {
+        fill: map-get($map: $colors, $key: "glass");
+        opacity: 0;
+        background-color: #00000000;
+        transition: background-color 0.2s, opacity 0.2s;
+        position: absolute;
+    }
+
+    @media (any-hover: hover) {
+        >svg:hover {
+            opacity: 1;
+            background-color: #00000042;
+        }
+    }
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(SELECT 1 FROM songs WHERE spotify_id=$1 AND user_id IN (SELECT id FROM users WHERE jam_id=$2) AND user_id <> $2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bpchar"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9971437b9f240fd49add468fd56aa9725287cc58e9e9e7e96fb447133fd53753"
+}

@@ -1,0 +1,71 @@
+@use '../defaults' as *;
+@use 'text_input' as *;
+@use 'islands' as *;
+@use 'button' as *;
+
+.search{
+    @extend .standard-island;
+    padding-top: 25px;
+    padding-bottom: 0px;
+    overflow:hidden;
+    
+
+    >.search-input{
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        padding-left: 25px;
+        padding-right: 25px;
+        align-items: center;
+        //flex-shrink: 0;
+        width: 100%;
+        gap: 10px;
+        >input{
+            @extend .text-input;
+            //width: auto;
+            flex-grow: 1;
+        }
+        >button{
+            @extend .button;
+            width: 75px;
+            height: 75px;
+            padding: 15px;
+            border-radius: calc(75px / 2);
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            >svg{
+                width: 25px;
+                height: 25px;
+                fill:white;
+                flex-shrink: 0;
+            }
+        }
+    }
+    >.search-result{
+        width: 100%;
+        padding-top: 30px;
+        mask-image: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,1) 10px, rgba(0,0,0,1) calc(100% - 20px), rgba(0,0,0,0));
+        display: flex;
+        justify-content: start;
+        align-items: center;
+        flex-direction: column;
+        gap: 10px;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        
+
+        >.song{
+            flex-shrink: 0;
+            z-index: 0;
+        }
+    }
+}
+
+@media (max-width:1200px), (orientation: portrait) {
+    .search {
+        height: 350px;
+    }
+}

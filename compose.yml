@@ -1,9 +1,43 @@
 services:
-  app:
-    build: .
+  jam-db:
+    container_name: jam-db
+    image: postgres:latest
+    shm_size: 500mb
     ports:
+      - 5432:5432
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+      - POSTGRES_USER=jammer
+      - POSTGRES_DB=jam-db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jammer -d jam-db -p 5432 -h localhost"] 
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    # networks:
+    #   - app-network
+  app:
+    container_name: app
+    build: .
+    env_file:
+      - .env
+    environment:
+       - DATABASE_URL=postgresql://jam-db:5432/jam-db?user=jammer&password=${POSTGRES_PASSWORD}
+    ports:
+    # Expose the app on port 8080 and 443, you can edit these to your liking
       - 8080:8080
-  jam_db:
-    extends:
-      file: db/compose.yml
-      service: jam_db
+    depends_on:
+      jam-db:
+        condition: service_healthy
+        restart: true
+#     networks:
+#       - app-network
+# # if you want to use an external network, uncomment the following lines
+# networks:
+#   # replace app-network with your network name
+#   app-network:
+#     external: true

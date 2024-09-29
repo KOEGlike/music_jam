@@ -1,0 +1,7 @@
+[build]
+rustflags = ["--cfg=web_sys_unstable_apis", "--cfg=sqlx_macros_unstable","-Z", "threads=8"]
+
+[env]
+LEPTOS_WASM_OPT_VERSION="version_118"
+LEPTOS_SASS_VERSION = "1.71.0"
+RUST_BACKTRACE = "1"

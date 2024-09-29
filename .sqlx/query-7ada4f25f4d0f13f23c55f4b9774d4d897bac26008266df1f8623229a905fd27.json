@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Int2",
+        "Bpchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7ada4f25f4d0f13f23c55f4b9774d4d897bac26008266df1f8623229a905fd27"
+}

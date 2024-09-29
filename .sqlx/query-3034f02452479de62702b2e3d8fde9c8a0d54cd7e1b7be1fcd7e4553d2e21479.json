@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM jams WHERE host_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3034f02452479de62702b2e3d8fde9c8a0d54cd7e1b7be1fcd7e4553d2e21479"
+}

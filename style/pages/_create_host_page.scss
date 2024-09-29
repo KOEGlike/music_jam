@@ -1,0 +1,16 @@
+@use "../defaults" as *;
+@use "../components/modal" as *;
+
+#create-host-island {
+    @extend .modal;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: large;
+    min-height: 100px;
+    padding: 20px;
+}
+
+
+

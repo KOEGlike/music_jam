@@ -1,10 +1,14 @@
 {
     "cSpell.words": [
         "bindgen",
+        "birthdate",
         "browserlist",
         "browserquery",
+        "canplay",
         "cdylib",
+        "checkmark",
         "chrono",
+        "codee",
         "codegen",
         "cuid",
         "dotenv",
@@ -12,6 +16,12 @@
         "fileserv",
         "icondata",
         "idtypes",
+        "imageops",
+        "itertools",
+        "Lanczos",
+        "linecap",
+        "linejoin",
+        "Msgpack",
         "nestify",
         "oneshot",
         "qrcode",
@@ -29,5 +39,9 @@
     ],
     "rust-analyzer.cargo.extraEnv": {
         "RUSTFLAGS": "--cfg=web_sys_unstable_apis"
+    },
+    "rust-analyzer.rustfmt.overrideCommand": ["leptosfmt", "--stdin", "--rustfmt"],
+    "[rust]": {
+        "editor.formatOnSave": true
     }
 }

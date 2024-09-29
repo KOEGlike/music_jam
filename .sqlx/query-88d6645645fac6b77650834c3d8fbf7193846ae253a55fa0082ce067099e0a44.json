@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM songs WHERE id=$1 AND user_id=$2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "spotify_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "album",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "duration",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "artists",
+        "type_info": "VarcharArray"
+      },
+      {
+        "ordinal": 7,
+        "name": "image_url",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Bpchar"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "88d6645645fac6b77650834c3d8fbf7193846ae253a55fa0082ce067099e0a44"
+}

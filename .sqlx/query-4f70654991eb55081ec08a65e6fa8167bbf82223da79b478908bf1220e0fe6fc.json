@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM votes WHERE song_id=$1 AND user_id=$2;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Bpchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4f70654991eb55081ec08a65e6fa8167bbf82223da79b478908bf1220e0fe6fc"
+}

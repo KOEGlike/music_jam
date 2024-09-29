@@ -1,0 +1,83 @@
+@use "../defaults" as *;
+
+.create-user {
+    @extend .glass;
+    display: flex;
+    width: 350px;
+    height: 600px;
+    padding: 30px;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 40px;
+
+    >.image-container {
+
+        >video,
+        >img {
+            @extend .glass;
+            object-fit: cover;
+            object-position: center;
+            width: 300px;
+            height: 300px;
+            border-radius: 150px;
+        }
+
+        >input {
+            opacity: 0;
+        }
+    }
+
+    >.text-input {
+        height: 85px;
+    }
+
+    >.buttons {
+        display: flex;
+        gap: 10px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+
+        >* {
+            width: 100px;
+            height: 100px;
+        }
+
+        >label {
+            background: none;
+            border: none;
+            z-index: 20;
+        }
+
+        >button {
+            background: none;
+            border: none;
+            padding: 0px;
+            margin: 0px;
+
+
+
+            >svg {
+
+                fill: white;
+                opacity: 0.8;
+                transition: opacity 0.1s ease;
+            }
+
+            @media (any-hover: hover) {
+                >svg:hover {
+                    opacity: 1;
+                }
+            }
+        }
+
+        >.clear-button {
+            >svg {
+                width: 100px;
+                height: 100px;
+
+            }
+        }
+    }
+}

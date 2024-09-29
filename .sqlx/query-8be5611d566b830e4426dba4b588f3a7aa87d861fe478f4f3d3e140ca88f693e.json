@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO users (id, jam_id, name) VALUES ($1, $1, $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8be5611d566b830e4426dba4b588f3a7aa87d861fe478f4f3d3e140ca88f693e"
+}
