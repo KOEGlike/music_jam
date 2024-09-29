@@ -95,6 +95,9 @@ main::before {
 	main>* {
 		scale: 0.8;
 	}
+	main {
+		padding-bottom: 500px;
+	}
 }
 
 /* width */
@@ -149,8 +152,9 @@ main::before {
 	}
 }
 
-.glass-element:active {
+.glass-element:active, .glass-element:focus {
 	background-color: rgba(map-get($colors, "glass"), map-get($opacities, "selected"));
+	outline: none;
 }
 
 .glass-element-err {
@@ -165,7 +169,7 @@ main::before {
 	}
 }
 
-.glass-element-err:active {
+.glass-element-err:active, .glass-element-err:focus {
 	background-color: rgba(map-get($colors, "err"), map-get($opacities, "selected"));
 }
 
@@ -181,7 +185,7 @@ main::before {
 	}
 }
 
-.glass-element-ok:active {
+.glass-element-ok:active, .glass-element-ok:focus {
 	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "selected"));
 }
 

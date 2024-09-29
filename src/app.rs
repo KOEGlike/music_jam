@@ -34,9 +34,13 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
+    let (is_loading, set_is_loading) = signal(false);
+    Effect::new(move |_| {
+        set_is_loading(false);
+    });
     view! {
         <Router>
-            <main>
+            <main style:display=move || if is_loading() { "none" } else { "inline-block" }>
                 <Routes fallback=|| "Page not found.".into_view()>
                     <Route path=path!("/") view=pages::HomePage/>
                     <Route path=path!("/create-host") view=pages::CreateHostPage/>
@@ -51,6 +55,12 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/test-song-list") view=SongListTest/>
                 </Routes>
             </main>
+            <div
+                class="loading-indicator"
+                style:display=move || if is_loading() { "inline-block" } else { "none" }
+            >
+                <p>"Loading..."</p>
+            </div>
         </Router>
     }
 }

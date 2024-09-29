@@ -59,10 +59,11 @@
 
 
             >svg {
-
                 fill: white;
                 opacity: 0.8;
                 transition: opacity 0.1s ease;
+                width: 100px;
+                height: 100px;
             }
 
             @media (any-hover: hover) {
