@@ -302,6 +302,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 type="text"
                 class="text-input"
                 placeholder="Name"
+                class:glass-element-err=name.with(String::is_empty)
                 on:input=move |ev| set_name(event_target_value(&ev))
             />
             <div class="buttons">
@@ -507,34 +508,6 @@ impl CameraRequestState {
     pub fn is_granted(&self) -> bool {
         matches!(self, CameraRequestState::Granted)
     }
-}
-
-trait FnClone: Fn() {
-    fn clone_box(&self) -> Box<dyn FnClone>;
-}
-
-// Implement FnClone for all types that implement Fn() and Clone
-impl<T> FnClone for T
-where
-    T: 'static + Fn() + Clone,
-{
-    fn clone_box(&self) -> Box<dyn FnClone> {
-        Box::new(self.clone())
-    }
-}
-
-// Implement Clone for Box<dyn FnClone>
-impl Clone for Box<dyn FnClone> {
-    fn clone(&self) -> Box<dyn FnClone> {
-        self.clone_box()
-    }
-}
-
-// Use the new trait in your CameraResponse struct
-#[derive(Clone)]
-struct CameraResponse {
-    take_picture: Box<dyn FnClone>,
-    close_camera: Box<dyn FnClone>,
 }
 
 ///sets the image url every time the selected file changes

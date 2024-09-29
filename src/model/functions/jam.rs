@@ -356,18 +356,18 @@ pub async fn next_song(
         None => match get_next_song_from_player(id.jam_id(), pool, credentials.clone()).await {
             Ok(song) => match song {
                 Some(song) => Some(song),
-                None => search(
+                None => None,
+            },
+            Err(e) => {
+                let songs = search(
                     "Never gonna give you up",
                     pool,
-                    id.jam_id(),
+                    &id.jam_id,
                     credentials.clone(),
                 )
                 .await?
-                .pop(),
-            },
-            Err(e) => {
-                eprintln!("Error getting next song from player: {:?}", e);
-                None
+                .remove(0);
+                Some(songs)
             }
         },
     };

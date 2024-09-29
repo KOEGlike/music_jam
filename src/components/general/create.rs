@@ -9,7 +9,6 @@ async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
     use leptos_axum::*;
     use sqlx::*;
     let app_state = expect_context::<AppState>();
-  
 
     let host_id = cuid2::create_id();
     let query = query!("INSERT INTO hosts(id) VALUES ($1)", &host_id);
@@ -33,31 +32,42 @@ async fn create_jam(
     host_id: String,
     max_song_count: i16,
 ) -> Result<JamId, ServerFnError> {
-    use crate::model::{AppState, create_jam, Error,set_current_song};
+    use crate::model::{create_jam, set_current_song, AppState, Error};
     let app_state = expect_context::<AppState>();
-    let pool=&app_state.db.pool;
-    let credentials=app_state.spotify_credentials;
-    
+    let pool = &app_state.db.pool;
+    let credentials = app_state.spotify_credentials;
 
-     match create_jam(&name, &host_id, max_song_count, pool, credentials.clone()).await {
+    match create_jam(&name, &host_id, max_song_count, pool, credentials.clone()).await {
         Ok(jam_id) => {
-            let song=match get_next_song_from_player(&jam_id, pool, credentials.clone()).await {
-                Ok(song)=>match song {
+            let song = match get_current_song_from_player(&jam_id, pool, credentials.clone()).await
+            {
+                Ok(song) => match song {
                     Some(song) => song,
-                    None => {
-                        search("Never gonna give you up", pool, &jam_id, credentials.clone()).await?.remove(0)
-                    }
+                    None => search(
+                        "Never gonna give you up",
+                        pool,
+                        &jam_id,
+                        credentials.clone(),
+                    )
+                    .await?
+                    .remove(0),
                 },
-                Err(e)=>return Err(e.into())
+                Err(e) => return Err(e.into()),
             };
-            if let Err(e) =set_current_song(&song, &jam_id, pool).await{
-                return Err(ServerFnError::Request(format!("Error setting current song: {:?}", e)));
+            if let Err(e) = set_current_song(&song, &jam_id, pool).await {
+                return Err(ServerFnError::Request(format!(
+                    "Error setting current song: {:?}",
+                    e
+                )));
             }
             Ok(jam_id)
-        },
+        }
         Err(Error::HostAlreadyInJam { jam_id }) => Ok(jam_id),
-        Err(e) => Err(ServerFnError::Request(format!("Error creating jam: {:#?}", e))),
-     }
+        Err(e) => Err(ServerFnError::Request(format!(
+            "Error creating jam: {:#?}",
+            e
+        ))),
+    }
 }
 
 #[component]
@@ -84,7 +94,7 @@ pub fn CreateIsland() -> impl IntoView {
     });
 
     let create = Action::new(move |_: &()| {
-        let name = name();
+        let name = name.get_untracked();
         let max_song_count = max_song_count();
         async move {
             match LocalStorage::get::<String>("host_id") {
@@ -101,7 +111,9 @@ pub fn CreateIsland() -> impl IntoView {
                         set_show_dialog(true);
                     }
                 },
-                Err(StorageError::KeyNotFound(_)) => {redirect_to_oauth.dispatch(());},
+                Err(StorageError::KeyNotFound(_)) => {
+                    redirect_to_oauth.dispatch(());
+                }
                 Err(e) => log!("Error getting host id from local storage: {}", e),
             };
         }
@@ -122,7 +134,6 @@ pub fn CreateIsland() -> impl IntoView {
             </button>
         </Modal>
         <div class="big-space-island" id="create-island">
-            <div id="join-text">"image goes here"</div>
             <div class="input-with-label">
                 <div class="input-with-label">
                     <label for="create-jam-name">"Jam Name"</label>
@@ -152,7 +163,13 @@ pub fn CreateIsland() -> impl IntoView {
                 </div>
             </div>
 
-            <button on:click=move |_| {create.dispatch(());} class="button">
+            <button
+                on:click=move |_| {
+                    create.dispatch(());
+                }
+
+                class="button"
+            >
                 "Create"
             </button>
         </div>

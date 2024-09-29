@@ -26,24 +26,17 @@
 
 #create-island {
 	@extend .big-space-island;
+	height: fit-content;
 	justify-content:end;
 }
-
-
 
 #create-max-jammers::placeholder {
 	font-size:23px;
 	line-height: normal;
 }
 
-#join-text {
-	box-sizing: border-box;
-	flex-grow: 1; // Add this line
-	overflow: auto;
-	font-size: 30px;
-	font-weight: 600;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	text-align: center;
+#join-island {
+	@extend .big-space-island;
+	height: fit-content;
+	justify-content: end;
 }

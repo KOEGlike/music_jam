@@ -9,8 +9,8 @@
 	left: 50vw;
 	transform: translate(-50%, -50%);
 	border-radius: map-get($border-radiuses, "medium");
-	width: 600px;
-	height: 350px;
+	max-width: 600px;
+	max-height: 350px;
 
 	>div {
 		height: 100%;

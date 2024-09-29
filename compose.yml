@@ -18,6 +18,8 @@ services:
       retries: 5
       start_period: 30s
       timeout: 10s
+    # networks:
+    #   - app-network
   app:
     container_name: app
     build: .
@@ -25,16 +27,16 @@ services:
       - .env
     environment:
        - DATABASE_URL=postgresql://jam-db:5432/jam-db?user=jammer&password=${POSTGRES_PASSWORD}
-       - SITE_URL=http://localhost:8080
     ports:
     # Expose the app on port 8080 and 443, you can edit these to your liking
       - 8080:8080
-      - 443:8080
     depends_on:
       jam-db:
         condition: service_healthy
         restart: true
-# if you want to use an external network, uncomment the following lines
+#     networks:
+#       - app-network
+# # if you want to use an external network, uncomment the following lines
 # networks:
 #   # replace app-network with your network name
 #   app-network:

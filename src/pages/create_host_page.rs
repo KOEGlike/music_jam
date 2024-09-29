@@ -42,13 +42,15 @@ pub fn CreateHostPage() -> impl IntoView {
         }
     });
 
-    let (feedback, set_feedback) = signal(String::from("creating host..."));
+    let (feedback, set_feedback) = signal(String::from("Creating host..."));
 
     Effect::new(move |_| {
         if let (Some(code), Some(state)) = (code(), host_id()) {
             log!("Creating host with code: {} and state: {}", code, state);
             create_host_action.dispatch((code, state));
             create_host_action.pending();
+        } else {
+            set_feedback("Error creating host: missing code or state".to_string());
         }
     });
 
