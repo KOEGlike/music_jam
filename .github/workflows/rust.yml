@@ -16,7 +16,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+    - name: add wasm target
+      run: rustup target add wasm32-unknown-unknown
+    - name: install cargo leptos
+      run: cargo install cargo-leptos
     - name: Build
       run: cargo leptos build --release -vv
     - name: Run tests
