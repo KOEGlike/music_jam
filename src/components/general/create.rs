@@ -106,7 +106,7 @@ pub fn CreateIsland() -> impl IntoView {
         let name = name.get_untracked();
         let max_song_count = max_song_count();
         async move {
-            match host_id() {
+            match host_id.get_untracked() {
                 Some(host_id) => if !name.is_empty() {
                     match create_jam(name, host_id, max_song_count).await {
                         Ok(jam_id) => {
