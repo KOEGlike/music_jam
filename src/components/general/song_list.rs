@@ -63,12 +63,6 @@ pub fn SongList(
         }
     };
     let songs = Signal::derive(songs);
-    Effect::new(move |_| {
-        log!("votes: {:#?}", votes());
-    });
-    Effect::new(move |_| {
-        log!("songs: {:#?}", songs());
-    });
 
     let your_songs = Signal::derive(move || {
         songs().map(|songs| {

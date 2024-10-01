@@ -67,7 +67,7 @@ pub async fn create_host(
     let res = match &res.status() {
         &StatusCode::OK | &StatusCode::CREATED => res.text().await,
         _ => {
-            log!("Error: {:?}", res);
+            eprintln!("Error: {:?}", res);
             sqlx::query!("DELETE FROM hosts WHERE id = $1", host_id)
                 .execute(pool)
                 .await?;

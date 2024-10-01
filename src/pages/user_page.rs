@@ -1,15 +1,15 @@
+use std::ops::Deref;
+
 use super::host_page::get_jam;
-use crate::components::{
-    user::{ Search},
-    SongList, SongListAction, UsersBar, Player,
-};
+use crate::components::{user::Search, Player, SongList, SongListAction, UsersBar};
 use crate::model::{self, *};
+use crate::pages::host_page::get_initial_update;
 use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
 use itertools::Itertools;
 use leptos::{logging::*, prelude::*};
 use leptos_meta::Title;
-use leptos_router::{*, hooks::*};
+use leptos_router::{hooks::*, *};
 use leptos_use::{core::ConnectionReadyState, use_websocket, UseWebSocketReturn};
 
 #[component]
@@ -53,6 +53,11 @@ pub fn UserPage() -> impl IntoView {
             return;
         }
         set_user_id(user_id);
+    });
+
+    let initial_update = LocalResource::new(move || {
+        let user_id = user_id.get();
+        async move { get_initial_update(user_id).await }
     });
 
     let (search_result, set_search_result) = signal(None);
@@ -161,6 +166,7 @@ pub fn UserPage() -> impl IntoView {
         ));
 
         Effect::new(move |_| {
+            log!("ready_state: {:?}", ready_state.get());
             set_ready_state(ready_state.get());
         });
 
@@ -173,7 +179,16 @@ pub fn UserPage() -> impl IntoView {
         let close_ws = Callback::new(move |_: ()| close_ws());
 
         Effect::new(move |_| {
-            if let Some(update) = message() {
+            if let Some(update) = message.get().or_else(move || {
+                match initial_update.get().map(|r| r.deref().clone()) {
+                    Some(Ok(update)) => Some(update),
+                    Some(Err(e)) => {
+                        error!("Error getting initial update: {:#?}", e);
+                        None
+                    }
+                    None => None,
+                }
+            }) {
                 if let Some(result) = update.search {
                     //log!("Got search result: {:#?}", result);
                     set_search_result(Some(result));

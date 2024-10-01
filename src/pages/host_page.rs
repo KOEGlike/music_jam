@@ -1,7 +1,10 @@
+use std::ops::Deref;
+
 use crate::components::{host::Player, Share, SongList, SongListAction, UsersBar};
-use crate::model::types::*;
+use crate::model::{check_id_type, types::*};
 use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
+use leptos::math::mo;
 use leptos::{logging::*, prelude::*};
 use leptos_meta::Title;
 use leptos_router::{
@@ -27,6 +30,17 @@ pub fn HostPage() -> impl IntoView {
             navigator("/", NavigateOptions::default());
         }
         set_host_id(host_id);
+    });
+
+    let initial_update = LocalResource::new(move || {
+        let host_id = host_id.get();
+        async move {
+            if let Some(host_id) = host_id {
+                get_initial_update(host_id).await
+            } else {
+                Err(ServerFnError::Request("host_id is empty".to_string()))
+            }
+        }
     });
 
     let jam_id = move || use_params_map().with(|params| params.get("id"));
@@ -99,7 +113,7 @@ pub fn HostPage() -> impl IntoView {
         };
 
         let UseWebSocketReturn {
-            //ready_state,
+            ready_state,
             message,
             close: close_ws,
             send,
@@ -108,6 +122,10 @@ pub fn HostPage() -> impl IntoView {
             "/socket?id={}",
             host_id
         ));
+
+        Effect::new(move |_| {
+            log!("ready_state: {:?}", ready_state.get_untracked());
+        });
 
         let send_request = Callback::new(move |request| send(&request));
         set_send_request(send_request);
@@ -122,7 +140,16 @@ pub fn HostPage() -> impl IntoView {
         set_close(close);
 
         Effect::new(move |_| {
-            if let Some(update) = message.get() {
+            if let Some(update) = message.get().or_else(move || {
+                match initial_update.get().map(|r| r.deref().clone()) {
+                    Some(Ok(update)) => Some(update),
+                    Some(Err(e)) => {
+                        error!("Error getting initial update: {:#?}", e);
+                        None
+                    }
+                    None => None,
+                }
+            }) {
                 if let Some(users) = update.users {
                     set_users(Some(users));
                 }
@@ -213,4 +240,13 @@ pub async fn get_jam(jam_id: String) -> Result<Jam, ServerFnError> {
         Ok(jam) => Ok(jam),
         Err(e) => Err(ServerFnError::Request(e.to_string())),
     }
+}
+
+#[server]
+pub async fn get_initial_update(id: String) -> Result<real_time::Update, ServerFnError> {
+    use crate::model::AppState;
+    let app_state = expect_context::<AppState>();
+    let pool = &app_state.db.pool;
+    let id = check_id_type(&id, pool).await?;
+    Ok(real_time::Update::from_changed(real_time::Changed::all(), &id, pool).await)
 }

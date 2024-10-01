@@ -1,4 +1,4 @@
-use leptos::{logging::*, prelude::*, *};
+use leptos::{logging::*, prelude::*};
 use leptos_router::{hooks::*, *};
 
 #[server]
