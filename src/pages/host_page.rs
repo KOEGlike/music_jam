@@ -1,10 +1,9 @@
 use std::ops::Deref;
 
 use crate::components::{host::Player, Share, SongList, SongListAction, UsersBar};
-use crate::model::{check_id_type, types::*};
+use crate::model::types::*;
 use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
-use leptos::math::mo;
 use leptos::{logging::*, prelude::*};
 use leptos_meta::Title;
 use leptos_router::{
@@ -244,7 +243,7 @@ pub async fn get_jam(jam_id: String) -> Result<Jam, ServerFnError> {
 
 #[server]
 pub async fn get_initial_update(id: String) -> Result<real_time::Update, ServerFnError> {
-    use crate::model::AppState;
+    use crate::model::{check_id_type, AppState};
     let app_state = expect_context::<AppState>();
     let pool = &app_state.db.pool;
     let id = check_id_type(&id, pool).await?;
