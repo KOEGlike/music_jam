@@ -180,59 +180,8 @@ pub async fn create_jam(
     .await?;
 
     transaction.commit().await?;
-    tokio::spawn(occasional_notify(
-        pool.clone(),
-        jam_id.clone(),
-        spotify_credentials,
-    ));
 
     Ok(jam_id)
-}
-
-async fn occasional_notify(
-    pool: sqlx::PgPool,
-    jam_id: String,
-    spotify_credentials: SpotifyCredentials,
-) -> Result<(), Error> {
-    use std::time::Duration;
-    while dose_jam_exist(&jam_id, &pool).await.unwrap_or(true) {
-        log!("Occasional notify");
-        if let Err(e) = notify(real_time::Changed::all(), vec![], &jam_id, &pool).await {
-            eprintln!("Error notifying all, in occasional notify: {:?}", e);
-        };
-        tokio::spawn(play_the_current_song_if_player_is_not_playing_it(
-            jam_id.clone(),
-            pool.clone(),
-            spotify_credentials.clone(),
-        ));
-        tokio::time::sleep(Duration::from_secs(10)).await;
-    }
-
-    Ok(())
-}
-
-async fn play_the_current_song_if_player_is_not_playing_it(
-    jam_id: String,
-    pool: sqlx::PgPool,
-    credentials: SpotifyCredentials,
-) -> Result<(), Error> {
-    use super::{get_current_song_from_player, play_song};
-    let jam_id = &jam_id;
-    let pool = &pool;
-    let current_song = get_current_song(jam_id, pool).await?;
-    let song = match current_song {
-        Some(song) => song,
-        None => return Ok(()),
-    };
-    let player_current_song =
-        get_current_song_from_player(jam_id, pool, credentials.clone()).await?;
-    if player_current_song
-        .map(|s| s.spotify_id != song.spotify_id)
-        .unwrap_or(true)
-    {
-        play_song(&song.spotify_id, jam_id, pool, credentials).await?;
-    }
-    Ok(())
 }
 
 pub async fn set_current_song_position(
