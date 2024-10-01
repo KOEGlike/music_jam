@@ -3,7 +3,7 @@ use leptos_router::{hooks::use_navigate, NavigateOptions};
 
 #[component]
 pub fn JoinIsland() -> impl IntoView {
-    let (jam_code, set_jam_code) = signal(String::from("‎ "));
+    let (jam_code, set_jam_code) = signal(String::from(""));
     let on_click = move |_| {
         if !jam_code.with(String::is_empty) {
             let navigate = use_navigate();
@@ -26,7 +26,7 @@ pub fn JoinIsland() -> impl IntoView {
                     placeholder="ex. 786908"
                     class="text-input"
                     id="join-text-input"
-                    class:glass-element-err=move|| jam_code.with(String::is_empty)
+                    class:glass-element-err=move || jam_code.with(String::is_empty)
                 />
             </div>
             <button on:click=on_click class="button">

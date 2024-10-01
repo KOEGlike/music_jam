@@ -92,11 +92,14 @@ main::before {
 
 @media (max-width: 1200px),
 (orientation: portrait) {
+	main {
+		justify-self: start;
+	}
+}
+
+@media (max-width: 450px) {
 	main>* {
 		scale: 0.8;
-	}
-	main {
-		padding-bottom: 500px;
 	}
 }
 

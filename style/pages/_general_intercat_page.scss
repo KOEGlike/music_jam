@@ -1,0 +1,46 @@
+@use '../defaults' as *;
+
+.interact-page {
+    display: flex;
+    padding: 3vw;
+    padding-top: 2px;
+    padding-bottom: 0px;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+
+
+    >.center {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        align-self: stretch;
+    }
+}
+
+@media (max-width: 1200px),
+(orientation: portrait) {
+    .interact-page {
+        padding: 10px;
+        padding-top: 0px;
+        gap: 10px;
+    }
+
+    .interact-page>.center {
+        gap: 20px;
+        flex-direction: column;
+        padding-bottom: 60px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .interact-page {
+        gap: 20px;
+        justify-content: space-around;
+    }
+
+    .center {
+        flex-direction: row;
+        justify-content: space-around;
+    }
+}

@@ -1,42 +1,5 @@
+@use 'general_intercat_page' as *;
+
 .user-page {
-    display: flex;
-    padding: 3vw;
-    padding-top: 2px;
-    padding-bottom: 0px;
-    flex-direction: column;
-    align-items: center;
-    height: 100%;
-    justify-content: space-around;
-
-
-    >.center {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        align-self: stretch;
-    }
-}
-
-@media (max-width: 1200px),
-(orientation: portrait) {
-    .user-page {
-        gap: 10px;
-    }
-
-    .center {
-        flex-direction: column;
-        gap: 10px;
-    }
-}
-
-@media (min-width: 1200px) {
-    .user-page {
-        gap: 40px;
-    }
-
-    .user-page>.center {
-        flex-direction: row;
-    }
-
-    
+    @extend .interact-page;
 }

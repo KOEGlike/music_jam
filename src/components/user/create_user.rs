@@ -232,7 +232,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             }
         }
     });
-    let (name, set_name) = signal(String::from(" "));
+    let (name, set_name) = signal(String::from(""));
 
     let create_user = Action::new({
         let jam_id = (*jam_id).clone();
