@@ -298,7 +298,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 <input
                     type="file"
                     node_ref=input_ref
-                    name="image-picker"
+                    name="image-picker" id="image-picker"
                     accept=".webp, .png, .jpg, .gif, .jpeg"
                     multiple="false"
                     capture="user"
