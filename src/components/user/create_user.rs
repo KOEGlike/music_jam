@@ -276,7 +276,13 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             <div class="image-container">
                 <video
                     style:display=move || {
-                        if image_url.with(|url| !url.is_empty()) { "none" } else { "inline " }
+                        if camera_request_state.with(|s| s.is_denied())
+                            || image_url.with(|url| !url.is_empty())
+                        {
+                            "none"
+                        } else {
+                            "inline "
+                        }
                     }
 
                     playsinline="false"
@@ -289,16 +295,30 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 <img
                     class="photo"
                     style:display=move || {
-                        if image_url.with(|url| url.is_empty()) { "none" } else { "inline " }
+                        if !camera_request_state.with(|s| s.is_denied())
+                            && image_url.with(|url| url.is_empty())
+                        {
+                            "none"
+                        } else {
+                            "inline"
+                        }
                     }
 
                     prop:src=image_url
-                    alt="The screen capture will appear in this box."
+                    prop:alt=move || {
+                        if camera_request_state.with(|s| s.is_denied()) {
+                            "Click the circle to select an image"
+                        } else {
+                            "The screen capture will appear in this box."
+                        }
+                    }
                 />
+
                 <input
                     type="file"
                     node_ref=input_ref
-                    name="image-picker" id="image-picker"
+                    name="image-picker"
+                    id="image-picker"
                     accept=".webp, .png, .jpg, .gif, .jpeg"
                     multiple="false"
                     capture="user"

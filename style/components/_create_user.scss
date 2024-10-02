@@ -12,7 +12,7 @@
     border-radius: 40px;
 
     >.image-container {
-
+        display: flex;
         >video,
         >img {
             @extend .glass;
