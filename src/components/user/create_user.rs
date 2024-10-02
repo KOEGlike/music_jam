@@ -62,14 +62,14 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
 
             gloo::timers::future::sleep(Duration::from_millis(500)).await;
 
-            let canvas = match canvas_ref.get() {
+            let canvas = match canvas_ref.get_untracked() {
                 Some(canvas) => canvas,
                 None => {
                     error!("canvas not found");
                     return;
                 }
             };
-            let video = match video_ref.get() {
+            let video = match video_ref.get_untracked() {
                 Some(video) => video,
                 None => {
                     error!("video not found");

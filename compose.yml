@@ -12,6 +12,8 @@ services:
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
       - POSTGRES_USER=jammer
       - POSTGRES_DB=jam-db
+    volumes:
+      - jam-db:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U jammer -d jam-db -p 5432 -h localhost"] 
       interval: 10s
