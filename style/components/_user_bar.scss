@@ -64,7 +64,7 @@ $gap-number: 10;
     }
 }
 
-@media (min-width: 790px) {
+@media (min-width: 790px) and (orientation: landscape) {
     .bar {
         width: 100%;
     }
