@@ -9,7 +9,7 @@
 	height: 100%;
 }
 
-@media (max-width: 1200px),
+@media (max-width: 790px),
 (orientation: portrait) {
 	#home-page {
 		flex-direction: column;
@@ -18,7 +18,7 @@
 	}
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 790px) {
 	#home-page {
 		justify-content: center;
 	}

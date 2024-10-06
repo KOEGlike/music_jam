@@ -57,14 +57,14 @@ $gap-number: 10;
     }
 }
 
-@media (max-width: 1200px),
+@media (max-width: 790px),
 (orientation: portrait) {
     .bar {
         width: 350px;
     }
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 790px) {
     .bar {
         width: 100%;
     }

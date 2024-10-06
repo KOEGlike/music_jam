@@ -73,6 +73,9 @@ main {
 	border: none;
 	overflow-y: scroll;
 	overflow-x: hidden;
+	display: flex;
+	justify-content: center;
+	align-items: center;
 }
 
 main::before {
@@ -91,11 +94,46 @@ main::before {
 	max-width: calc(100vw + -1 * -10vw);
 }
 
-@media (max-width: 1200px),
+@media (max-width: 1260px) {
+	main>* {
+		scale: 0.9;
+		margin: -5%;
+		margin-top: 0px;
+	}
+}
+
+@media (max-width: 1160px) {
+	main>* {
+		scale: 0.8;
+		margin: -10%;
+		margin-top: 0px;
+	}
+}
+
+@media (max-width: 1060px) {
+	main>* {
+		scale: 0.7;
+		margin: -20%;
+		margin-top: 0%;
+	}
+}
+
+@media (max-width: 900px) {
+	main>* {
+		scale: 0.6;
+		margin: -30%;
+		margin-top: 0%;
+	}
+}
+
+@media (max-width: 790px),
 (orientation: portrait) {
 	main {
 		padding-top: 5vh;
 		justify-self: start;
+	}
+	main>* {
+		scale: 1;
 	}
 }
 
