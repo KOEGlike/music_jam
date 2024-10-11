@@ -56,7 +56,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
     let input_ref: NodeRef<html::Input> = NodeRef::new();
 
     let camera = move || {
-        leptos::spawn::spawn_local(async move {
+        leptos::task::spawn_local(async move {
             use wasm_bindgen::{JsCast, JsValue};
             use wasm_bindgen_futures::JsFuture;
 

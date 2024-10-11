@@ -1,0 +1,22 @@
+.scroll {
+    white-space: nowrap;
+    animation: scrollText 10s linear infinite;
+    word-spacing: 3px;
+}
+
+@keyframes scrollText {
+    0% {
+        transform: translateX(0%);
+    }
+
+    40%,
+    50% {
+        transform: translateX(-100%);
+    }
+
+    90%,
+    100% {
+        transform: translateX(0%);
+    }
+
+}

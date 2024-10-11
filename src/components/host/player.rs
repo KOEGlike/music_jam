@@ -7,7 +7,7 @@ use leptos::{
     *,
 };
 use rust_spotify_web_playback_sdk::prelude as sp;
-use spawn::spawn_local;
+use task::spawn_local;
 
 use crate::model;
 

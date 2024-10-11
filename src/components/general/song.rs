@@ -46,22 +46,18 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
             width = 150;
         }
 
-        let title_overflowing = move || {
-            match title_ref.get() {
-                Some(title) => title.client_width() > width as i32,
-                None => {
-                    error!("title_ref is None");
-                    false
-                },
+        let title_overflowing = move || match title_ref.get() {
+            Some(title) => title.client_width() > width as i32,
+            None => {
+                error!("title_ref is None");
+                false
             }
         };
-        let artist_overflowing = move || {
-            match artist_ref.get() {
-                Some(artist) => artist.client_width() > width as i32,
-                None => {
-                    error!("artist_ref is None");
-                    false
-                },
+        let artist_overflowing = move || match artist_ref.get() {
+            Some(artist) => artist.client_width() > width as i32,
+            None => {
+                error!("artist_ref is None");
+                false
             }
         };
 
@@ -132,8 +128,16 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                             class="title"
                             node_ref=title_ref
 
-                            class:scroll=title_overflowing
+                            class:scroll={
+                                let song_name = song.name.clone();
+                                move || {
+                                    let overflowing = title_overflowing;
+                                    log!("{} song title overflowing: {}", song_name, overflowing);
+                                    overflowing
+                                }
+                            }
                         >
+
                             {song.name.clone()}
                         </div>
                         <div class="small-info">
@@ -142,16 +146,20 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                                     class="artist"
                                     node_ref=artist_ref
 
-                                    class:scroll=artist_overflowing
+                                    class:scroll={
+                                        let song_artists = song.artists.clone();
+                                        move || {
+                                            let overflowing = artist_overflowing;
+                                            log!(
+                                                "{} song artists overflowing: {}", song_artists.join(", "),
+                                                overflowing
+                                            );
+                                            overflowing
+                                        }
+                                    }
                                 >
-                                    {move || {
-                                        let artists = song.artists.join(", ");
-                                        std::iter::repeat(artists)
-                                            .take(if artist_overflowing() { 2 } else { 1 })
-                                            .collect::<Vec<String>>()
-                                            .join(" ")
-                                    }}
 
+                                    {song.artists.join(", ")}
                                 </div>
                             </div>
                             <span class="bullet-point">"•"</span>

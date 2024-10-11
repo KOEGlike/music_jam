@@ -2,29 +2,6 @@
 @use 'islands' as *;
 @use 'button' as *;
 
-.scroll {
-    white-space: nowrap;
-    animation: scrollText 10s linear infinite;
-    word-spacing: 3px;
-}
-
-@keyframes scrollText {
-    0% {
-        transform: translateX(0%);
-    }
-
-    90% {
-        transform: translateX(calc(-50% - 5px));
-        animation-timing-function: step-start;
-
-    }
-
-    100% {
-        transform: translateX(0%);
-    }
-
-}
-
 .player {
     @extend .standard-island;
     width: fit-content;

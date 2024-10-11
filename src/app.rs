@@ -2,7 +2,7 @@ use crate::model;
 use crate::model::real_time::SearchResult;
 use leptos::{
     prelude::*,
-    spawn::{self, spawn_local},
+    task::{self, spawn_local},
 };
 use leptos_meta::*;
 use leptos_router::{
@@ -271,7 +271,7 @@ fn Player() -> impl IntoView {
     let token = "BQAZ4oo4rm2B6DVW7SSrBgN9k9K6jw3Nk0UHKXnz9W1HU-oPWWPdXd3j7KjKFtO0dr399QrjEG-HkBd_dpEJi5VtijInn_WPPaffGK3TNHSnBxIiaeudshoGz3gDJsVpZNbqocpVc-7CCCe1kb0jGnDCLE2HpvWJYnkNR2w2pkkuxTedEg0KhfW40Ejs8tKyE7AsJS1oPeGIkmheR2p9SaIxn08C3ztxMXoi";
 
     let connect = move || {
-        spawn::spawn_local(async move {
+        task::spawn_local(async move {
             match sp::connect().await {
                 Ok(_) => log!("connected"),
                 Err(e) => log!("error {:?}", e),

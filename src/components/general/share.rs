@@ -70,7 +70,7 @@ pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
                 class="button"
                 on:click=move |_| {
                     jam_id.with_untracked(|id| log!("{}", id));
-                    spawn::spawn_local(async move {
+                    task::spawn_local(async move {
                         save_to_clipboard(&jam_id.get_untracked()).await
                     });
                 }

@@ -1,6 +1,6 @@
 use crate::components::Modal;
 use crate::model::*;
-use leptos::spawn::spawn_local;
+use leptos::task::spawn_local;
 use leptos::{either::*, logging::log, prelude::*};
 use leptos_router::{hooks::use_navigate, *};
 

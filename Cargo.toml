@@ -17,10 +17,10 @@ rustflags = ["--cfg=web_sys_unstable_apis"]
 [dependencies]
 axum = { version = "0.7", optional = true, features = ["ws", "macros"] }
 console_error_panic_hook = "0.1"
-leptos = { version = "0.7.0-beta5", features = ["nightly"] }
-leptos_axum = { version = "0.7.0-beta5", optional = true }
-leptos_meta = "0.7.0-beta5"
-leptos_router = "0.7.0-beta5"
+leptos = { version = "0.7.0-gamma", features = ["nightly"] }
+leptos_axum = { version = "0.7.0-gamma", optional = true }
+leptos_meta = "0.7.0-gamma"
+leptos_router = "0.7.0-gamma"
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 tower = { version = "0.5", optional = true, features = ["util"] }
 tower-http = { version = "0.5", features = ["fs"], optional = true }
@@ -31,7 +31,7 @@ http = "1"
 serde = { version = "1", features = ["derive"] }
 rmp-serde = "1"
 serde_json = { version = "1", optional = true }
-leptos-use = "0.14.0-beta"
+leptos-use = "0.14.0-gamma"
 rspotify = "0.13"
 web-sys = { version = "0.3", features = [
     "Clipboard",
@@ -99,12 +99,6 @@ ssr = [
     "dep:base64",
     "dep:image",
 ]
-
-[patch.crates-io]
-leptos = { git = "https://github.com/leptos-rs/leptos/" }
-leptos_axum = { git = "https://github.com/leptos-rs/leptos/" }
-leptos_meta = { git = "https://github.com/leptos-rs/leptos/" }
-leptos_router = { git = "https://github.com/leptos-rs/leptos/" }
 
 # Defines a size-optimized profile for the WASM bundle in release mode
 [profile.wasm-release]

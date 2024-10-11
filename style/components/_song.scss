@@ -95,27 +95,6 @@
                         white-space: nowrap;
                         display: inline-block;
                     }
-
-                    >.artist-scroll {
-                        animation: scrollArtistText 10s linear infinite;
-                    }
-
-                    @keyframes scrollArtistText {
-                        0% {
-                            left: 0%;
-                        }
-
-                        90% {
-                            left: calc(50% + 5px);
-                            animation-timing-function: step-start;
-
-                        }
-
-                        100% {
-                            left: 0%;
-                        }
-
-                    }
                 }
 
 
