@@ -4,6 +4,7 @@ use crate::components::{host::Player, Share, SongList, SongListAction, UsersBar}
 use crate::model::types::*;
 use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
+use leptos::reactive::transition;
 use leptos::{logging::*, prelude::*};
 use leptos_meta::Title;
 use leptos_router::{
@@ -217,15 +218,16 @@ pub fn HostPage() -> impl IntoView {
 async fn delete_jam(host_id: String) -> Result<(), ServerFnError> {
     use crate::model::{self, check_id_type, notify, AppState};
     let app_state = expect_context::<AppState>();
-    let pool = &app_state.db.pool;
-    let id = check_id_type(&host_id, pool).await?;
+    let mut transition = app_state.db.pool.begin().await?;
+    let id = check_id_type(&host_id, &mut transition).await?;
     if !id.is_host() {
         return Err(ServerFnError::Request("id is not a host id".to_string()));
     }
-    model::delete_jam(&id.jam_id, pool).await?;
+    model::delete_jam(&id.jam_id, &mut *transition).await?;
     leptos_axum::redirect("/");
     use crate::model::real_time::Changed;
-    notify(Changed::new().ended(), vec![], &id.jam_id, pool).await?;
+    notify(Changed::new().ended(), vec![], &id.jam_id, &mut transition).await?;
+    transition.commit().await?;
     Ok(())
 }
 
@@ -245,7 +247,10 @@ pub async fn get_jam(jam_id: String) -> Result<Jam, ServerFnError> {
 pub async fn get_initial_update(id: String) -> Result<real_time::Update, ServerFnError> {
     use crate::model::{check_id_type, AppState};
     let app_state = expect_context::<AppState>();
-    let pool = &app_state.db.pool;
-    let id = check_id_type(&id, pool).await?;
-    Ok(real_time::Update::from_changed(real_time::Changed::all(), &id, pool).await)
+    let mut transaction = app_state.db.pool.begin().await?;
+    let id = check_id_type(&id, &mut transaction).await?;
+    let update =
+        real_time::Update::from_changed(real_time::Changed::all(), &id, &mut transaction).await;
+    transaction.commit().await?;
+    Ok(update)
 }

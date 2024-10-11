@@ -40,7 +40,14 @@ async fn handle_message(
     pool: sqlx::PgPool,
     credentials: SpotifyCredentials,
 ) {
-    let pool = &pool;
+    let mut transaction = match pool.begin().await {
+        Ok(t) => t,
+        Err(e) => {
+            let error = Error::Database(format!("Error starting transaction: {:#?}", e));
+            handle_error(error, true, &sender).await;
+            return;
+        }
+    };
     let message: types::real_time::Request = match rmp_serde::from_slice(&message.into_data()) {
         Ok(m) => m,
         Err(e) => {
@@ -90,7 +97,7 @@ async fn handle_message(
                 }
             }
             if errors.is_empty() {
-                match kick_user(user_id, pool).await {
+                match kick_user(user_id, &mut *transaction).await {
                     Ok(changed_new) => {
                         changed = changed.merge_with_other(changed_new);
                     }
@@ -112,7 +119,15 @@ async fn handle_message(
                 Err(_) => return,
             };
 
-            match add_song(&song_id, your_id, id.jam_id(), pool, credentials.clone()).await {
+            match add_song(
+                &song_id,
+                your_id,
+                id.jam_id(),
+                &mut transaction,
+                credentials.clone(),
+            )
+            .await
+            {
                 Ok(changed_new) => {
                     changed = changed.merge_with_other(changed_new);
                 }
@@ -122,7 +137,7 @@ async fn handle_message(
             };
         }
         real_time::Request::RemoveSong { song_id } => {
-            match remove_song(&song_id, &id, pool).await {
+            match remove_song(&song_id, &id, &mut transaction).await {
                 Ok(changed_new) => {
                     changed = changed.merge_with_other(changed_new);
                 }
@@ -143,7 +158,7 @@ async fn handle_message(
                 Err(_) => return,
             };
 
-            match add_vote(&song_id, id, pool).await {
+            match add_vote(&song_id, id, &mut *transaction).await {
                 Ok(changed_new) => {
                     changed = changed.merge_with_other(changed_new);
                 }
@@ -165,7 +180,7 @@ async fn handle_message(
                 Err(_) => return,
             };
 
-            match remove_vote(&song_id, your_id, pool).await {
+            match remove_vote(&song_id, your_id, &mut *transaction).await {
                 Ok(changed_new) => {
                     changed = changed.merge_with_other(changed_new);
                 }
@@ -190,13 +205,14 @@ async fn handle_message(
                 return;
             }
 
-            let songs = match search(&query, pool, id.jam_id(), credentials.clone()).await {
-                Ok(songs) => songs,
-                Err(e) => {
-                    handle_error(e, false, &sender).await;
-                    return;
-                }
-            };
+            let songs =
+                match search(&query, &mut transaction, id.jam_id(), credentials.clone()).await {
+                    Ok(songs) => songs,
+                    Err(e) => {
+                        handle_error(e, false, &sender).await;
+                        return;
+                    }
+                };
 
             let update = real_time::Update::new().search(SearchResult { songs, search_id });
             let message = match rmp_serde::to_vec(&update) {
@@ -224,7 +240,7 @@ async fn handle_message(
                 return;
             }
 
-            match set_current_song_position(id.jam_id(), percentage, pool).await {
+            match set_current_song_position(id.jam_id(), percentage, &mut *transaction).await {
                 Ok(changed_new) => {
                     changed = changed.merge_with_other(changed_new);
                 }
@@ -241,7 +257,7 @@ async fn handle_message(
             )
                 .await.is_err(){return;}
 
-            match next_song(id.jam_id.clone(), pool, credentials.clone()).await {
+            match go_to_next_song(id.jam_id.clone(), &mut transaction, credentials.clone()).await {
                 Ok(changed_new) => {
                     changed = changed.merge_with_other(changed_new);
                 }
@@ -252,8 +268,13 @@ async fn handle_message(
         }
     }
 
-    if let Err(e) = notify(changed, errors, id.jam_id(), pool).await {
+    if let Err(e) = notify(changed, errors, id.jam_id(), &mut transaction).await {
         handle_error(e.into(), false, &sender).await;
+    }
+
+    if let Err(e) = transaction.commit().await {
+        let error = Error::Database(format!("Error committing transaction: {:#?}", e));
+        handle_error(error, true, &sender).await;
     }
 }
 

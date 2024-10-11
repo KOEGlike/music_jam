@@ -1,9 +1,12 @@
 use crate::model::types::*;
 
 ///only the jam is is used from the id
-pub async fn get_users(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<User>, sqlx::Error> {
+pub async fn get_users<'e>(
+    executor: impl sqlx::PgExecutor<'e>,
+    id: &Id,
+) -> Result<Vec<User>, sqlx::Error> {
     sqlx::query_as!(User, "SELECT * FROM users WHERE jam_id=$1", id.jam_id())
-        .fetch_all(pool)
+        .fetch_all(executor)
         .await
         .map(|users| {
             users
@@ -13,15 +16,18 @@ pub async fn get_users(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<User>, sqlx::
         })
 }
 
-pub async fn check_id_type(id: &str, pool: &sqlx::PgPool) -> Result<Id, sqlx::Error> {
+pub async fn check_id_type<'e>(
+    id: &str,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
+) -> Result<Id, sqlx::Error> {
     // Check if the ID exists in the hosts table
     let host_check = sqlx::query!("SELECT EXISTS(SELECT 1 FROM hosts WHERE id = $1)", id)
-        .fetch_one(pool)
+        .fetch_one(&mut **transaction)
         .await?;
 
     if host_check.exists.unwrap_or(false) {
         let jam_id = sqlx::query!("SELECT id FROM jams WHERE host_id = $1", id)
-            .fetch_one(pool)
+            .fetch_one(&mut **transaction)
             .await?
             .id;
         return Ok(Id {
@@ -31,12 +37,12 @@ pub async fn check_id_type(id: &str, pool: &sqlx::PgPool) -> Result<Id, sqlx::Er
     }
 
     let user_check = sqlx::query!("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", id)
-        .fetch_one(pool)
+        .fetch_one(&mut **transaction)
         .await?;
 
     if user_check.exists.unwrap_or(false) {
         let jam_id = sqlx::query!("SELECT jam_id FROM users WHERE id = $1", id)
-            .fetch_one(pool)
+            .fetch_one(&mut **transaction)
             .await?
             .jam_id;
         return Ok(Id {
@@ -48,32 +54,23 @@ pub async fn check_id_type(id: &str, pool: &sqlx::PgPool) -> Result<Id, sqlx::Er
     Err(sqlx::Error::RowNotFound)
 }
 
-pub async fn kick_user(
+pub async fn kick_user<'e>(
     user_id: &str,
-    pool: &sqlx::PgPool,
+    executor: impl sqlx::PgExecutor<'e>,
 ) -> Result<real_time::Changed, sqlx::Error> {
-    let jam_id = sqlx::query!("SELECT jam_id FROM users WHERE id=$1;", user_id)
-        .fetch_one(pool)
+    sqlx::query!("DELETE FROM users WHERE id=$1;", user_id)
+        .execute(executor)
         .await?;
-    let jam_id = jam_id.jam_id;
-
-    sqlx::query!(
-        "DELETE FROM users WHERE id=$1 AND jam_id=$2; ",
-        user_id,
-        jam_id
-    )
-    .execute(pool)
-    .await?;
 
     Ok(real_time::Changed::new().users())
 }
 
 ///returns id of the created user
-pub async fn create_user(
+pub async fn create_user<'e>(
     jam_id: &str,
     image_url: &str,
     name: &str,
-    pool: &sqlx::PgPool,
+    executor: impl sqlx::PgExecutor<'e>,
     root: &str,
 ) -> Result<(String, real_time::Changed), Error> {
     use data_url::DataUrl;
@@ -132,7 +129,7 @@ pub async fn create_user(
         jam_id.to_lowercase(),
         name,
     )
-    .execute(pool)
+    .execute(executor)
     .await?;
 
     Ok((user_id, real_time::Changed::new().users()))

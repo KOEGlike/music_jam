@@ -6,13 +6,13 @@ use rspotify::{
     AuthCodeSpotify,
 };
 
-pub async fn switch_playback_to_device(
+pub async fn switch_playback_to_device<'e>(
     device_id: &str,
     jam_id: &str,
-    pool: &sqlx::PgPool,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     credentials: SpotifyCredentials,
 ) -> Result<(), Error> {
-    let token = get_access_token(pool, jam_id, credentials).await?;
+    let token = get_access_token(transaction, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     if let Err(e) = client.transfer_playback(device_id, Some(true)).await {
         return Err(Error::Spotify(format!(
@@ -34,8 +34,8 @@ struct AccessTokenDb {
     pub host_id: String,
 }
 
-async fn get_maybe_expired_access_token(
-    pool: &sqlx::PgPool,
+async fn get_maybe_expired_access_token<'e>(
+    executor: impl sqlx::PgExecutor<'e>,
     jam_id: &str,
 ) -> Result<rspotify::Token, sqlx::Error> {
     let token = sqlx::query_as!(
@@ -43,7 +43,7 @@ async fn get_maybe_expired_access_token(
         "SELECT * FROM access_tokens WHERE host_id=(SELECT host_id FROM jams WHERE id=$1) ",
         jam_id
     )
-    .fetch_one(pool)
+    .fetch_one(executor)
     .await?;
 
     let expires_at = chrono::DateTime::from_timestamp(token.expires_at, 0).unwrap();
@@ -63,14 +63,12 @@ async fn get_maybe_expired_access_token(
 }
 
 ///this also refreshes the token if it is expired
-pub async fn get_access_token(
-    pool: &sqlx::PgPool,
+pub async fn get_access_token<'e>(
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     jam_id: &str,
     credentials: SpotifyCredentials,
 ) -> Result<rspotify::Token, Error> {
-    let mut transaction=pool.begin().await?;
-
-    let token = get_maybe_expired_access_token(pool, jam_id).await?;
+    let token = get_maybe_expired_access_token(&mut **transaction, jam_id).await?;
     let now = chrono::Utc::now().timestamp();
     if now < token.expires_at.unwrap_or_default().timestamp() {
         return Ok(token);
@@ -104,19 +102,17 @@ pub async fn get_access_token(
         new_token.refresh_token,
         old_access_token
     )
-    .execute(&mut *transaction)
+    .execute(&mut **transaction)
     .await?;
 
     log!("updated token");
 
-    transaction.commit().await?;
-
     Ok(new_token)
 }
 
-pub async fn search(
+pub async fn search<'e>(
     query: &str,
-    pool: &sqlx::PgPool,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     jam_id: &str,
     credentials: SpotifyCredentials,
 ) -> Result<Vec<Song>, Error> {
@@ -127,7 +123,7 @@ pub async fn search(
         return Ok(vec![]);
     }
 
-    let token = get_access_token(pool, jam_id, credentials).await?;
+    let token = get_access_token(transaction, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let result = client
         .search(
@@ -142,14 +138,16 @@ pub async fn search(
     let songs = if let SearchResult::Tracks(tracks) = result {
         tracks
     } else {
-        return Err(Error::Spotify("Error in search, returned other then tracks".to_string()));
+        return Err(Error::Spotify(
+            "Error in search, returned other then tracks".to_string(),
+        ));
     };
 
     let songs_in_jam = sqlx::query!(
         "SELECT id FROM songs WHERE user_id IN (SELECT id FROM users WHERE jam_id=$1);",
         jam_id
     )
-    .fetch_all(pool)
+    .fetch_all(&mut **transaction)
     .await?
     .into_iter()
     .map(|song| song.id)
@@ -166,12 +164,12 @@ pub async fn search(
     Ok(songs)
 }
 
-pub async fn get_current_song_from_player(
+pub async fn get_current_song_from_player<'e>(
     jam_id: &str,
-    pool: &sqlx::PgPool,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     credentials: SpotifyCredentials,
 ) -> Result<Option<Song>, Error> {
-    let token = get_access_token(pool, jam_id, credentials).await?;
+    let token = get_access_token(transaction, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let current = client.current_playing(None, None::<Vec<_>>).await?;
     let current = match current {
@@ -179,18 +177,18 @@ pub async fn get_current_song_from_player(
         None => return Ok(None),
     };
     let current = match current.item {
-        Some(rspotify::model::PlayableItem::Track(track))=> track,
+        Some(rspotify::model::PlayableItem::Track(track)) => track,
         _ => return Ok(None),
     };
     Ok(Some(track_to_song(current)))
 }
 
-pub async fn get_next_song_from_player(
+pub async fn get_next_song_from_player<'e>(
     jam_id: &str,
-    pool: &sqlx::PgPool,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     credentials: SpotifyCredentials,
 ) -> Result<Option<Song>, Error> {
-    let token = get_access_token(pool, jam_id, credentials).await?;
+    let token = get_access_token(transaction, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let current = client.current_user_queue().await?.queue.into_iter().next();
     let current = match current {
@@ -230,13 +228,13 @@ pub fn track_to_song(track: rspotify::model::FullTrack) -> Song {
     }
 }
 
-pub async fn play_song(
+pub async fn play_song<'e>(
     spotify_song_id: &str,
     jam_id: &str,
-    pool: &sqlx::PgPool,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     credentials: SpotifyCredentials,
 ) -> Result<(), Error> {
-    let token = get_access_token(pool, jam_id, credentials).await?;
+    let token = get_access_token(transaction, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let song_id = match TrackId::from_id(spotify_song_id) {
         Ok(id) => id,

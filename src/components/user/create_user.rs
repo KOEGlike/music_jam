@@ -23,22 +23,24 @@ async fn create_user(
     use crate::model::notify;
     use crate::model::{functions::create_user as create_user_fn, types::AppState};
     let app_state = expect_context::<AppState>();
-    let pool = &app_state.db.pool;
-    match create_user_fn(
+    let mut transaction = app_state.db.pool.begin().await?;
+    let res = match create_user_fn(
         &jam_id,
         &pfp_url,
         &name,
-        pool,
+        &mut *transaction,
         &app_state.leptos_options.site_root,
     )
     .await
     {
         Ok(user_id) => {
-            notify(user_id.1, vec![], &jam_id, pool).await?;
+            notify(user_id.1, vec![], &jam_id, &mut transaction).await?;
             Ok(user_id.0)
         }
         Err(e) => Err(ServerFnError::ServerError(e.into())),
-    }
+    };
+    transaction.commit().await?;
+    res
 }
 
 #[component]
@@ -525,6 +527,7 @@ enum CameraRequestState {
     Granted,
 }
 
+#[allow(dead_code)]
 impl CameraRequestState {
     pub fn is_denied(&self) -> bool {
         matches!(self, CameraRequestState::Denied)

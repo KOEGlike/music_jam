@@ -34,8 +34,8 @@ impl Update {
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn users_from_jam(self, id: &Id, pool: &sqlx::PgPool) -> Self {
-        match functions::get_users(pool, id).await {
+    pub async fn users_from_jam<'e>(self, id: &Id, executor: impl sqlx::PgExecutor<'e>) -> Self {
+        match functions::get_users(executor, id).await {
             Ok(users) => self.users(users),
             Err(e) => self.error(e.into()),
         }
@@ -49,8 +49,12 @@ impl Update {
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn songs_from_jam(self, id: &Id, pool: &sqlx::PgPool) -> Self {
-        match functions::get_songs(pool, id).await {
+    pub async fn songs_from_jam<'e>(
+        self,
+        id: &Id,
+        transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
+    ) -> Self {
+        match functions::get_songs(transaction, id).await {
             Ok(songs) => self.songs(songs),
             Err(e) => self.error(e.into()),
         }
@@ -74,8 +78,12 @@ impl Update {
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn votes_from_jam(self, id: &Id, pool: &sqlx::PgPool) -> Self {
-        match functions::get_votes(pool, id).await {
+    pub async fn votes_from_jam<'e>(
+        self,
+        id: &Id,
+        transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
+    ) -> Self {
+        match functions::get_votes(transaction, id).await {
             Ok(votes) => self.votes(votes),
             Err(e) => self.error(e.into()),
         }
@@ -103,8 +111,12 @@ impl Update {
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn position_from_jam(self, jam_id: &str, pool: &sqlx::PgPool) -> Self {
-        match functions::get_current_song_position(jam_id, pool).await {
+    pub async fn position_from_jam<'e>(
+        self,
+        jam_id: &str,
+        executor: impl sqlx::PgExecutor<'e>,
+    ) -> Self {
+        match functions::get_current_song_position(jam_id, executor).await {
             Ok(percentage) => self.position(percentage),
             Err(e) => self.error(e),
         }
@@ -118,8 +130,12 @@ impl Update {
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn current_song_from_jam(self, jam_id: &str, pool: &sqlx::PgPool) -> Self {
-        match functions::get_current_song(jam_id, pool).await {
+    pub async fn current_song_from_jam<'e>(
+        self,
+        jam_id: &str,
+        executor: impl sqlx::PgExecutor<'e>,
+    ) -> Self {
+        match crate::model::functions::get_current_song(jam_id, executor).await {
             Ok(song) => self.current_song(song),
             Err(e) => self.error(e.into()),
         }
@@ -152,12 +168,20 @@ impl Update {
     }
 
     #[cfg(feature = "ssr")]
-    pub async fn from_changed(changed: real_time::Changed, id: &Id, pool: &sqlx::PgPool) -> Self {
+    pub async fn from_changed<'e>(
+        changed: real_time::Changed,
+        id: &Id,
+        transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
+    ) -> Self {
+        use tokio::sync::Mutex;
+
         let update = Update::new();
+        let transaction = Mutex::new(transaction);
 
         let users_future = async {
             if changed.users {
-                update.clone().users_from_jam(id, pool).await
+                let mut transaction = transaction.lock().await;
+                update.clone().users_from_jam(id, &mut ***transaction).await
             } else {
                 update.clone()
             }
@@ -165,7 +189,8 @@ impl Update {
 
         let songs_future = async {
             if changed.songs {
-                update.clone().songs_from_jam(id, pool).await
+                let mut transaction = transaction.lock().await;
+                update.clone().songs_from_jam(id, *transaction).await
             } else {
                 update.clone()
             }
@@ -173,7 +198,8 @@ impl Update {
 
         let votes_future = async {
             if changed.votes {
-                update.clone().votes_from_jam(id, pool).await
+                let mut transaction = transaction.lock().await;
+                update.clone().votes_from_jam(id, &mut **transaction).await
             } else {
                 update.clone()
             }
@@ -189,7 +215,11 @@ impl Update {
 
         let position_future = async {
             if changed.position {
-                update.clone().position_from_jam(id.jam_id(), pool).await
+                let mut transaction = transaction.lock().await;
+                update
+                    .clone()
+                    .position_from_jam(id.jam_id(), &mut ***transaction)
+                    .await
             } else {
                 update.clone()
             }
@@ -197,9 +227,10 @@ impl Update {
 
         let current_song_future = async {
             if changed.current_song {
+                let mut transaction = transaction.lock().await;
                 update
                     .clone()
-                    .current_song_from_jam(id.jam_id(), pool)
+                    .current_song_from_jam(id.jam_id(), &mut ***transaction)
                     .await
             } else {
                 update.clone()

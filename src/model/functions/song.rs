@@ -7,10 +7,10 @@ use rand::thread_rng;
 use rspotify::model::TrackId;
 use std::collections::HashMap;
 
-pub async fn remove_song(
+pub async fn remove_song<'e>(
     song_id: &str,
     id: &Id,
-    pool: &sqlx::PgPool,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
 ) -> Result<real_time::Changed, Error> {
     if let IdType::User(id) = &id.id {
         let song_user_id = sqlx::query!(
@@ -18,7 +18,7 @@ pub async fn remove_song(
             song_id,
             id
         )
-        .fetch_optional(pool)
+        .fetch_optional(&mut **transaction)
         .await?;
         if song_user_id.is_none() {
             return Err(Error::Forbidden(
@@ -28,18 +28,21 @@ pub async fn remove_song(
     }
 
     sqlx::query!("DELETE FROM songs WHERE id=$1;", song_id)
-        .execute(pool)
+        .execute(&mut **transaction)
         .await?;
     Ok(real_time::Changed::new().songs())
 }
 
-pub async fn get_top_song(pool: &sqlx::PgPool, jam_id: String) -> Result<Option<Song>, Error> {
+pub async fn get_top_song<'e>(
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
+    jam_id: String,
+) -> Result<Option<Song>, Error> {
     let id = Id {
         id: IdType::General,
         jam_id,
     };
 
-    let songs = get_songs(pool, &id).await?;
+    let songs = get_songs(transaction, &id).await?;
     if songs.is_empty() {
         return Ok(None);
     }
@@ -49,7 +52,10 @@ pub async fn get_top_song(pool: &sqlx::PgPool, jam_id: String) -> Result<Option<
     Ok(songs.into_iter().next())
 }
 
-pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::Error> {
+pub async fn get_songs<'e>(
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
+    id: &Id,
+) -> Result<Vec<Song>, sqlx::Error> {
     struct SongDb {
         pub id: String,
         pub spotify_id: String,
@@ -73,7 +79,7 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::
         ORDER BY votes DESC, s.id DESC;",
         &id.jam_id()
     )
-    .fetch_all(pool)
+    .fetch_all(&mut **transaction)
     .await?;
 
     let votes: HashMap<String, Vote> = match &id.id {
@@ -91,7 +97,7 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::
             .collect(),
         IdType::User(id) => {
             let votes = sqlx::query!("SELECT song_id FROM votes WHERE user_id=$1;", id)
-                .fetch_all(pool)
+                .fetch_all(&mut **transaction)
                 .await?
                 .into_iter()
                 .map(|vote| vote.song_id)
@@ -149,21 +155,19 @@ pub async fn get_songs(pool: &sqlx::PgPool, id: &Id) -> Result<Vec<Song>, sqlx::
     Ok(songs)
 }
 
-pub async fn add_song(
+pub async fn add_song<'e>(
     spotify_song_id: &str,
     user_id: &str,
     jam_id: &str,
-    pool: &sqlx::PgPool,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     credentials: SpotifyCredentials,
 ) -> Result<real_time::Changed, Error> {
     use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
     println!("adding song, with id: {}", spotify_song_id);
 
-    let mut transaction = pool.begin().await?;
-
     let does_song_exist = sqlx::query!("SELECT EXISTS(SELECT 1 FROM songs WHERE spotify_id=$1 AND user_id IN (SELECT id FROM users WHERE jam_id=$2) AND user_id <> $2)", spotify_song_id, jam_id)
-        .fetch_one(&mut *transaction)
+        .fetch_one(&mut **transaction)
         .await?;
 
     if does_song_exist.exists.unwrap_or(false) {
@@ -171,13 +175,13 @@ pub async fn add_song(
     }
 
     let amount_of_songs = sqlx::query!("SELECT COUNT(*) FROM songs WHERE user_id=$1", user_id)
-        .fetch_one(&mut *transaction)
+        .fetch_one(&mut **transaction)
         .await?
         .count
         .unwrap_or(0);
 
     let max_amount_of_songs = sqlx::query!("SELECT max_song_count FROM jams WHERE id=$1", jam_id)
-        .fetch_one(&mut *transaction)
+        .fetch_one(&mut **transaction)
         .await?
         .max_song_count;
 
@@ -185,7 +189,7 @@ pub async fn add_song(
         return Err(Error::UserHasTooTheMaxSongAmount);
     }
 
-    let token = get_access_token(pool, jam_id, credentials).await?;
+    let token = get_access_token(transaction, jam_id, credentials).await?;
     let client = AuthCodeSpotify::from_token(token);
     let track_id = TrackId::from_id(spotify_song_id)?;
     let song = client.track(track_id, None).await?;
@@ -208,10 +212,8 @@ pub async fn add_song(
             .collect::<Vec<String>>(),
         spotify_song_id,
     )
-    .execute(&mut *transaction)
+    .execute(&mut **transaction)
     .await?;
-
-    transaction.commit().await?;
 
     Ok(real_time::Changed::new().songs())
 }

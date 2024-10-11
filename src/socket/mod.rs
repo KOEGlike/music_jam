@@ -33,13 +33,33 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
     let (sender, receiver) = socket.split();
     let (mpsc_sender, mpsc_receiver) = mpsc::channel(3);
 
-    let id = match check_id_type(&id, &app_state.db.pool).await {
+    let pool = app_state.db.pool.clone();
+    let spotify_credentials = app_state.spotify_credentials.clone();
+
+    let mut transaction = match pool.begin().await {
+        Ok(transaction) => transaction,
+        Err(e) => {
+            eprintln!(
+                "Terminating socket, Error starting transaction while handling socket: {:?}",
+                e
+            );
+            return;
+        }
+    };
+
+    let id = match check_id_type(&id, &mut transaction).await {
         Ok(id) => id,
         Err(e) => {
             eprintln!("Error checking id type: {:?}", e);
             return;
         }
     };
+    transaction.commit().await.unwrap_or_else(|e| {
+        eprintln!(
+            "Error committing transaction while handling socket: {:?}",
+            e
+        );
+    });
 
     let bridge_task = tokio::spawn(send(mpsc_receiver, sender));
     let recv_task = tokio::spawn(read::read(
@@ -56,12 +76,9 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
     ));
 
     let checkup = if id.is_host() {
-        let jam_id = id.jam_id;
-        let pool = app_state.db.pool.clone();
-        let spotify_credentials = app_state.spotify_credentials.clone();
         let handle = tokio::spawn(occasional_notify(
             pool.clone(),
-            jam_id.clone(),
+            id.jam_id.clone(),
             spotify_credentials,
         ));
         Some(handle)
@@ -79,7 +96,7 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
     }
 }
 
-async fn occasional_notify(
+async fn occasional_notify<'e>(
     pool: sqlx::PgPool,
     jam_id: String,
     spotify_credentials: SpotifyCredentials,
@@ -87,35 +104,59 @@ async fn occasional_notify(
     use std::time::Duration;
     while dose_jam_exist(&jam_id, &pool).await.unwrap_or(true) {
         println!("Occasional notify");
-        if let Err(e) = notify(real_time::Changed::all(), vec![], &jam_id, &pool).await {
+
+        let mut transaction = match pool.begin().await {
+            Ok(transaction) => transaction,
+            Err(e) => {
+                eprintln!("Error starting transaction in occasional notify: {:?}", e);
+                tokio::time::sleep(Duration::from_secs(10)).await;
+                continue;
+            }
+        };
+
+        if let Err(e) = notify(real_time::Changed::all(), vec![], &jam_id, &mut transaction).await {
             eprintln!("Error notifying all, in occasional notify: {:?}", e);
         };
-        tokio::spawn(play_the_current_song_if_player_is_not_playing_it(
-            jam_id.clone(),
-            pool.clone(),
-            spotify_credentials.clone(),
-        ));
+
+        tokio::spawn({
+            let spotify_credentials = spotify_credentials.clone();
+            let jam_id = jam_id.clone();
+            async move {
+                play_the_current_song_if_player_is_not_playing_it(
+                    jam_id,
+                    &mut transaction,
+                    spotify_credentials,
+                )
+                .await
+                .unwrap_or_else(|e| {
+                    eprintln!("Error playing current song in occasional notify: {:?}", e);
+                });
+                if let Err(e) = transaction.commit().await {
+                    eprintln!("Error committing transaction in occasional notify: {:?}", e);
+                }
+            }
+        });
+
         tokio::time::sleep(Duration::from_secs(10)).await;
     }
 
     Ok(())
 }
 
-async fn play_the_current_song_if_player_is_not_playing_it(
+async fn play_the_current_song_if_player_is_not_playing_it<'e>(
     jam_id: String,
-    pool: sqlx::PgPool,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     credentials: SpotifyCredentials,
 ) -> Result<(), Error> {
     use crate::model::functions::{get_current_song_from_player, play_song};
     let jam_id = &jam_id;
-    let pool = &pool;
-    let current_song = get_current_song(jam_id, pool).await?;
+    let current_song = get_current_song(jam_id, &mut **transaction).await?;
     let song = match current_song {
         Some(song) => song,
         None => return Ok(()),
     };
     let player_current_song =
-        get_current_song_from_player(jam_id, pool, credentials.clone()).await?;
+        get_current_song_from_player(jam_id, transaction, credentials.clone()).await?;
     if player_current_song
         .as_ref()
         .map(|s| s.spotify_id != song.spotify_id)
@@ -126,7 +167,7 @@ async fn play_the_current_song_if_player_is_not_playing_it(
             song.name,
             player_current_song.map(|s| s.name).unwrap_or_default()
         );
-        play_song(&song.spotify_id, jam_id, pool, credentials).await?;
+        play_song(&song.spotify_id, jam_id, transaction, credentials).await?;
     }
     Ok(())
 }

@@ -3,13 +3,16 @@ use leptos::{ev::play, logging::*, server_fn::redirect};
 use rand::seq::SliceRandom;
 use real_time::Changed;
 use rspotify::Credentials;
-use sqlx::PgPool;
+use sqlx::PgExecutor;
 
 use super::notify;
 
-pub async fn get_jam(jam_id: &str, pool: &sqlx::PgPool) -> Result<Jam, sqlx::Error> {
+pub async fn get_jam<'e>(
+    jam_id: &str,
+    executor: impl sqlx::PgExecutor<'e>,
+) -> Result<Jam, sqlx::Error> {
     let jam = sqlx::query!("SELECT * FROM jams WHERE id = $1", jam_id.to_lowercase())
-        .fetch_one(pool)
+        .fetch_one(executor)
         .await?;
     Ok(Jam {
         id: jam.id,
@@ -18,12 +21,12 @@ pub async fn get_jam(jam_id: &str, pool: &sqlx::PgPool) -> Result<Jam, sqlx::Err
     })
 }
 
-pub async fn create_host(
+pub async fn create_host<'e>(
     code: String,
     host_id: String,
     spotify_credentials: &SpotifyCredentials,
     reqwest_client: &reqwest::Client,
-    pool: &sqlx::PgPool,
+    executor: impl sqlx::PgExecutor<'e>,
     redirect_uri: &str,
 ) -> Result<(), Error> {
     use http::StatusCode;
@@ -69,7 +72,7 @@ pub async fn create_host(
         _ => {
             eprintln!("Error: {:?}", res);
             sqlx::query!("DELETE FROM hosts WHERE id = $1", host_id)
-                .execute(pool)
+                .execute(executor)
                 .await?;
             return Err(Error::Database(format!(
                 "error while acquiring spotify token, spotify returned not ok response code: {:#?}",
@@ -114,36 +117,34 @@ pub async fn create_host(
         access_token_id,
         host_id
     )
-    .execute(pool)
+    .execute(executor)
     .await?;
 
     Ok(())
 }
 
-pub async fn delete_jam(
+pub async fn delete_jam<'e>(
     jam_id: &str,
-    pool: &sqlx::PgPool,
+    executor: impl sqlx::PgExecutor<'e>,
 ) -> Result<real_time::Changed, sqlx::Error> {
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     sqlx::query!("DELETE FROM jams WHERE id = $1", jam_id)
-        .execute(pool)
+        .execute(executor)
         .await?;
     Ok(real_time::Changed::new().ended())
 }
 
-pub async fn create_jam(
+pub async fn create_jam<'e>(
     name: &str,
     host_id: &str,
     max_song_count: i16,
-    pool: &sqlx::PgPool,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     spotify_credentials: SpotifyCredentials,
 ) -> Result<JamId, Error> {
     let jam_id = cuid2::CuidConstructor::new()
         .with_length(6)
         .create_id()
         .to_lowercase();
-
-    let mut transaction = pool.begin().await?;
 
     let error = sqlx::query!(
         "INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)",
@@ -152,7 +153,7 @@ pub async fn create_jam(
         host_id,
         name
     )
-    .execute(&mut *transaction)
+    .execute(&mut **transaction)
     .await;
     match error {
         Ok(_) => (),
@@ -160,7 +161,7 @@ pub async fn create_jam(
             if e.message() == "duplicate key value violates unique constraint \"jams_host_id_key\""
             {
                 let jam_id = sqlx::query!("SELECT id FROM jams WHERE host_id=$1", host_id)
-                    .fetch_one(pool)
+                    .fetch_one(&mut **transaction)
                     .await?
                     .id;
                 return Err(Error::HostAlreadyInJam { jam_id });
@@ -176,18 +177,16 @@ pub async fn create_jam(
         jam_id,
         name
     )
-    .execute(&mut *transaction)
+    .execute(&mut **transaction)
     .await?;
-
-    transaction.commit().await?;
 
     Ok(jam_id)
 }
 
-pub async fn set_current_song_position(
+pub async fn set_current_song_position<'e>(
     jam_id: &str,
     percentage: f32,
-    pool: &sqlx::PgPool,
+    executor: impl sqlx::PgExecutor<'e>,
 ) -> Result<real_time::Changed, Error> {
     if !(0.0..=1.0).contains(&percentage) {
         return Err(Error::InvalidRequest(
@@ -199,21 +198,24 @@ pub async fn set_current_song_position(
         percentage,
         jam_id
     )
-    .execute(pool)
+    .execute(executor)
     .await?;
     Ok(real_time::Changed::new().position())
 }
 
-pub async fn get_current_song_position(jam_id: &str, pool: &sqlx::PgPool) -> Result<f32, Error> {
+pub async fn get_current_song_position<'e>(
+    jam_id: &str,
+    executor: impl sqlx::PgExecutor<'e>,
+) -> Result<f32, Error> {
     let row = sqlx::query!("SELECT song_position FROM jams WHERE id = $1", jam_id)
-        .fetch_one(pool)
+        .fetch_one(executor)
         .await?;
     Ok(row.song_position)
 }
 
-pub async fn get_current_song(
+pub async fn get_current_song<'e>(
     jam_id: &str,
-    pool: &sqlx::PgPool,
+    executor: impl sqlx::PgExecutor<'e>,
 ) -> Result<Option<Song>, sqlx::Error> {
     struct SongDb {
         pub id: String,
@@ -227,7 +229,7 @@ pub async fn get_current_song(
     }
 
     let song = sqlx::query_as!(SongDb, "SELECT * FROM songs WHERE user_id=$1", jam_id)
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await?;
 
     let song = match song {
@@ -254,43 +256,46 @@ pub async fn get_current_song(
 }
 
 /// doesn't need to have the song id as some, it will generate a new one, either way
-pub async fn set_current_song(
+pub async fn set_current_song<'e>(
     song: &Song,
     jam_id: &str,
-    pool: &sqlx::PgPool,
+    executor: impl sqlx::PgExecutor<'e>,
 ) -> Result<real_time::Changed, Error> {
-    sqlx::query!("DELETE FROM songs WHERE user_id=$1", jam_id)
-        .execute(pool)
-        .await?;
     let song_id = cuid2::create_id();
 
     sqlx::query!(
-        "INSERT INTO songs (id, user_id, name, album, duration, artists, image_url, spotify_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+        "UPDATE songs SET id = $1, name = $2, album = $3, duration = $4, artists = $5, image_url = $6, spotify_id = $7 WHERE user_id = $8",
         song_id,
-        jam_id,
         song.name,
         song.album,
         song.duration as i32,
         &song.artists,
         song.image_url,
-        song.spotify_id
+        song.spotify_id,
+        jam_id
     )
-    .execute(pool)
+    .execute(executor)
     .await?;
+
     Ok(real_time::Changed::new().current_song())
 }
 
-pub async fn dose_jam_exist(jam_id: &str, pool: &sqlx::PgPool) -> Result<bool, Error> {
+pub async fn dose_jam_exist<'e>(
+    jam_id: &str,
+    executor: impl sqlx::PgExecutor<'e>,
+) -> Result<bool, Error> {
     sqlx::query!("SELECT EXISTS(SELECT 1 FROM jams WHERE id=$1)", jam_id)
-        .fetch_one(pool)
+        .fetch_one(executor)
         .await
         .map(|b| b.exists.unwrap_or(false))
         .map_err(|e| e.into())
 }
 
-pub async fn next_song(
+//pub async fn get_next_song<'e>(jam_id: &str, executor: impl sqlx::PgExecutor<'e>) -> Song {}
+
+pub async fn go_to_next_song<'e>(
     jam_id: String,
-    pool: &PgPool,
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     credentials: SpotifyCredentials,
 ) -> Result<Changed, Error> {
     use super::*;
@@ -298,34 +303,38 @@ pub async fn next_song(
     let id = Id::new(IdType::General, jam_id);
 
     let mut changed = Changed::new();
-    let top_song = get_top_song(pool, id.jam_id.clone()).await?;
+    let top_song = get_top_song(transaction, id.jam_id.clone()).await?;
 
     let top_song = match top_song {
         Some(song) => Some(song),
-        None => match get_next_song_from_player(id.jam_id(), pool, credentials.clone()).await {
-            Ok(song) => match song {
-                Some(song) => Some(song),
-                None => None,
-            },
-            Err(e) => {
-                let songs = search(
-                    "Never gonna give you up",
-                    pool,
-                    &id.jam_id,
-                    credentials.clone(),
-                )
-                .await?
-                .remove(0);
-                Some(songs)
+        None => {
+            match get_next_song_from_player(id.jam_id(), transaction, credentials.clone()).await {
+                Ok(song) => song,
+                Err(e) => {
+                    eprintln!(
+                        "Error getting next song from player: {:?}, playing rick roll",
+                        e
+                    );
+                    let songs = search(
+                        "Never gonna give you up",
+                        transaction,
+                        &id.jam_id,
+                        credentials.clone(),
+                    )
+                    .await?
+                    .remove(0);
+                    Some(songs)
+                }
             }
-        },
+        }
     };
 
     if let Some(song) = top_song {
-        changed = changed.merge_with_other(set_current_song(&song, id.jam_id(), pool).await?);
-        changed = changed.merge_with_other(reset_votes(id.jam_id(), pool).await?);
+        changed = changed
+            .merge_with_other(set_current_song(&song, id.jam_id(), &mut **transaction).await?);
+        changed = changed.merge_with_other(reset_votes(id.jam_id(), &mut **transaction).await?);
 
-        play_song(&song.spotify_id, id.jam_id(), pool, credentials).await?;
+        play_song(&song.spotify_id, id.jam_id(), transaction, credentials).await?;
     };
 
     Ok(changed)

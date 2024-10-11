@@ -19,8 +19,6 @@ impl Db {
             .connect(&url)
             .await?;
 
-        
-
         println!("running migrations...");
         sqlx::migrate!("db/migrations")
             .run(&pool)

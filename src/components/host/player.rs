@@ -222,13 +222,19 @@ pub fn Player(
 }
 
 #[server]
-async fn change_playback_device(device_id: String, host_id: String) -> Result<(), ServerFnError> {
+async fn change_playback_device(
+    device_id: String,
+    host_id: String,
+) -> Result<(), ServerFnError<String>> {
     use crate::model::*;
     let app_state = expect_context::<AppState>();
-    let pool = &app_state.db.pool;
+    let mut transaction =
+        app_state.db.pool.begin().await.map_err(|e| {
+            ServerFnError::ServerError(format!("error starting transaction: {}", e))
+        })?;
     let credentials = app_state.spotify_credentials;
 
-    let jam_id = match check_id_type(&host_id, pool).await {
+    let jam_id = match model::check_id_type(&host_id, &mut transaction).await {
         Ok(id) => match id.id {
             IdType::Host(_) => id.jam_id,
             _ => {
@@ -241,22 +247,32 @@ async fn change_playback_device(device_id: String, host_id: String) -> Result<()
         Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
     };
 
-    if let Err(e) = switch_playback_to_device(&device_id, &jam_id, pool, credentials).await {
-        return Err(ServerFnError::ServerError(e.into()));
+    if let Err(e) =
+        model::switch_playback_to_device(&device_id, &jam_id, &mut transaction, credentials).await
+    {
+        return Err(ServerFnError::ServerError(e.to_string()));
     };
+
+    transaction
+        .commit()
+        .await
+        .map_err(|e| ServerFnError::ServerError(format!("error committing transaction: {}", e)))?;
 
     Ok(())
 }
 
 #[server]
-async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnError> {
+async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnError<String>> {
     use crate::model::*;
 
     let app_state = expect_context::<AppState>();
-    let pool = &app_state.db.pool;
+    let mut transaction =
+        app_state.db.pool.begin().await.map_err(|e| {
+            ServerFnError::ServerError(format!("error starting transaction: {}", e))
+        })?;
     let credentials = app_state.spotify_credentials;
 
-    let id = check_id_type(&host_id, pool).await;
+    let id = check_id_type(&host_id, &mut transaction).await;
     let id = match id {
         Ok(id) => id,
         Err(sqlx::Error::RowNotFound) => {
@@ -274,10 +290,15 @@ async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnEr
         ));
     };
 
-    let token = match crate::model::get_access_token(pool, &jam_id, credentials).await {
+    let token = match crate::model::get_access_token(&mut transaction, &jam_id, credentials).await {
         Ok(token) => token,
         Err(e) => return Err(ServerFnError::ServerError(e.into())),
     };
+
+    transaction
+        .commit()
+        .await
+        .map_err(|e| ServerFnError::ServerError(format!("error committing transaction: {}", e)))?;
 
     Ok(token)
 }

@@ -131,9 +131,9 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                             class:scroll={
                                 let song_name = song.name.clone();
                                 move || {
-                                    let overflowing = title_overflowing;
-                                    log!("{} song title overflowing: {}", song_name, overflowing);
-                                    overflowing
+                                    let overflow = title_overflowing();
+                                    log!("{} song title overflowing: {}", song_name, overflow);
+                                    overflow
                                 }
                             }
                         >
@@ -147,14 +147,14 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                                     node_ref=artist_ref
 
                                     class:scroll={
-                                        let song_artists = song.artists.clone();
+                                        let artists = song.artists.clone();
                                         move || {
-                                            let overflowing = artist_overflowing;
+                                            let overflow = artist_overflowing();
                                             log!(
-                                                "{} song artists overflowing: {}", song_artists.join(", "),
-                                                overflowing
+                                                "{} song artist overflowing: {}", artists.join(", "),
+                                                overflow
                                             );
-                                            overflowing
+                                            overflow
                                         }
                                     }
                                 >
