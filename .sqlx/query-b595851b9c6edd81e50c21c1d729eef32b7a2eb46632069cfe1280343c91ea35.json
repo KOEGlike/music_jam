@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO votes (song_id, user_id, id)\n         VALUES ($1, $2, $3)\n         ON CONFLICT (song_id, user_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Bpchar",
+        "Bpchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b595851b9c6edd81e50c21c1d729eef32b7a2eb46632069cfe1280343c91ea35"
+}

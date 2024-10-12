@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT jam_id FROM users WHERE id=$1;",
+  "query": "SELECT song_id FROM votes WHERE user_id = $1;",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "jam_id",
+        "name": "song_id",
         "type_info": "Bpchar"
       }
     ],
@@ -18,5 +18,5 @@
       false
     ]
   },
-  "hash": "fda99a0f98c53586e4734de0a4435e2296465d32a54f216d705a1d006962e247"
+  "hash": "5f7913d8ba203f229efcd0f92423da72a38b7464793a5b06275ca75287ff63cd"
 }

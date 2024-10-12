@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM songs WHERE user_id=$1",
+  "query": "DELETE FROM users WHERE id=$1;",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "1ee8c95b513492d88de3a96acd97a1e6e9f6ef182887a907ab1f4403ca6bc1c0"
+  "hash": "e9b7b56dcb7ee5836ce74adc89c477069af442ff007ae5013b1405cfb615ad03"
 }

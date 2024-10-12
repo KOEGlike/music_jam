@@ -22,6 +22,7 @@ async fn create_user(
 ) -> Result<String, ServerFnError> {
     use crate::model::notify;
     use crate::model::{functions::create_user as create_user_fn, types::AppState};
+
     let app_state = expect_context::<AppState>();
     let mut transaction = app_state.db.pool.begin().await?;
     let res = match create_user_fn(
