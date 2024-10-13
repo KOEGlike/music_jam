@@ -1,11 +1,10 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE songs SET id = $1, name = $2, album = $3, duration = $4, artists = $5, image_url = $6, spotify_id = $7 WHERE user_id = $8",
+  "query": "UPDATE songs \n        SET name = $1, album = $2, duration = $3, artists = $4, image_url = $5, spotify_id = $6 \n        WHERE user_id = $7",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
-        "Bpchar",
         "Varchar",
         "Varchar",
         "Int4",
@@ -17,5 +16,5 @@
     },
     "nullable": []
   },
-  "hash": "30375053000456ced63f59a3c578c53a145c2d4b646d72311944ee0cc61f7c14"
+  "hash": "ca54199e413bd0fe0db78fa0b5bef7657465e6a0c0305ec9a7b37f7aaf65bfd1"
 }

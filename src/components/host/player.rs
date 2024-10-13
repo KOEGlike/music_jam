@@ -275,10 +275,6 @@ async fn get_access_token(host_id: String) -> Result<rspotify::Token, ServerFnEr
     let id = check_id_type(&host_id, &mut transaction).await;
     let id = match id {
         Ok(id) => id,
-        Err(sqlx::Error::RowNotFound) => {
-            leptos_axum::redirect("/");
-            return Err(ServerFnError::Request("Host not found".to_string()));
-        }
         Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
     };
     let jam_id = if id.is_host() {

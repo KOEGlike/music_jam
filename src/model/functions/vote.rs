@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
+use leptos::html::P;
+
 use crate::model::{get_current_song, types::*};
 
 pub async fn add_vote<'e>(
@@ -43,9 +45,10 @@ pub async fn remove_vote<'e>(
 
     if result.rows_affected() == 0 {
         eprintln!("vote does not exist, returning error");
-        return Err(Error::Forbidden(
-            "user has not voted for this song".to_string(),
-        ));
+        return Err(Error::DoesNotExist(format!(
+            "vote does not exist for song: {} and user: {}",
+            song_id, user_id
+        )));
     }
 
     Ok(real_time::Changed::new().votes())
@@ -54,7 +57,7 @@ pub async fn remove_vote<'e>(
 pub async fn get_votes<'e>(
     transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     id: &Id,
-) -> Result<Votes, sqlx::Error> {
+) -> Result<Votes, Error> {
     struct VotesDb {
         pub song_id: String,
         pub votes_nr: Option<i64>,

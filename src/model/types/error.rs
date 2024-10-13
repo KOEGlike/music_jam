@@ -1,5 +1,4 @@
-use serde::{Serialize, Deserialize};
-
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, thiserror::Error)]
 pub enum Error {
@@ -20,13 +19,15 @@ pub enum Error {
     #[error("Your request is incorrect: {0}")]
     InvalidRequest(String),
     #[error("The host cant create another jam cuz he is in one already, jam id: {jam_id}")]
-    HostAlreadyInJam{jam_id:String},
+    HostAlreadyInJam { jam_id: String },
     #[error("This user has reached |insert pronoun here| song limit")]
     UserHasTooTheMaxSongAmount,
     #[error("A env was not found: {0}")]
     EnvNotFound(String),
-    #[error("song allready in jam")]
+    #[error("song already in jam")]
     SongAlreadyInJam,
+    #[error("A entry was not found: {0}")]
+    DoesNotExist(String),
 }
 
 impl Error {
@@ -40,10 +41,11 @@ impl Error {
             Error::Spotify(_) => 4500,
             Error::FileSystem(_) => 4500,
             Error::InvalidRequest(_) => 4400,
-            Error::HostAlreadyInJam{..} => 4400,
+            Error::HostAlreadyInJam { .. } => 4400,
             Error::UserHasTooTheMaxSongAmount => 4400,
             Error::EnvNotFound(_) => 4500,
             Error::SongAlreadyInJam => 4400,
+            Error::DoesNotExist(_) => 4404,
         }
     }
 }
@@ -59,11 +61,13 @@ impl From<Error> for String {
             Error::Spotify(s) => s,
             Error::FileSystem(s) => s,
             Error::InvalidRequest(s) => s,
-            Error::HostAlreadyInJam{jam_id} => format!("Host is already in jam with id: {}", jam_id),
+            Error::HostAlreadyInJam { jam_id } => {
+                format!("Host is already in jam with id: {}", jam_id)
+            }
             Error::UserHasTooTheMaxSongAmount => "User has too the max song amount".to_string(),
             Error::EnvNotFound(s) => s,
             Error::SongAlreadyInJam => "Song already in jam".to_string(),
-            
+            Error::DoesNotExist(s) => s,
         }
     }
 }
@@ -102,6 +106,9 @@ impl Error {
 #[cfg(feature = "ssr")]
 impl From<sqlx::Error> for Error {
     fn from(e: sqlx::Error) -> Self {
+        if let sqlx::Error::RowNotFound = e {
+            return Error::DoesNotExist(format!("sqlx error: {:?}", e.to_string()));
+        }
         Error::Database(format!("sqlx error: {:?}", e.to_string()))
     }
 }

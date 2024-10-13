@@ -12,24 +12,35 @@ pub async fn remove_song<'e>(
     id: &Id,
     transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
 ) -> Result<real_time::Changed, Error> {
-    if let IdType::User(id) = &id.id {
-        let song_user_id = sqlx::query!(
+    // Check if the ID is a user and if the song belongs to the user
+    if let IdType::User(user_id) = &id.id {
+        let song_user = sqlx::query!(
             "SELECT * FROM songs WHERE id=$1 AND user_id=$2",
             song_id,
-            id
+            user_id
         )
         .fetch_optional(&mut **transaction)
         .await?;
-        if song_user_id.is_none() {
+
+        // Return error if the song does not belong to the user
+        if song_user.is_none() {
             return Err(Error::Forbidden(
-                "this song was not added by the user who wants to remove it".to_string(),
+                "This song was not added by the user who wants to remove it.".to_string(),
             ));
         }
     }
 
-    sqlx::query!("DELETE FROM songs WHERE id=$1;", song_id)
+    // Proceed to delete the song
+    let res = sqlx::query!("DELETE FROM songs WHERE id=$1;", song_id)
         .execute(&mut **transaction)
         .await?;
+    if res.rows_affected() < 1 {
+        return Err(Error::DoesNotExist(format!(
+            "could not delete song, no song found with id: {}",
+            song_id
+        )));
+    }
+
     Ok(real_time::Changed::new().songs())
 }
 
@@ -96,7 +107,7 @@ pub async fn get_songs<'e>(
             })
             .collect(),
         IdType::User(id) => {
-            let votes = sqlx::query!("SELECT song_id FROM votes WHERE user_id=$1;", id)
+            let votes = sqlx::query!("SELECT song_id FROM votes WHERE user_id=$1", id)
                 .fetch_all(&mut **transaction)
                 .await?
                 .into_iter()

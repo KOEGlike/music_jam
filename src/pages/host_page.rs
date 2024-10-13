@@ -218,16 +218,16 @@ pub fn HostPage() -> impl IntoView {
 async fn delete_jam(host_id: String) -> Result<(), ServerFnError> {
     use crate::model::{self, check_id_type, notify, AppState};
     let app_state = expect_context::<AppState>();
-    let mut transition = app_state.db.pool.begin().await?;
-    let id = check_id_type(&host_id, &mut transition).await?;
+    let mut transaction = app_state.db.pool.begin().await?;
+    let id = check_id_type(&host_id, &mut transaction).await?;
     if !id.is_host() {
         return Err(ServerFnError::Request("id is not a host id".to_string()));
     }
-    model::delete_jam(&id.jam_id, &mut *transition).await?;
+    model::delete_jam(&id.jam_id, &mut *transaction).await?;
     leptos_axum::redirect("/");
     use crate::model::real_time::Changed;
-    notify(Changed::new().ended(), vec![], &id.jam_id, &mut transition).await?;
-    transition.commit().await?;
+    notify(Changed::new().ended(), vec![], &id.jam_id, &mut transaction).await?;
+    transaction.commit().await?;
     Ok(())
 }
 

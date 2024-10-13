@@ -96,8 +96,8 @@ pub fn SongListTest() -> impl IntoView {
         songs
     };
     use crate::components::SongListAction;
-    let (songs, set_songs) = signal(Some(songs));
-    let (votes, set_votes) = signal(model::Votes::new());
+    let (songs, _) = signal(Some(songs));
+    let (votes, _) = signal(model::Votes::new());
     let max_song_count = Signal::derive(|| 10);
     let song_list_action = SongListAction::Vote {
         add_vote: Callback::new(|id| log!("add vote with id:{}", id)),

@@ -1,3 +1,5 @@
+use std::result;
+
 use crate::model::types::*;
 use leptos::logging::*;
 use rspotify::{
@@ -37,14 +39,24 @@ struct AccessTokenDb {
 async fn get_maybe_expired_access_token<'e>(
     executor: impl sqlx::PgExecutor<'e>,
     jam_id: &str,
-) -> Result<rspotify::Token, sqlx::Error> {
-    let token = sqlx::query_as!(
+) -> Result<rspotify::Token, Error> {
+    let token = match sqlx::query_as!(
         AccessTokenDb,
         "SELECT * FROM access_tokens WHERE host_id=(SELECT host_id FROM jams WHERE id=$1) ",
         jam_id
     )
     .fetch_one(executor)
-    .await?;
+    .await
+    {
+        Ok(token) => token,
+        Err(sqlx::Error::RowNotFound) => {
+            return Err(Error::DoesNotExist(format!(
+                "no access token found for jam with id: {}, could not get access token",
+                jam_id
+            )));
+        }
+        Err(e) => return Err(e.into()),
+    };
 
     let expires_at = chrono::DateTime::from_timestamp(token.expires_at, 0).unwrap();
     let expires_at = Some(expires_at);
@@ -94,7 +106,7 @@ pub async fn get_access_token<'e>(
         .clone()
         .unwrap();
 
-    sqlx::query!(
+    let res=sqlx::query!(
         "UPDATE access_tokens SET access_token=$1, expires_at=$2, scope=$3, refresh_token=$4 WHERE access_token=$5;",
         new_token.access_token,
         now + new_token.expires_in.num_seconds(),
@@ -105,9 +117,34 @@ pub async fn get_access_token<'e>(
     .execute(&mut **transaction)
     .await?;
 
-    log!("updated token");
+    if res.rows_affected() < 1 {
+        return Err(Error::DoesNotExist(format!(
+            "could not update access token, no token found with access token: {}",
+            old_access_token
+        )));
+    }
+
+    println!("updated token");
 
     Ok(new_token)
+}
+
+pub async fn get_song_recommendation<'e>(
+    credentials: SpotifyCredentials,
+    jam_id: &str,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
+) -> Result<Song, Error> {
+    let token = get_access_token(transaction, jam_id, credentials).await?;
+    let client = AuthCodeSpotify::from_token(token);
+    let mut tracks = client
+        .current_user_top_tracks_manual(
+            Some(rspotify::model::TimeRange::ShortTerm),
+            Some(1),
+            Some(0),
+        )
+        .await?;
+    let track = tracks.items.remove(0);
+    Ok(track_to_song(track))
 }
 
 pub async fn search<'e>(

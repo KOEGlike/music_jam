@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT song_id FROM votes WHERE user_id=$1;",
+  "query": "SELECT song_id FROM votes WHERE user_id=$1",
   "describe": {
     "columns": [
       {
@@ -18,5 +18,5 @@
       false
     ]
   },
-  "hash": "6ced543204db6bb82b5bbc05a95e7b05fdcfd33d6d617f1dc29245f9121d4af5"
+  "hash": "67180a74be31408614a2587c31399d9955488a6e8d54a0e877a6af3aaa3078a5"
 }

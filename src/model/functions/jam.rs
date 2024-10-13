@@ -7,13 +7,22 @@ use sqlx::PgExecutor;
 
 use super::notify;
 
-pub async fn get_jam<'e>(
-    jam_id: &str,
-    executor: impl sqlx::PgExecutor<'e>,
-) -> Result<Jam, sqlx::Error> {
-    let jam = sqlx::query!("SELECT * FROM jams WHERE id = $1", jam_id.to_lowercase())
+pub async fn get_jam<'e>(jam_id: &str, executor: impl sqlx::PgExecutor<'e>) -> Result<Jam, Error> {
+    let jam = match sqlx::query!("SELECT * FROM jams WHERE id = $1", jam_id.to_lowercase())
         .fetch_one(executor)
-        .await?;
+        .await
+    {
+        Ok(jam) => jam,
+        Err(sqlx::Error::RowNotFound) => {
+            return Err(Error::DoesNotExist(format!(
+                "jam with id {} does not exist, could not get jam",
+                jam_id
+            )));
+        }
+        Err(e) => {
+            return Err(e.into());
+        }
+    };
     Ok(Jam {
         id: jam.id,
         name: jam.name,
@@ -126,11 +135,17 @@ pub async fn create_host<'e>(
 pub async fn delete_jam<'e>(
     jam_id: &str,
     executor: impl sqlx::PgExecutor<'e>,
-) -> Result<real_time::Changed, sqlx::Error> {
+) -> Result<real_time::Changed, Error> {
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    sqlx::query!("DELETE FROM jams WHERE id = $1", jam_id)
+    let res = sqlx::query!("DELETE FROM jams WHERE id = $1", jam_id)
         .execute(executor)
         .await?;
+    if res.rows_affected() == 0 {
+        return Err(Error::DoesNotExist(format!(
+            "jam with id {} does not exist, could not delete jam, maybe it was already deleted",
+            jam_id
+        )));
+    }
     Ok(real_time::Changed::new().ended())
 }
 
@@ -139,7 +154,7 @@ pub async fn create_jam<'e>(
     host_id: &str,
     max_song_count: i16,
     transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
-    spotify_credentials: SpotifyCredentials,
+    credentials: SpotifyCredentials,
 ) -> Result<JamId, Error> {
     let jam_id = cuid2::CuidConstructor::new()
         .with_length(6)
@@ -160,10 +175,21 @@ pub async fn create_jam<'e>(
         Err(sqlx::Error::Database(e)) => {
             if e.message() == "duplicate key value violates unique constraint \"jams_host_id_key\""
             {
-                let jam_id = sqlx::query!("SELECT id FROM jams WHERE host_id=$1", host_id)
+                let jam_id = match sqlx::query!("SELECT id FROM jams WHERE host_id=$1", host_id)
                     .fetch_one(&mut **transaction)
-                    .await?
-                    .id;
+                    .await
+                {
+                    Ok(jam) => jam.id,
+                    Err(sqlx::Error::RowNotFound) => {
+                        return Err(Error::DoesNotExist(format!(
+                            "jam with host id {} does not exist, oooooo i don't know what happened",
+                            host_id
+                        )));
+                    }
+                    Err(e) => {
+                        return Err(e.into());
+                    }
+                };
                 return Err(Error::HostAlreadyInJam { jam_id });
             }
         }
@@ -180,6 +206,10 @@ pub async fn create_jam<'e>(
     .execute(&mut **transaction)
     .await?;
 
+    let song = get_next_song(&jam_id, &mut *transaction, credentials).await?;
+    let changed = set_current_song(&song, &jam_id, &mut *transaction).await?;
+    notify(changed, vec![], &jam_id, &mut *transaction).await?;
+
     Ok(jam_id)
 }
 
@@ -193,13 +223,19 @@ pub async fn set_current_song_position<'e>(
             "Percentage must be between 0 and 1".to_string(),
         ));
     }
-    sqlx::query!(
+    let res = sqlx::query!(
         "UPDATE jams SET song_position = $1 WHERE id = $2",
         percentage,
         jam_id
     )
     .execute(executor)
     .await?;
+    if res.rows_affected() == 0 {
+        return Err(Error::DoesNotExist(format!(
+            "jam with id {} does not exist, could not set song position",
+            jam_id
+        )));
+    }
     Ok(real_time::Changed::new().position())
 }
 
@@ -207,16 +243,27 @@ pub async fn get_current_song_position<'e>(
     jam_id: &str,
     executor: impl sqlx::PgExecutor<'e>,
 ) -> Result<f32, Error> {
-    let row = sqlx::query!("SELECT song_position FROM jams WHERE id = $1", jam_id)
+    let row = match sqlx::query!("SELECT song_position FROM jams WHERE id = $1", jam_id)
         .fetch_one(executor)
-        .await?;
+        .await
+    {
+        Ok(row) => row,
+        Err(sqlx::Error::RowNotFound) => {
+            return Err(Error::DoesNotExist(format!(
+                "jam with id {} does not exist, could not get song position",
+                jam_id
+            )))
+        }
+        Err(e) => return Err(e.into()),
+    };
+
     Ok(row.song_position)
 }
 
 pub async fn get_current_song<'e>(
     jam_id: &str,
     executor: impl sqlx::PgExecutor<'e>,
-) -> Result<Option<Song>, sqlx::Error> {
+) -> Result<Option<Song>, Error> {
     struct SongDb {
         pub id: String,
         pub spotify_id: String,
@@ -228,9 +275,19 @@ pub async fn get_current_song<'e>(
         pub image_url: String,
     }
 
-    let song = sqlx::query_as!(SongDb, "SELECT * FROM songs WHERE user_id=$1", jam_id)
+    let song = match sqlx::query_as!(SongDb, "SELECT * FROM songs WHERE user_id=$1", jam_id)
         .fetch_optional(executor)
-        .await?;
+        .await
+    {
+        Ok(song) => song,
+        Err(sqlx::Error::RowNotFound) => {
+            return Err(Error::DoesNotExist(format!(
+                "song with user id {} does not exist, could not get current song",
+                jam_id
+            )))
+        }
+        Err(e) => return Err(e.into()),
+    };
 
     let song = match song {
         Some(song) => song,
@@ -259,13 +316,15 @@ pub async fn get_current_song<'e>(
 pub async fn set_current_song<'e>(
     song: &Song,
     jam_id: &str,
-    executor: impl sqlx::PgExecutor<'e>,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
 ) -> Result<real_time::Changed, Error> {
-    let song_id = cuid2::create_id();
+    let song_id = cuid2::create_id(); // Generate a new song ID
 
-    sqlx::query!(
-        "UPDATE songs SET id = $1, name = $2, album = $3, duration = $4, artists = $5, image_url = $6, spotify_id = $7 WHERE user_id = $8",
-        song_id,
+    // Try to update the song first
+    let res = sqlx::query!(
+        "UPDATE songs 
+        SET name = $1, album = $2, duration = $3, artists = $4, image_url = $5, spotify_id = $6 
+        WHERE user_id = $7",
         song.name,
         song.album,
         song.duration as i32,
@@ -274,10 +333,28 @@ pub async fn set_current_song<'e>(
         song.spotify_id,
         jam_id
     )
-    .execute(executor)
+    .execute(&mut **transaction)
     .await?;
 
-    Ok(real_time::Changed::new().current_song())
+    // If no rows were affected, insert the new song
+    if res.rows_affected() == 0 {
+        sqlx::query!(
+            "INSERT INTO songs (id, name, album, duration, artists, image_url, spotify_id, user_id) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+            song_id,
+            song.name,
+            song.album,
+            song.duration as i32,
+            &song.artists,
+            song.image_url,
+            song.spotify_id,
+            jam_id
+        )
+        .execute(&mut **transaction)
+        .await?;
+    }
+
+    Ok(real_time::Changed::new().current_song()) // Return success
 }
 
 pub async fn dose_jam_exist<'e>(
@@ -291,51 +368,47 @@ pub async fn dose_jam_exist<'e>(
         .map_err(|e| e.into())
 }
 
-//pub async fn get_next_song<'e>(jam_id: &str, executor: impl sqlx::PgExecutor<'e>) -> Song {}
+pub async fn get_next_song<'e>(
+    jam_id: &str,
+    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
+    credentials: SpotifyCredentials,
+) -> Result<Song, Error> {
+    use super::*;
+    let top_song = get_top_song(transaction, jam_id.to_string()).await?;
+    if let Some(s) = top_song {
+        return Ok(s);
+    }
+
+    if let Ok(Some(s)) = get_next_song_from_player(jam_id, transaction, credentials.clone()).await {
+        return Ok(s);
+    }
+
+    if let Ok(s) = get_song_recommendation(credentials.clone(), jam_id, transaction).await {
+        return Ok(s);
+    }
+
+    let never_gonna = search("Never gonna give you up", transaction, jam_id, credentials)
+        .await?
+        .remove(0);
+    Ok(never_gonna)
+}
 
 pub async fn go_to_next_song<'e>(
-    jam_id: String,
+    jam_id: &str,
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     credentials: SpotifyCredentials,
 ) -> Result<Changed, Error> {
     use super::*;
 
-    let id = Id::new(IdType::General, jam_id);
+    let top_song = get_next_song(jam_id, transaction, credentials.clone()).await?;
 
-    let mut changed = Changed::new();
-    let top_song = get_top_song(transaction, id.jam_id.clone()).await?;
+    let changed = set_current_song(&top_song, jam_id, &mut *transaction).await?;
 
-    let top_song = match top_song {
-        Some(song) => Some(song),
-        None => {
-            match get_next_song_from_player(id.jam_id(), transaction, credentials.clone()).await {
-                Ok(song) => song,
-                Err(e) => {
-                    eprintln!(
-                        "Error getting next song from player: {:?}, playing rick roll",
-                        e
-                    );
-                    let songs = search(
-                        "Never gonna give you up",
-                        transaction,
-                        &id.jam_id,
-                        credentials.clone(),
-                    )
-                    .await?
-                    .remove(0);
-                    Some(songs)
-                }
-            }
-        }
-    };
+    let changed = reset_votes(jam_id, &mut **transaction)
+        .await?
+        .merge_with_other(changed);
 
-    if let Some(song) = top_song {
-        changed = changed
-            .merge_with_other(set_current_song(&song, id.jam_id(), &mut **transaction).await?);
-        changed = changed.merge_with_other(reset_votes(id.jam_id(), &mut **transaction).await?);
-
-        play_song(&song.spotify_id, id.jam_id(), transaction, credentials).await?;
-    };
+    play_song(&top_song.spotify_id, jam_id, transaction, credentials).await?;
 
     Ok(changed)
 }

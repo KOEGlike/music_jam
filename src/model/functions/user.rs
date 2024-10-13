@@ -1,3 +1,5 @@
+use sqlx::Transaction;
+
 use crate::model::types::*;
 
 ///only the jam is is used from the id
@@ -18,8 +20,8 @@ pub async fn get_users<'e>(
 
 pub async fn check_id_type<'e>(
     id: &str,
-    transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
-) -> Result<Id, sqlx::Error> {
+    transaction: &mut Transaction<'e, sqlx::Postgres>,
+) -> Result<Id, Error> {
     // Check if the ID exists in the hosts table
     let host_check = sqlx::query!("SELECT EXISTS(SELECT 1 FROM hosts WHERE id = $1)", id)
         .fetch_one(&mut **transaction)
@@ -51,16 +53,26 @@ pub async fn check_id_type<'e>(
         });
     }
 
-    Err(sqlx::Error::RowNotFound)
+    Err(Error::DoesNotExist(format!(
+        "user/host with id: {}, doesn't exist",
+        id
+    )))
 }
 
 pub async fn kick_user<'e>(
     user_id: &str,
     executor: impl sqlx::PgExecutor<'e>,
-) -> Result<real_time::Changed, sqlx::Error> {
-    sqlx::query!("DELETE FROM users WHERE id=$1;", user_id)
+) -> Result<real_time::Changed, Error> {
+    let res = sqlx::query!("DELETE FROM users WHERE id=$1;", user_id)
         .execute(executor)
         .await?;
+
+    if res.rows_affected() == 0 {
+        return Err(Error::DoesNotExist(format!(
+            "user with id: {} does not exist, could not kick",
+            user_id
+        )));
+    }
 
     Ok(real_time::Changed::new().users())
 }

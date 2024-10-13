@@ -102,7 +102,7 @@ async fn handle_message(
                         changed = changed.merge_with_other(changed_new);
                     }
                     Err(e) => {
-                        errors.push(e.into());
+                        errors.push(e);
                     }
                 };
             }
@@ -257,7 +257,7 @@ async fn handle_message(
             )
                 .await.is_err(){return;}
 
-            match go_to_next_song(id.jam_id.clone(), &mut transaction, credentials.clone()).await {
+            match go_to_next_song(id.jam_id(), &mut transaction, credentials.clone()).await {
                 Ok(changed_new) => {
                     changed = changed.merge_with_other(changed_new);
                 }

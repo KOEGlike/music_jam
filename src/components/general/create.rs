@@ -38,7 +38,7 @@ async fn create_jam(
     let mut transaction = app_state.db.pool.begin().await?;
     let credentials = app_state.spotify_credentials;
 
-    let res = match create_jam(
+    let jam_id = match create_jam(
         &name,
         &host_id,
         max_song_count,
@@ -47,40 +47,18 @@ async fn create_jam(
     )
     .await
     {
-        Ok(jam_id) => {
-            let song =
-                match get_current_song_from_player(&jam_id, &mut transaction, credentials.clone())
-                    .await
-                {
-                    Ok(song) => match song {
-                        Some(song) => song,
-                        None => search(
-                            "Never gonna give you up",
-                            &mut transaction,
-                            &jam_id,
-                            credentials.clone(),
-                        )
-                        .await?
-                        .remove(0),
-                    },
-                    Err(e) => return Err(e.into()),
-                };
-            if let Err(e) = set_current_song(&song, &jam_id, &mut *transaction).await {
-                return Err(ServerFnError::Request(format!(
-                    "Error setting current song: {:?}",
-                    e
-                )));
-            }
-            Ok(jam_id)
+        Ok(jam_id) => jam_id,
+        Err(Error::HostAlreadyInJam { jam_id }) => jam_id,
+        Err(e) => {
+            return Err(ServerFnError::Request(format!(
+                "Error creating jam: {:#?}",
+                e
+            )));
         }
-        Err(Error::HostAlreadyInJam { jam_id }) => Ok(jam_id),
-        Err(e) => Err(ServerFnError::Request(format!(
-            "Error creating jam: {:#?}",
-            e
-        ))),
     };
+
     transaction.commit().await?;
-    res
+    Ok(jam_id)
 }
 
 #[component]

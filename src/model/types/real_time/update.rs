@@ -199,7 +199,7 @@ impl Update {
         let votes_future = async {
             if changed.votes {
                 let mut transaction = transaction.lock().await;
-                update.clone().votes_from_jam(id, &mut **transaction).await
+                update.clone().votes_from_jam(id, &mut transaction).await
             } else {
                 update.clone()
             }
