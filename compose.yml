@@ -46,3 +46,5 @@ services:
 #   # replace app-network with your network name
 #   app-network:
 #     external: true
+volumes:
+  jam-db:

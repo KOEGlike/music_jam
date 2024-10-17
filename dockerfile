@@ -55,6 +55,6 @@ ENV LEPTOS_SITE_ROOT="site"
 
 EXPOSE 8080
 
-VOLUME [ "/app/site/uploads" ]
+VOLUME pfp-images [ "/app/site/uploads" ]
 # Run the server
 CMD ["/app/music_jam"]

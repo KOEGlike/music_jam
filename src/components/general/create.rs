@@ -33,7 +33,7 @@ async fn create_jam(
     host_id: String,
     max_song_count: i16,
 ) -> Result<JamId, ServerFnError> {
-    use crate::model::{create_jam, set_current_song, AppState, Error};
+    use crate::model::{create_jam, AppState, Error};
     let app_state = expect_context::<AppState>();
     let mut transaction = app_state.db.pool.begin().await?;
     let credentials = app_state.spotify_credentials;

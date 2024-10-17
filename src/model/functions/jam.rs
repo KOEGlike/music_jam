@@ -1,4 +1,4 @@
-use crate::model::types::*;
+use crate::model::{functions::jam, types::*};
 use leptos::{ev::play, logging::*, server_fn::redirect};
 use rand::seq::SliceRandom;
 use real_time::Changed;
@@ -170,33 +170,35 @@ pub async fn create_jam<'e>(
     )
     .execute(&mut **transaction)
     .await;
-    match error {
-        Ok(_) => (),
-        Err(sqlx::Error::Database(e)) => {
-            if e.message() == "duplicate key value violates unique constraint \"jams_host_id_key\""
+
+    println!("tried inserted new jam");
+
+    if let Err(sqlx::Error::Database(e)) = error {
+        if e.message() == "duplicate key value violates unique constraint \"jams_host_id_key\"" {
+            let jam_id = match sqlx::query!("SELECT id FROM jams WHERE host_id=$1", host_id)
+                .fetch_one(&mut **transaction)
+                .await
             {
-                let jam_id = match sqlx::query!("SELECT id FROM jams WHERE host_id=$1", host_id)
-                    .fetch_one(&mut **transaction)
-                    .await
-                {
-                    Ok(jam) => jam.id,
-                    Err(sqlx::Error::RowNotFound) => {
-                        return Err(Error::DoesNotExist(format!(
-                            "jam with host id {} does not exist, oooooo i don't know what happened",
-                            host_id
-                        )));
-                    }
-                    Err(e) => {
-                        return Err(e.into());
-                    }
-                };
-                return Err(Error::HostAlreadyInJam { jam_id });
-            }
+                Ok(jam) => jam.id,
+                Err(sqlx::Error::RowNotFound) => {
+                    println!("idk what happened");
+                    return Err(Error::DoesNotExist(format!(
+                        "jam with host id {} does not exist, oooooo i don't know what happened",
+                        host_id
+                    )));
+                }
+                Err(e) => {
+                    println!("error getting already existing jam id");
+                    return Err(e.into());
+                }
+            };
+            println!("the host was already in jam: {}", jam_id);
+            return Err(Error::HostAlreadyInJam { jam_id });
         }
-        Err(e) => {
-            return Err(e.into());
-        }
+    } else {
+        error?;
     }
+    println!("trying to insert jam user");
 
     sqlx::query!(
         "INSERT INTO users (id, jam_id, name) VALUES ($1, $1, $2)",
@@ -206,10 +208,15 @@ pub async fn create_jam<'e>(
     .execute(&mut **transaction)
     .await?;
 
+    println!("getting next song");
+
     let song = get_next_song(&jam_id, &mut *transaction, credentials).await?;
+    println!("trying to set current song");
     let changed = set_current_song(&song, &jam_id, &mut *transaction).await?;
+    println!("trying to notify");
     notify(changed, vec![], &jam_id, &mut *transaction).await?;
 
+    println!("successfully created jam with id: {}", jam_id);
     Ok(jam_id)
 }
 
