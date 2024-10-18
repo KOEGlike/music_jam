@@ -156,12 +156,47 @@ pub async fn create_jam<'e>(
     transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     credentials: SpotifyCredentials,
 ) -> Result<JamId, Error> {
+    println!("checking if jam exists");
+    let jam_exists = sqlx::query!(
+        "SELECT EXISTS(SELECT 1 FROM jams WHERE host_id=$1)",
+        host_id
+    )
+    .fetch_one(&mut **transaction)
+    .await?
+    .exists
+    .unwrap_or(false);
+
+    if jam_exists {
+        println!("host already in jam");
+        match sqlx::query!("SELECT id FROM jams WHERE host_id=$1", host_id)
+            .fetch_one(&mut **transaction)
+            .await
+        {
+            Ok(jam) => {
+                return Err(Error::HostAlreadyInJam { jam_id: jam.id });
+            }
+            Err(sqlx::Error::RowNotFound) => {
+                println!("idk what happened");
+                return Err(Error::DoesNotExist(format!(
+                    "jam with host id {} does not exist, oooooo i don't know what happened",
+                    host_id
+                )));
+            }
+            Err(e) => {
+                println!("error getting already existing jam id: {:#?}", e);
+                return Err(e.into());
+            }
+        };
+    }
+
     let jam_id = cuid2::CuidConstructor::new()
         .with_length(6)
         .create_id()
         .to_lowercase();
 
-    let error = sqlx::query!(
+    println!("trying to insert jam");
+
+    sqlx::query!(
         "INSERT INTO jams (id, max_song_count, host_id, name) VALUES ($1, $2, $3, $4)",
         &jam_id,
         &max_song_count,
@@ -169,35 +204,10 @@ pub async fn create_jam<'e>(
         name
     )
     .execute(&mut **transaction)
-    .await;
+    .await?;
 
-    println!("tried inserted new jam");
+    println!("inserted new jam");
 
-    if let Err(sqlx::Error::Database(e)) = error {
-        if e.message() == "duplicate key value violates unique constraint \"jams_host_id_key\"" {
-            let jam_id = match sqlx::query!("SELECT id FROM jams WHERE host_id=$1", host_id)
-                .fetch_one(&mut **transaction)
-                .await
-            {
-                Ok(jam) => jam.id,
-                Err(sqlx::Error::RowNotFound) => {
-                    println!("idk what happened");
-                    return Err(Error::DoesNotExist(format!(
-                        "jam with host id {} does not exist, oooooo i don't know what happened",
-                        host_id
-                    )));
-                }
-                Err(e) => {
-                    println!("error getting already existing jam id");
-                    return Err(e.into());
-                }
-            };
-            println!("the host was already in jam: {}", jam_id);
-            return Err(Error::HostAlreadyInJam { jam_id });
-        }
-    } else {
-        error?;
-    }
     println!("trying to insert jam user");
 
     sqlx::query!(
