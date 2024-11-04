@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use crate::components::{host::Player, Share, SongList, SongListAction, UsersBar};
+use crate::components::{host::Player, Modal, Share, SongList, SongListAction, UsersBar};
 use crate::model::types::*;
 use codee::binary::MsgpackSerdeCodec;
 use gloo::storage::{LocalStorage, Storage};
@@ -15,6 +15,8 @@ use leptos_use::{use_websocket, UseWebSocketReturn};
 
 #[component]
 pub fn HostPage() -> impl IntoView {
+    let (error_message, set_error_message) = signal(String::new());
+
     let (host_id, set_host_id) = signal(String::new());
     let host_id = Memo::new(move |_| {
         if host_id.with(String::is_empty) {
@@ -144,7 +146,7 @@ pub fn HostPage() -> impl IntoView {
                 match initial_update.get().map(|r| r.deref().clone()) {
                     Some(Ok(update)) => Some(update),
                     Some(Err(e)) => {
-                        error!("Error getting initial update: {:#?}", e);
+                        warn!("Error getting initial update: {:#?}", e);
                         None
                     }
                     None => None,
@@ -160,7 +162,7 @@ pub fn HostPage() -> impl IntoView {
                     set_votes(votes);
                 }
                 if !update.errors.is_empty() {
-                    error!("Errors: {:#?}", update.errors);
+                    set_error_message(format!("Errors: {:#?}", update.errors));
                 }
                 if update.ended.is_some() {
                     close_ws();
@@ -168,13 +170,13 @@ pub fn HostPage() -> impl IntoView {
                     navigator("/", NavigateOptions::default());
                 }
                 if update.search.is_some() {
-                    error!("Unexpected search update");
+                    warn!("Unexpected search update");
                 }
                 if update.position.is_some() {
-                    error!("Unexpected position update");
+                    warn!("Unexpected position update");
                 }
                 if update.current_song.is_some() {
-                    error!("Unexpected current song update");
+                    warn!("Unexpected current song update");
                 }
             }
         });
@@ -184,6 +186,14 @@ pub fn HostPage() -> impl IntoView {
         close.get_untracked().run(());
     });
     view! {
+        <Modal visible=Signal::derive(move || {
+            error_message.with(|e| !e.is_empty())
+        })>
+            {error_message}
+            <button on:click=move |_| {
+                set_error_message(String::new());
+            }>"Close"</button>
+        </Modal>
         <Title text=move || {
             jam
                 .value()()

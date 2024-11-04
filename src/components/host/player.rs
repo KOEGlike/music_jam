@@ -1,4 +1,6 @@
-use crate::components::general;
+use std::time::Duration;
+
+use crate::components::general::{self, modal::*};
 use gloo::timers::callback::Interval;
 use leptos::{
     either::*,
@@ -17,12 +19,11 @@ pub fn Player(
     #[prop(into)] set_song_position: Callback<f32>,
     #[prop(into)] next_song: Callback<()>,
 ) -> impl IntoView {
+    let (error_message, set_error_message) = signal(String::new());
+
     let set_global_song_position = set_song_position;
 
     let (player_is_connected, set_player_is_connected) = signal(false);
-
-    //let (current_song_id, set_current_song_id) = signal(String::new());
-    //let current_song_id = Memo::new(move |_| current_song_id());
 
     let (current_song, set_current_song) = signal(None::<model::Song>);
     let (song_position, set_song_position) = signal(0);
@@ -55,7 +56,6 @@ pub fn Player(
                 if let Some(host_id) = host_id.get_untracked() {
                     get_access_token(host_id).await
                 } else {
-                    error!("host id is empty, act");
                     Err(ServerFnError::Request("Host id is empty".to_string()))
                 }
             }
@@ -68,10 +68,10 @@ pub fn Player(
             async move {
                 if let Some(host_id) = host_id.get_untracked() {
                     if let Err(e) = change_playback_device(device_id, host_id).await {
-                        error!("Error switching device: {:?}", e);
+                        set_error_message(format!("Error switching device: {:?}", e));
                     }
                 } else {
-                    error!("host id is empty, act");
+                    set_error_message("host id is empty, act".into());
                 }
             }
         })
@@ -84,40 +84,63 @@ pub fn Player(
                     set_player_is_connected(true);
                 }
                 Err(e) => {
-                    error!("error while connecting to spotify:{:?}", e);
+                    set_error_message(format!("error while connecting to spotify:{:?}", e));
                 }
             }
         })
     };
 
     Effect::new(move |_| {
-        if !sp::player_ready() && host_id.with(Option::is_some) {
-            if let Some(Ok(token_value)) = token.value().get() {
-                log!("initializing player with token: {:?}", token_value);
-                sp::init(
-                    move || {
-                        token.dispatch(());
-                        token_value.access_token.clone()
-                    },
-                    move || {
-                        if let Err(e) = sp::add_listener!("player_state_changed", on_update) {
-                            error!("Error adding listener: {:?}", e);
-                        }
-                        if let Err(e) = sp::add_listener!("ready", move |player: sp::Player| {
-                            switch_device.dispatch(player.device_id);
-                        }) {
-                            error!("Error adding listener: {:?}", e);
-                        }
-                        connect();
-                    },
-                    "jam",
-                    1.0,
-                    false,
-                );
-            } else {
+        let dispatch_token = move || {
+            spawn_local(async move {
+                use gloo::timers::future::sleep;
+                sleep(Duration::from_millis(1_000)).await;
                 token.dispatch(());
-            }
+            });
+        };
+
+        if sp::player_ready() && !host_id.with(Option::is_some) {
+            return;
         }
+
+        let token_value = match token.value().get() {
+            Some(token) => token,
+            None => {
+                dispatch_token();
+                return;
+            }
+        };
+
+        let token_value = match token_value {
+            Ok(token) => token,
+            Err(e) => {
+                dispatch_token();
+                set_error_message(format!("Error getting token: {:?}", e));
+                return;
+            }
+        };
+
+        log!("initializing player with token: {:?}", token_value);
+        sp::init(
+            move || {
+                token.dispatch(());
+                token_value.access_token.clone()
+            },
+            move || {
+                if let Err(e) = sp::add_listener!("player_state_changed", on_update) {
+                    set_error_message(format!("Error adding listener: {:?}", e));
+                }
+                if let Err(e) = sp::add_listener!("ready", move |player: sp::Player| {
+                    switch_device.dispatch(player.device_id);
+                }) {
+                    set_error_message(format!("Error adding listener: {:?}", e));
+                }
+                connect();
+            },
+            "jam",
+            1.0,
+            false,
+        );
     });
 
     let is_loaded = Memo::new(move |_| player_is_connected() && host_id.with(Option::is_some));
@@ -129,7 +152,7 @@ pub fn Player(
     let toggle_play = move || {
         spawn_local(async move {
             if let Err(e) = sp::toggle_play().await {
-                error!("Error toggling play: {:?}", e);
+                set_error_message(format!("Error toggling play: {:?}", e));
             }
         })
     };
@@ -178,6 +201,14 @@ pub fn Player(
     });
 
     view! {
+        <Modal visible=Signal::derive(move || {
+            error_message.with(|e| !e.is_empty())
+        })>
+            {error_message}
+            <button on:click=move |_| {
+                set_error_message("".into());
+            }>"close"</button>
+        </Modal>
         <general::Player current_song position=position_percentage>
             <button
                 on:click=move |_| {
