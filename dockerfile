@@ -18,7 +18,7 @@ WORKDIR /app
 COPY . .
 
 ENV SQLX_OFFLINE=true
-ENV LETPOS_WASM_OPT_VERSION=0.9.0
+ENV LETPOS_WASM_OPT_VERSION=versoin_119
 # RUN cargo sqlx prepare
 
 # Build the app
