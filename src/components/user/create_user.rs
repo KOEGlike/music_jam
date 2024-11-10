@@ -5,7 +5,7 @@ use gloo::{
 };
 use leptos::{
     either::Either,
-    logging::{error, log},
+    logging::*,
     prelude::*,
     *,
 };

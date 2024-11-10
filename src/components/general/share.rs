@@ -1,4 +1,4 @@
-use leptos::{logging::log, prelude::*, *};
+use leptos::{logging::*, prelude::*, *};
 use qrcode::render::svg;
 use qrcode::{EcLevel, QrCode, Version};
 

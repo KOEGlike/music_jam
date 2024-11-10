@@ -1,5 +1,5 @@
 use crate::components::user::CreateUser;
-use leptos::{either::*, prelude::*};
+use leptos::{either::*, prelude::*, logging::*};
 
 use leptos_router::{hooks::*, params::*, *};
 
