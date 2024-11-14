@@ -5,3 +5,7 @@ rustflags = ["--cfg=web_sys_unstable_apis", "--cfg=sqlx_macros_unstable","-Z", "
 LEPTOS_WASM_OPT_VERSION="version_119"
 LEPTOS_SASS_VERSION = "1.71.0"
 RUST_BACKTRACE = "1"
+
+
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "target-feature=+bulk-memory"]
