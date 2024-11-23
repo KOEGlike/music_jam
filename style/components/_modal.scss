@@ -1,23 +1,27 @@
 @use '../defaults' as *;
 
+.modal-wrapper {
+	z-index: 99;
+	position: fixed;
+  	display: flex;
+  	justify-content: center;
+  	align-items: center;
+}
 
 .modal{
 	@extend .glass;
-	position: fixed;
 	z-index: 100;
-	top: 50vh;
-	left: 50vw;
-	transform: translate(-50%, -50%);
 	border-radius: map-get($border-radiuses, "medium");
 	max-width: 600px;
 	max-height: 350px;
 
-	>div {
-		height: 100%;
-		width: 100%;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-	}
+	min-width: 500px;
+	min-height: 200px;
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+
+	position: relative;
 }
