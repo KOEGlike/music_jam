@@ -378,11 +378,14 @@ pub async fn dose_jam_exist<'e>(
     jam_id: &str,
     executor: impl sqlx::PgExecutor<'e>,
 ) -> Result<bool, Error> {
-    sqlx::query!("SELECT EXISTS(SELECT 1 FROM jams WHERE id=$1)", jam_id)
-        .fetch_one(executor)
-        .await
-        .map(|b| b.exists.unwrap_or(false))
-        .map_err(|e| e.into())
+    sqlx::query!(
+        "SELECT EXISTS(SELECT 1 FROM jams WHERE id=$1)",
+        jam_id.to_lowercase()
+    )
+    .fetch_one(executor)
+    .await
+    .map(|b| b.exists.unwrap_or(false))
+    .map_err(|e| e.into())
 }
 
 pub async fn get_next_song<'e>(

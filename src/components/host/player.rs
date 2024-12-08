@@ -135,6 +135,7 @@ pub fn Player(
                 }) {
                     set_error_message(format!("Error adding listener: {:?}", e));
                 }
+                log!("player ready");
                 connect();
             },
             "jam",

@@ -13,11 +13,11 @@ pub enum SongAction {
     Vote {
         add_vote: Callback<String>,
         remove_vote: Callback<String>,
-        vote: MaybeSignal<Vote>,
+        vote: Signal<Vote>,
     },
     Remove {
         remove: Callback<String>,
-        vote: MaybeSignal<Vote>,
+        vote: Signal<Vote>,
     },
     Add(Callback<String>),
 }
