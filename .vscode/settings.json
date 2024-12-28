@@ -33,7 +33,8 @@
         "sqlx",
         "stylesheet",
         "tachys",
-        "thiserror"
+        "thiserror",
+        "unsync"
     ],
     "rust-analyzer.cargo.features":[
         "ssr",
@@ -45,5 +46,11 @@
     "rust-analyzer.rustfmt.overrideCommand": ["leptosfmt", "--stdin", "--rustfmt"],
     "[rust]": {
         "editor.formatOnSave": true
-    }
+    },
+    "rust-analyzer.procMacro.ignored": {
+    "leptos_macro": [
+        "component",
+        "server"
+    ],
+},
 }

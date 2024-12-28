@@ -52,7 +52,7 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/test-share") view=ShareTest/>
                     <Route path=path!("/test-search") view=SearchTest/>
                     <Route path=path!("/test-user-player") view=UserPlayerTest/>
-                    <Route path=path!("/test-player") view=Player/>
+                    <Route path=path!("/test-sdk") view=SDKTest/>
                     <Route path=path!("/test-song-list") view=SongListTest/>
                 </Routes>
             </main>
@@ -261,22 +261,22 @@ fn UserPlayerTest() -> impl IntoView {
 }
 
 #[component]
-fn Player() -> impl IntoView {
+fn SDKTest() -> impl IntoView {
     use leptos::either::EitherOf3;
-    use leptos::logging::log;
+    use leptos::logging::*;
     use rust_spotify_web_playback_sdk::prelude as sp;
 
     let (current_song_name, set_current_song_name) = signal(String::new());
 
-    let token = "BQAZ4oo4rm2B6DVW7SSrBgN9k9K6jw3Nk0UHKXnz9W1HU-oPWWPdXd3j7KjKFtO0dr399QrjEG-HkBd_dpEJi5VtijInn_WPPaffGK3TNHSnBxIiaeudshoGz3gDJsVpZNbqocpVc-7CCCe1kb0jGnDCLE2HpvWJYnkNR2w2pkkuxTedEg0KhfW40Ejs8tKyE7AsJS1oPeGIkmheR2p9SaIxn08C3ztxMXoi";
+    let token = "BQA7ffYb5jY2Ahm1zInbamFfF02shMeoCxX8ccqurw_hlkyzGMtWqL9vFWsef9lq8ahTx4whfzjcodUaGnOoZ4o3954CDkNSkoQ-Nk1zLi9ky7ymq5ErMOza98gH8Cv6dzfqm2Rwr2gbo6P-JY4mSHhzSOEPUxMkJ6afUrIdRoJRJ4NM6buVwZxuBv46AC8vUacBvhkBfJUzt6WvsI9A5g16RcvIPqlHpqS8";
 
-    let connect = move || {
-        task::spawn_local(async move {
+    let connect = || {
+        spawn_local(async {
             match sp::connect().await {
                 Ok(_) => log!("connected"),
                 Err(e) => log!("error {:?}", e),
             };
-        })
+        });
     };
 
     Effect::new(move |_| {
@@ -287,13 +287,16 @@ fn Player() -> impl IntoView {
             },
             move || {
                 log!("ready");
+
+                let res =
+                    sp::add_listener!("player_state_changed", move |state: sp::StateChange| {
+                        log!("state changed, {}", state.track_window.current_track.name);
+                        set_current_song_name(state.track_window.current_track.name);
+                    });
                 connect();
 
-                sp::add_listener!("player_state_changed", move |state: sp::StateChange| {
-                    log!("state changed: {:#?}", state);
-                    set_current_song_name(state.track_window.current_track.name);
-                })
-                .unwrap();
+                log!("res ");
+                log!("{:?}", res);
             },
             "example player",
             1.0,
@@ -301,27 +304,23 @@ fn Player() -> impl IntoView {
         );
     });
 
-    let get_state = move || {
-        spawn_local(async move {
+    let get_state = || {
+        spawn_local(async {
             let state = sp::get_current_state().await.unwrap();
-            log!("state: {:#?}", state);
-        })
+            log!("{:#?}", state);
+        });
     };
 
-    let (err, set_err) = signal(Option::None);
-    let activate_player = move || {
-        spawn_local(async move {
-            set_err(Some(sp::activate_element().await));
-        })
-    };
+    let activate_player: Action<_, _> =
+        Action::new_unsync(|_| async { sp::activate_element().await });
 
     view! {
         <h1>"Welcome to Leptos"</h1>
         <button on:click=move |_| {
-            activate_player();
+            activate_player.dispatch(());
         }>"activate player"</button>
 
-        {move || match err() {
+        {move || match activate_player.value().get() {
             Some(Ok(_)) => {
                 EitherOf3::A(
                     view! {

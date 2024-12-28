@@ -1,6 +1,6 @@
 use crate::components::modal::*;
 use crate::components::user::SpinnyLoading;
-use leptos::{either::EitherOf3, prelude::*, tachys::view, task::spawn_local};
+use leptos::{either::EitherOf3, prelude::*, task::spawn_local};
 use leptos_router::{hooks::use_navigate, NavigateOptions};
 
 #[server]
