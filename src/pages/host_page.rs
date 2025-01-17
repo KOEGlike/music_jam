@@ -46,18 +46,16 @@ pub fn HostPage() -> impl IntoView {
 
     let jam_id = move || use_params_map().with(|params| params.get("id"));
     let jam_id = Signal::derive(jam_id);
-    let (jam_id_new, set_jam_id) = signal(String::new());
-    Effect::new(move |_| {
-        let jam_id = jam_id();
-        if let Some(jam_id) = jam_id {
-            set_jam_id(jam_id);
-        }
-    });
-    Effect::new(move |_| log!("jam_id:{:?}", jam_id()));
-    let jam_id = jam_id_new;
 
     let jam = Action::new(move |_: &()| async move {
-        let jam_id = jam_id.get_untracked();
+        let jam_id = match jam_id.get_untracked() {
+            Some(jam_id) => jam_id,
+            None => {
+                let navigator = use_navigate();
+                navigator("/", NavigateOptions::default());
+                return Err(ServerFnError::Request("no jam id".to_string()));
+            }
+        };
 
         get_jam(jam_id).await
     });
@@ -184,6 +182,12 @@ pub fn HostPage() -> impl IntoView {
     let close = Callback::new(move |_| {
         close.get_untracked().run(());
     });
+    let jam_id_or_empty = Signal::derive(move || {
+        jam.value()()
+            .map(|jam| jam.map(|jam| jam.id))
+            .unwrap_or(Ok("".to_string()))
+            .unwrap_or_default()
+    });
     view! {
         <Modal visible=Signal::derive(move || {
             error_message.with(|e| !e.is_empty())
@@ -217,7 +221,7 @@ pub fn HostPage() -> impl IntoView {
                     })
                 />
 
-                <Share jam_id/>
+                <Share jam_id=jam_id_or_empty/>
             </div>
         </div>
     }

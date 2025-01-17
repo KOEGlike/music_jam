@@ -8,6 +8,7 @@ use leptos::{
     prelude::*,
     *,
 };
+use leptos_router::hooks::use_navigate;
 use rust_spotify_web_playback_sdk::prelude as sp;
 use task::spawn_local;
 
@@ -49,30 +50,16 @@ pub fn Player(
         }));
     };
 
-    let token = {
-        Action::new(move |_: &()| {
-            log!("getting token for host_id:{:?}", host_id.get_untracked());
-            async move {
-                if let Some(host_id) = host_id.get_untracked() {
-                    get_access_token(host_id).await
-                } else {
-                    Err(ServerFnError::Request("Host id is empty".to_string()))
+    let switch_device = move |device_id: String| {
+        spawn_local(async move {
+            if let Some(host_id) = host_id.get_untracked() {
+                if let Err(e) = change_playback_device(device_id, host_id).await {
+                    set_error_message(format!("Error switching device: {:?}", e));
                 }
-            }
-        })
-    };
-
-    let switch_device = {
-        Action::new(move |device_id: &String| {
-            let device_id = device_id.clone();
-            async move {
-                if let Some(host_id) = host_id.get_untracked() {
-                    if let Err(e) = change_playback_device(device_id, host_id).await {
-                        set_error_message(format!("Error switching device: {:?}", e));
-                    }
-                } else {
-                    set_error_message("host id is empty, act".into());
-                }
+            } else {
+                use leptos_router::NavigateOptions;
+                set_error_message("host id is empty, act".into());
+                use_navigate()("/", NavigateOptions::default());
             }
         })
     };
@@ -90,58 +77,81 @@ pub fn Player(
         })
     };
 
-    Effect::new(move |_| {
-        let dispatch_token = move || {
-            spawn_local(async move {
-                use gloo::timers::future::sleep;
-                sleep(Duration::from_millis(1_000)).await;
-                token.dispatch(());
-            });
-        };
+    let get_token = {
+        let host_id = host_id.clone();
+        let set_error_message = set_error_message.clone();
+        async move || {
+            use gloo::timers::future::sleep;
 
-        if sp::player_ready() && !host_id.with(Option::is_some) {
-            return;
+            let mut token = Err(ServerFnError::Request("token error".to_string()));
+            let mut res = None;
+            while token.is_err() {
+                token = {
+                    if let Some(host_id) = host_id.get_untracked() {
+                        get_access_token(host_id).await
+                    } else {
+                        use leptos_router::NavigateOptions;
+                        use_navigate()("/", NavigateOptions::default());
+                        error!("host id is empty");
+                        Err(ServerFnError::Request("host id is empty".to_string()))
+                    }
+                };
+                match &token {
+                    Err(e) => {
+                        set_error_message(format!("Error getting token: {:?}", e));
+                        error!("Error getting token: {:?}", e);
+                        sleep(Duration::from_secs(2)).await;
+                    }
+                    Ok(token) => {
+                        res = Some(token.clone());
+                        break;
+                    }
+                }
+            }
+            if let Some(token) = res {
+                token
+            } else {
+                panic!("token error");
+            }
         }
+    };
 
-        let token_value = match token.value().get() {
-            Some(token) => token,
-            None => {
-                dispatch_token();
+    let get_token_action = Action::new_local(move |_: &()| async move { get_token().await });
+
+    Effect::new(move || {
+        spawn_local(async move {
+            if sp::player_ready() && !host_id.with(Option::is_some) {
                 return;
             }
-        };
+            let token = get_token().await;
+            get_token_action.dispatch(());
 
-        let token_value = match token_value {
-            Ok(token) => token,
-            Err(e) => {
-                dispatch_token();
-                set_error_message(format!("Error getting token: {:?}", e));
-                return;
-            }
-        };
-
-        log!("initializing player with token: {:?}", token_value);
-        sp::init(
-            move || {
-                token.dispatch(());
-                token_value.access_token.clone()
-            },
-            move || {
-                if let Err(e) = sp::add_listener!("player_state_changed", on_update) {
-                    set_error_message(format!("Error adding listener: {:?}", e));
-                }
-                if let Err(e) = sp::add_listener!("ready", move |player: sp::Player| {
-                    switch_device.dispatch(player.device_id);
-                }) {
-                    set_error_message(format!("Error adding listener: {:?}", e));
-                }
-                log!("player ready");
-                connect();
-            },
-            "jam",
-            1.0,
-            false,
-        );
+            log!("initializing player with token: {:?}", token);
+            sp::init(
+                move || {
+                    let t = match get_token_action.value().get_untracked() {
+                        Some(t) => t,
+                        None => token.clone(),
+                    };
+                    t.access_token
+                },
+                move || {
+                    if let Err(e) = sp::add_listener!("player_state_changed", on_update) {
+                        set_error_message(format!("Error adding listener: {:?}", e));
+                    }
+                    if let Err(e) = sp::add_listener!("ready", move |player: sp::Player| {
+                        switch_device(player.device_id);
+                    }) {
+                        set_error_message(format!("Error adding listener: {:?}", e));
+                    }
+                    log!("player ready");
+                    connect();
+                },
+                "jam",
+                1.0,
+                false,
+            );
+        });
     });
 
     let is_loaded = Memo::new(move |_| player_is_connected() && host_id.with(Option::is_some));
