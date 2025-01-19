@@ -11,6 +11,7 @@ use leptos::{
 use leptos_router::hooks::use_navigate;
 use rust_spotify_web_playback_sdk::prelude as sp;
 use task::spawn_local;
+use wasm_bindgen::JsValue;
 
 use crate::model;
 
@@ -52,14 +53,16 @@ pub fn Player(
 
     let switch_device = move |device_id: String| {
         spawn_local(async move {
-            if let Some(host_id) = host_id.get_untracked() {
-                if let Err(e) = change_playback_device(device_id, host_id).await {
-                    set_error_message(format!("Error switching device: {:?}", e));
+            if let Some(host_id) = host_id.try_get_untracked() {
+                if let Some(host_id) = host_id {
+                    if let Err(e) = change_playback_device(device_id, host_id).await {
+                        set_error_message(format!("Error switching device: {:?}", e));
+                    }
+                } else {
+                    use leptos_router::NavigateOptions;
+                    set_error_message("host id is empty, act".into());
+                    use_navigate()("/", NavigateOptions::default());
                 }
-            } else {
-                use leptos_router::NavigateOptions;
-                set_error_message("host id is empty, act".into());
-                use_navigate()("/", NavigateOptions::default());
             }
         })
     };
@@ -167,6 +170,7 @@ pub fn Player(
             }
         })
     };
+
     let position_update = move || {
         spawn_local(async move {
             if is_loaded.get_untracked() {
@@ -176,15 +180,49 @@ pub fn Player(
             }
         })
     };
-
     Effect::new(move |_| {
         if is_loaded() {
-            let position_update = Interval::new(100, move || {
-                position_update();
-            });
-            position_update.forget();
+            leptos_use::use_interval_fn(
+                move || {
+                    position_update();
+                },
+                100,
+            );
         }
     });
+
+    /*let (position_interval_id, set_position_interval_id) = signal_local(JsValue::UNDEFINED);
+    Effect::new(move |_| {
+        if is_loaded() {
+            let position_update_interval = Interval::new(100, move || {
+                position_update();
+            });
+            set_position_interval_id(position_update_interval.forget());
+        }
+    });
+
+    on_cleanup(move || {
+        let interval_id = position_interval_id.get_untracked();
+        if interval_id != JsValue::UNDEFINED {
+            let window = match web_sys::window() {
+                Some(w) => w,
+                None => {
+                    error!("Error getting window object to clear position interval");
+                    return;
+                }
+            };
+
+            let interval_id = match interval_id.as_f64() {
+                Some(i) => i,
+                None => {
+                    error!("Error getting interval id as f64 to clear position interval");
+                    return;
+                }
+            };
+
+            window.clear_interval_with_handle(interval_id as i32);
+        }
+    });*/
 
     let position_percentage = Signal::derive(move || {
         song_position() as f32

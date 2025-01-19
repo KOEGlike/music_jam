@@ -139,7 +139,7 @@ pub async fn get_song_recommendation<'e>(
     let mut tracks = client
         .current_user_top_tracks_manual(
             Some(rspotify::model::TimeRange::ShortTerm),
-            Some(1),
+            Some(3),
             Some(0),
         )
         .await?;

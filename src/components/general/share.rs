@@ -23,6 +23,10 @@ async fn save_to_clipboard(text: &str) {
 pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
     let (base_url, set_base_url) = signal(String::new());
 
+    Effect::new(move |_| {
+        log!("share jam_id: {}", jam_id());
+    });
+
     if cfg!(target_arch = "wasm32") {
         match web_sys::window() {
             Some(window) => {
@@ -42,34 +46,36 @@ pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
         }
     }
 
-    let qr = move || match QrCode::with_version(
-        jam_id.with(move |id| base_url.with(move |url| format!("{}/create-user/{}", url, id))),
-        Version::Normal(10),
-        EcLevel::Q,
-    ) {
-        Ok(qr) => qr
-            .render()
-            .quiet_zone(false)
-            .min_dimensions(400, 400)
-            .dark_color(svg::Color("#ffffff"))
-            .light_color(svg::Color("#00000000"))
-            .build(),
-        Err(e) => {
-            error!("error generating qr code: {:?}", e);
-            "".to_string()
+    let qr = Signal::derive(move || {
+        match QrCode::with_version(
+            jam_id.with(move |id| base_url.with(move |url| format!("{}/create-user/{}", url, id))),
+            Version::Normal(10),
+            EcLevel::Q,
+        ) {
+            Ok(qr) => qr
+                .render()
+                .quiet_zone(false)
+                .min_dimensions(400, 400)
+                .dark_color(svg::Color("#ffffff"))
+                .light_color(svg::Color("#00000000"))
+                .build(),
+            Err(e) => {
+                error!("error generating qr code: {:?}", e);
+                "".to_string()
+            }
         }
-    };
-    let jam_id = move || jam_id().to_uppercase();
-    let jam_id = Signal::derive(jam_id);
+    });
+    let jam_id = Signal::derive(move || jam_id.get().to_uppercase());
 
     view! {
         <div class="share">
             <div inner_html=qr></div>
-            {jam_id}
+            {move || jam_id.get()}
             <button
                 class="button"
                 on:click=move |_| {
-                    jam_id.with_untracked(|id| log!("{}", id));
+                    let id = jam_id.read_untracked();
+                    log!("copying to clipboard: {}", id);
                     task::spawn_local(async move {
                         save_to_clipboard(&jam_id.get_untracked()).await
                     });

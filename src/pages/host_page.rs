@@ -33,37 +33,32 @@ pub fn HostPage() -> impl IntoView {
         set_host_id(host_id);
     });
 
-    let initial_update = LocalResource::new(move || {
-        let host_id = host_id.get();
-        async move {
-            if let Some(host_id) = host_id {
-                get_initial_update(host_id).await
-            } else {
-                Err(ServerFnError::Request("host_id is empty".to_string()))
-            }
+    let initial_update = Resource::new(host_id, move |host_id| async move {
+        if let Some(host_id) = host_id {
+            get_initial_update(host_id).await
+        } else {
+            Err(ServerFnError::Request("host_id is empty".to_string()))
         }
     });
 
     let jam_id = move || use_params_map().with(|params| params.get("id"));
     let jam_id = Signal::derive(jam_id);
 
-    let jam = Action::new(move |_: &()| async move {
-        let jam_id = match jam_id.get_untracked() {
-            Some(jam_id) => jam_id,
-            None => {
-                let navigator = use_navigate();
-                navigator("/", NavigateOptions::default());
-                return Err(ServerFnError::Request("no jam id".to_string()));
-            }
-        };
-
-        get_jam(jam_id).await
+    let jam = Resource::new(jam_id, move |jam_id| async move {
+        match jam_id {
+            Some(jam_id) => get_jam(jam_id).await,
+            None => Err(ServerFnError::Request("jam_id is empty".to_string())),
+        }
     });
-    Effect::new(move |_| jam.dispatch(()));
+
     Effect::new(move |_| {
-        if let Some(jam_val) = jam.value().get() {
+        log!("jam: {:#?}", jam.get());
+    });
+
+    Effect::new(move |_| {
+        if let Some(jam_val) = jam.get() {
             if jam_val.is_err() {
-                jam.dispatch(());
+                jam.refetch();
             }
         }
     });
@@ -139,15 +134,13 @@ pub fn HostPage() -> impl IntoView {
         set_close(close);
 
         Effect::new(move |_| {
-            if let Some(update) = message.get().or_else(move || {
-                match initial_update.get().map(|r| r.deref().clone()) {
-                    Some(Ok(update)) => Some(update),
-                    Some(Err(e)) => {
-                        warn!("Error getting initial update: {:#?}", e);
-                        None
-                    }
-                    None => None,
+            if let Some(update) = message.get().or_else(move || match initial_update.get() {
+                Some(Ok(update)) => Some(update),
+                Some(Err(e)) => {
+                    warn!("Error getting initial update: {:#?}", e);
+                    None
                 }
+                None => None,
             }) {
                 if let Some(users) = update.users {
                     set_users(Some(users));
@@ -182,12 +175,6 @@ pub fn HostPage() -> impl IntoView {
     let close = Callback::new(move |_| {
         close.get_untracked().run(());
     });
-    let jam_id_or_empty = Signal::derive(move || {
-        jam.value()()
-            .map(|jam| jam.map(|jam| jam.id))
-            .unwrap_or(Ok("".to_string()))
-            .unwrap_or_default()
-    });
     view! {
         <Modal visible=Signal::derive(move || {
             error_message.with(|e| !e.is_empty())
@@ -198,8 +185,7 @@ pub fn HostPage() -> impl IntoView {
             }>"Close"</button>
         </Modal>
         <Title text=move || {
-            jam
-                .value()()
+            jam.get()
                 .map(|jam| jam.map(|jam| jam.name.clone()))
                 .unwrap_or(Ok(String::from("Host")))
                 .unwrap_or_default()
@@ -213,15 +199,19 @@ pub fn HostPage() -> impl IntoView {
                     votes
                     song_list_action=SongListAction::Remove(remove_song)
                     max_song_count=Signal::derive(move || {
-                        jam
-                            .value()()
+                        jam.get()
                             .map(|jam| jam.map(|jam| jam.max_song_count))
                             .unwrap_or(Ok(0))
                             .unwrap_or_default()
                     })
                 />
 
-                <Share jam_id=jam_id_or_empty/>
+                <Share jam_id=Signal::derive(move || {
+                    jam.get()
+                        .map(|jam| jam.map(|jam| jam.id))
+                        .unwrap_or(Ok("".to_string()))
+                        .unwrap_or_default()
+                })/>
             </div>
         </div>
     }

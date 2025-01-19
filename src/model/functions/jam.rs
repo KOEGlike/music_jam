@@ -403,8 +403,11 @@ pub async fn get_next_song<'e>(
         return Ok(s);
     }
 
-    if let Ok(s) = get_song_recommendation(credentials.clone(), jam_id, transaction).await {
-        return Ok(s);
+    match get_song_recommendation(credentials.clone(), jam_id, transaction).await {
+        Ok(s) => return Ok(s),
+        Err(e) => {
+            eprintln!("error getting song recommendation: {:#?}", e);
+        }
     }
 
     let never_gonna = search("Never gonna give you up", transaction, jam_id, credentials)
