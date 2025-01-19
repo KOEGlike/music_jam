@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use crate::components::general::{self, modal::*};
-use gloo::timers::callback::Interval;
 use leptos::{
     either::*,
     logging::{error, log},
@@ -11,7 +10,6 @@ use leptos::{
 use leptos_router::hooks::use_navigate;
 use rust_spotify_web_playback_sdk::prelude as sp;
 use task::spawn_local;
-use wasm_bindgen::JsValue;
 
 use crate::model;
 

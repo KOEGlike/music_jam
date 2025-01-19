@@ -1,4 +1,3 @@
-use std::ops::Deref;
 
 use crate::components::{host::Player, Modal, Share, SongList, SongListAction, UsersBar};
 use crate::model::types::*;

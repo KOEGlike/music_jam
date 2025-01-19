@@ -406,7 +406,7 @@ pub async fn get_next_song<'e>(
     match get_song_recommendation(credentials.clone(), jam_id, transaction).await {
         Ok(s) => return Ok(s),
         Err(e) => {
-            eprintln!("error getting song recommendation: {:#?}", e);
+            eprintln!("error getting song recommendation: {}", e);
         }
     }
 

@@ -2,7 +2,7 @@ use crate::model;
 use crate::model::real_time::SearchResult;
 use leptos::{
     prelude::*,
-    task::{self, spawn_local},
+    task::{spawn_local},
 };
 use leptos_meta::*;
 use leptos_router::{

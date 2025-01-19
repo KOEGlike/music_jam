@@ -17,9 +17,9 @@ async fn redirect_to_spotify_oauth() -> Result<(), ServerFnError> {
     query.execute(&pool).await?;
     redirect(
         format!(
-            "https://accounts.spotify.com/authorize?response_type=code&client_id={}&scope={}&redirect_uri={}/create-host&state={}&show_dialog=false"
+            "https://accounts.spotify.com/authorize?response_type=code&client_id={}&scope={}&redirect_uri={}/create-host&state={}&show_dialog=true"
             ,app_state.spotify_credentials.id
-            ,"user-read-playback-state user-modify-playback-state user-read-currently-playing streaming user-read-private user-read-email"
+            ,"user-read-playback-state user-modify-playback-state user-read-currently-playing streaming user-read-private user-read-email user-read-recently-played user-top-read"
             ,app_state.site_url
             ,host_id
         ).as_str()

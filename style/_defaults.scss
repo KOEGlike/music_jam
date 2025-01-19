@@ -100,11 +100,11 @@ main::before {
 	max-width: calc(100vw + -1 * -10vw);
 }
 
-main > * {
-	scale: $scale-factor;
-	margin: $margin-factor;
-	margin-top: 0px;
-}
+// main > * {
+// 	scale: $scale-factor;
+// 	margin: $margin-factor;
+// 	margin-top: 0px;
+// }
 
 /* width */
 *::-webkit-scrollbar {
