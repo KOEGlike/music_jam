@@ -74,7 +74,7 @@ $gap-number: 10;
 .user {
     height: $icon-size;
     width: $icon-size;
-    border-radius: $icon-size / 2;
+    border-radius: calc($icon-size / 2);
     overflow: hidden;
     flex-shrink: 0; // Prevent shrinking
     overflow-y: hidden;
@@ -83,7 +83,7 @@ $gap-number: 10;
     >* {
         width: $icon-size;
         height: $icon-size;
-        border-radius: $icon-size/2;
+        border-radius: calc($icon-size/2);
     }
 
     >img {

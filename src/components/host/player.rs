@@ -188,39 +188,6 @@ pub fn Player(
         }
     });
 
-    /*let (position_interval_id, set_position_interval_id) = signal_local(JsValue::UNDEFINED);
-    Effect::new(move |_| {
-        if is_loaded() {
-            let position_update_interval = Interval::new(100, move || {
-                position_update();
-            });
-            set_position_interval_id(position_update_interval.forget());
-        }
-    });
-
-    on_cleanup(move || {
-        let interval_id = position_interval_id.get_untracked();
-        if interval_id != JsValue::UNDEFINED {
-            let window = match web_sys::window() {
-                Some(w) => w,
-                None => {
-                    error!("Error getting window object to clear position interval");
-                    return;
-                }
-            };
-
-            let interval_id = match interval_id.as_f64() {
-                Some(i) => i,
-                None => {
-                    error!("Error getting interval id as f64 to clear position interval");
-                    return;
-                }
-            };
-
-            window.clear_interval_with_handle(interval_id as i32);
-        }
-    });*/
-
     let position_percentage = Signal::derive(move || {
         song_position() as f32
             / current_song.with(|s| s.as_ref().map(|s| s.duration).unwrap_or(1)) as f32

@@ -3,9 +3,6 @@ use axum::{routing::get, Router};
 
 use leptos::prelude::*;
 use leptos_axum::*;
-use leptos_router::RouteListing;
-
-use crate::app::App;
 
 pub fn new(
     leptos_routes: Vec<AxumRouteListing>,

@@ -279,11 +279,11 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
     });
 
     view! {
-        <Modal visible=Signal::derive(move || error_message.with(|e| !e.is_empty()))>
-            <div>
-                {error_message}
-                <button on:click=move |_| set_error_message(String::new())>"Close"</button>
-            </div>
+        <Modal visible=Signal::derive(move || {
+            error_message.with(|e| !e.is_empty())
+        })>
+            {error_message}
+            <button on:click=move |_| set_error_message(String::new())>"Close"</button>
         </Modal>
         <div class="create-user">
             <div class="image-container">
@@ -396,7 +396,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
 
                     {move || {
                         if let CameraRequestState::Asking = camera_request_state.get() {
-                            Either::Left(view! { <SpinnyLoading/> })
+                            Either::Left(view! { <SpinnyLoading /> })
                         } else {
                             Either::Right(
                                 view! {

@@ -11,7 +11,7 @@
 
     40%,
     50% {
-        transform: translateX(-100%);
+        transform: translateX(calc(-100% + 460px));
     }
 
     90%,

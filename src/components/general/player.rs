@@ -61,15 +61,7 @@ pub fn Player(
                     }
                 >
 
-                    {move || {
-                        let is_overflowing = title_overflow();
-                        std::iter::repeat(
-                                current_song().map(|s| s.name.clone()).unwrap_or_default(),
-                            )
-                            .take(if is_overflowing { 2 } else { 1 })
-                            .collect::<Vec<String>>()
-                            .join(" ")
-                    }}
+                    {move || { current_song().map(|s| s.name.clone()).unwrap_or_default() }}
 
                 </div>
                 <div
@@ -81,16 +73,7 @@ pub fn Player(
                     }
                 >
 
-                    {move || {
-                        let artists = current_song()
-                            .map(|s| s.artists.join(", "))
-                            .unwrap_or_default();
-                        let is_overflowing = artist_overflow();
-                        std::iter::repeat(artists)
-                            .take(if is_overflowing { 2 } else { 1 })
-                            .collect::<Vec<String>>()
-                            .join(" ")
-                    }}
+                    {move || { current_song().map(|s| s.artists.join(", ")).unwrap_or_default() }}
 
                 </div>
             </div>

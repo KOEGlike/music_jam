@@ -1,9 +1,6 @@
 use crate::model;
 use crate::model::real_time::SearchResult;
-use leptos::{
-    prelude::*,
-    task::{spawn_local},
-};
+use leptos::{prelude::*, task::spawn_local};
 use leptos_meta::*;
 use leptos_router::{
     components::{Route, Router, Routes},
@@ -17,16 +14,16 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
         <!DOCTYPE html>
         <html lang="en">
             <head>
-                <meta charset="utf-8"/>
-                <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <link rel="stylesheet" href="/pkg/music_jam.css"/>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <link rel="stylesheet" href="/pkg/music_jam.css" />
                 <title>"Music Jam"</title>
-                <AutoReload options=options.clone()/>
-                <HydrationScripts options/>
-                <MetaTags/>
+                <AutoReload options=options.clone() />
+                <HydrationScripts options />
+                <MetaTags />
             </head>
             <body>
-                <App/>
+                <App />
             </body>
         </html>
     }
@@ -43,17 +40,17 @@ pub fn App() -> impl IntoView {
         <Router>
             <main style:display=move || if is_loading() { "none" } else { "inline-block" }>
                 <Routes fallback=|| "Page not found.".into_view()>
-                    <Route path=path!("/") view=pages::HomePage/>
-                    <Route path=path!("/create-host") view=pages::CreateHostPage/>
-                    <Route path=path!("/create-user/:id") view=pages::CreateUserPage/>
-                    <Route path=path!("/jam/host/:id") view=pages::HostPage/>
-                    <Route path=path!("/jam/:id") view=pages::UserPage/>
-                    <Route path=path!("/test-bar") view=UserBartTest/>
-                    <Route path=path!("/test-share") view=ShareTest/>
-                    <Route path=path!("/test-search") view=SearchTest/>
-                    <Route path=path!("/test-user-player") view=UserPlayerTest/>
-                    <Route path=path!("/test-sdk") view=SDKTest/>
-                    <Route path=path!("/test-song-list") view=SongListTest/>
+                    <Route path=path!("/") view=pages::HomePage />
+                    <Route path=path!("/create-host") view=pages::CreateHostPage />
+                    <Route path=path!("/create-user/:id") view=pages::CreateUserPage />
+                    <Route path=path!("/jam/host/:id") view=pages::HostPage />
+                    <Route path=path!("/jam/:id") view=pages::UserPage />
+                    <Route path=path!("/test-bar") view=UserBartTest />
+                    <Route path=path!("/test-share") view=ShareTest />
+                    <Route path=path!("/test-search") view=SearchTest />
+                    <Route path=path!("/test-user-player") view=UserPlayerTest />
+                    <Route path=path!("/test-sdk") view=SDKTest />
+                    <Route path=path!("/test-song-list") view=SongListTest />
                 </Routes>
             </main>
             <div
@@ -104,7 +101,7 @@ pub fn SongListTest() -> impl IntoView {
         remove_vote: Callback::new(|id| log!("remove vote with id:{}", id)),
         remove_song: Callback::new(|id| log!("remove song with id:{}", id)),
     };
-    view! { <SongList songs votes max_song_count song_list_action/> }
+    view! { <SongList songs votes max_song_count song_list_action /> }
 }
 
 #[component]
@@ -167,7 +164,7 @@ pub fn UserBartTest() -> impl IntoView {
     let close = Callback::new(move |_: ()| log!("close"));
 
     view! {
-        <UsersBar close users kick_user/>
+        <UsersBar close users kick_user />
         <button on:click=move |_| { set_users(None) }>"loading"</button>
     }
 }
@@ -176,7 +173,7 @@ pub fn UserBartTest() -> impl IntoView {
 fn ShareTest() -> impl IntoView {
     use crate::components::Share;
     let jam_id = Signal::derive(|| "5Y8FXC".to_owned());
-    view! { <Share jam_id/> }
+    view! { <Share jam_id /> }
 }
 
 #[component]
@@ -232,7 +229,7 @@ fn SearchTest() -> impl IntoView {
     let add_song = Callback::new(add_song);
     let loaded = Signal::derive(|| true);
 
-    view! { <Search search_result search add_song loaded/> }
+    view! { <Search search_result search add_song loaded /> }
 }
 
 #[component]
@@ -243,9 +240,7 @@ fn UserPlayerTest() -> impl IntoView {
         id: Some("lol".to_string()),
         spotify_id: "lol".to_string(),
         user_id: None,
-        name:
-            "Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
-                .to_string(),
+        name: "Yesterdayyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy".to_string(),
         artists: vec!["Beatles".to_string()],
         album: "Help!".to_string(),
         duration: 240,
@@ -257,7 +252,7 @@ fn UserPlayerTest() -> impl IntoView {
     }));
     let position = Signal::derive(|| 0.7);
 
-    view! { <Player position current_song=current_song/> }
+    view! { <Player position current_song=current_song /> }
 }
 
 #[component]
