@@ -128,7 +128,7 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                             class="title"
                             node_ref=title_ref
 
-                            class:scroll={
+                            class:scroll-song-title={
                                 let song_name = song.name.clone();
                                 move || {
                                     let overflow = title_overflowing();
@@ -146,7 +146,7 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                                     class="artist"
                                     node_ref=artist_ref
 
-                                    class:scroll={
+                                    class:scroll-song-artist={
                                         let artists = song.artists.clone();
                                         move || {
                                             let overflow = artist_overflowing();

@@ -1,11 +1,6 @@
-use crate::model::{functions::jam, types::*};
-use leptos::{ev::play, logging::*, server_fn::redirect};
-use rand::seq::SliceRandom;
-use real_time::Changed;
-use rspotify::Credentials;
-use sqlx::PgExecutor;
-
 use super::notify;
+use crate::model::types::*;
+use real_time::Changed;
 
 pub async fn get_jam<'e>(jam_id: &str, executor: impl sqlx::PgExecutor<'e>) -> Result<Jam, Error> {
     let jam = match sqlx::query!("SELECT * FROM jams WHERE id = $1", jam_id.to_lowercase())

@@ -1,17 +1,63 @@
-.scroll {
+.scroll-player {
     white-space: nowrap;
-    animation: scrollText 10s linear infinite;
+    animation: scrollFramesPlayer 10s linear infinite;
     word-spacing: 3px;
 }
 
-@keyframes scrollText {
+@keyframes scrollFramesPlayer {
     0% {
         transform: translateX(0%);
     }
 
     40%,
     50% {
-        transform: translateX(calc(-100% + 460px));
+        transform: translateX(calc(-100% + 430px));
+    }
+
+    90%,
+    100% {
+        transform: translateX(0%);
+    }
+
+}
+
+.scroll-song-title {
+    white-space: nowrap;
+    animation: scrollFramesTitle 10s linear infinite;
+    word-spacing: 3px;
+}
+
+@keyframes scrollFramesSongTitle {
+    0% {
+        transform: translateX(0%);
+    }
+
+    40%,
+    50% {
+        transform: translateX(calc(-100% + 140px));
+    }
+
+    90%,
+    100% {
+        transform: translateX(0%);
+    }
+
+}
+
+.scroll-song-artist {
+    white-space: nowrap;
+    animation: scrollFramesArtist 10s linear infinite;
+    word-spacing: 3px;
+}
+
+@keyframes scrollFramesSongArtist {
+    0% {
+        transform: translateX(0%);
+    }
+
+    40%,
+    50% {
+        transform: translateX(calc(-100% + 140px));
     }
 
     90%,

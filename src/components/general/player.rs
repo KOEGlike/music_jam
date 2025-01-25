@@ -55,7 +55,7 @@ pub fn Player(
                 <div
                     class="title"
                     id="title"
-                    class:scroll=move || {
+                    class:scroll-player=move || {
                         current_song.track();
                         title_overflow()
                     }
@@ -67,7 +67,7 @@ pub fn Player(
                 <div
                     class="artist"
                     id="artist"
-                    class:scroll=move || {
+                    class:scroll-player=move || {
                         current_song.track();
                         artist_overflow()
                     }
