@@ -1,4 +1,3 @@
-
 use crate::components::{host::Player, Modal, Share, SongList, SongListAction, UsersBar};
 use crate::model::types::*;
 use codee::binary::MsgpackSerdeCodec;
@@ -84,12 +83,6 @@ pub fn HostPage() -> impl IntoView {
         send_request.get_untracked().run(request);
     };
     let kick_user = Callback::new(kick_user);
-
-    let next_song = move |_: ()| {
-        let request = real_time::Request::NextSong;
-        send_request.get_untracked().run(request);
-    };
-    let next_song = Callback::new(next_song);
 
     let set_song_position = move |percentage| {
         let request = real_time::Request::Position { percentage };
@@ -188,11 +181,11 @@ pub fn HostPage() -> impl IntoView {
                 .map(|jam| jam.map(|jam| jam.name.clone()))
                 .unwrap_or(Ok(String::from("Host")))
                 .unwrap_or_default()
-        }/>
+        } />
         <div class="host-page">
-            <UsersBar close=close users kick_user/>
+            <UsersBar close=close users kick_user />
             <div class="center">
-                <Player host_id set_song_position next_song/>
+                <Player host_id set_song_position />
                 <SongList
                     songs
                     votes
@@ -210,7 +203,7 @@ pub fn HostPage() -> impl IntoView {
                         .map(|jam| jam.map(|jam| jam.id))
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or_default()
-                })/>
+                }) />
             </div>
         </div>
     }

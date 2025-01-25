@@ -3,12 +3,7 @@ use gloo::{
     events::EventListener,
     storage::{LocalStorage, Storage},
 };
-use leptos::{
-    either::Either,
-    logging::*,
-    prelude::*,
-    *,
-};
+use leptos::{either::Either, logging::*, prelude::*, *};
 use leptos_router::{hooks::use_navigate, *};
 use std::{rc::Rc, time::Duration};
 use wasm_bindgen::{prelude::Closure, JsCast};
@@ -133,7 +128,11 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 Ok(camera) => camera,
                 Err(e) => {
                     set_camera_request_state(CameraRequestState::Denied);
-                    set_error_message(format!("Error resolving camera future: {:?}", e));
+                    set_error_message(
+                        "Camera not found or not allowed by user, click the circle to add a photo"
+                            .into(),
+                    );
+                    error!("Error resolving camera promise: {:?}", e);
                     return;
                 }
             };

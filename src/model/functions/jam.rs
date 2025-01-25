@@ -230,28 +230,36 @@ pub async fn create_jam<'e>(
     Ok(jam_id)
 }
 
-pub async fn set_current_song_position<'e>(
+pub async fn set_current_song_position(
     jam_id: &str,
     percentage: f32,
-    executor: impl sqlx::PgExecutor<'e>,
+    credentials: SpotifyCredentials,
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
 ) -> Result<real_time::Changed, Error> {
     if !(0.0..=1.0).contains(&percentage) {
         return Err(Error::InvalidRequest(
             "Percentage must be between 0 and 1".to_string(),
         ));
     }
+
     let res = sqlx::query!(
         "UPDATE jams SET song_position = $1 WHERE id = $2",
         percentage,
         jam_id
     )
-    .execute(executor)
+    .execute(&mut **transaction)
     .await?;
+
     if res.rows_affected() == 0 {
         return Err(Error::DoesNotExist(format!(
             "jam with id {} does not exist, could not set song position",
             jam_id
         )));
+    }
+
+    if percentage >= 0.99 {
+        let changed = go_to_next_song(jam_id, transaction, credentials).await?;
+        return Ok(changed.position());
     }
     Ok(real_time::Changed::new().position())
 }
@@ -425,7 +433,7 @@ pub async fn go_to_next_song<'e>(
 
     let top_song = get_next_song(jam_id, transaction, credentials.clone()).await?;
 
-    let changed = set_current_song(&top_song, jam_id, &mut *transaction).await?;
+    let changed = set_current_song(&top_song, jam_id, transaction).await?;
 
     let changed = reset_votes(jam_id, &mut **transaction)
         .await?

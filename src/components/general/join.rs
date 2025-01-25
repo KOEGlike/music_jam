@@ -56,20 +56,15 @@ pub fn JoinIsland() -> impl IntoView {
             })>
 
                 {move || {
-                    view! {
-                        {move || {
-                            match state.get() {
-                                State::Loading => EitherOf3::A(view! { <SpinnyLoading/> }),
-                                State::Error(err) => EitherOf3::B(view! { <p>{err}</p> }),
-                                _ => EitherOf3::C(()),
-                            }
-                        }}
-
-                        <button on:click=move |_| {
-                            set_state(State::None);
-                        }>"Close"</button>
+                    match state.get() {
+                        State::Loading => EitherOf3::A(view! { <SpinnyLoading/> }),
+                        State::Error(err) => EitherOf3::B(view! { <p>{err}</p> }),
+                        _ => EitherOf3::C(()),
                     }
                 }}
+                <button on:click=move |_| {
+                    set_state(State::None);
+                }>"Close"</button>
 
             </Modal>
 

@@ -4,9 +4,11 @@ use crate::model::types::*;
 use leptos::logging::*;
 use rspotify::{
     clients::{BaseClient, OAuthClient},
-    model::{AdditionalType, Id, SearchResult, TrackId},
+    model::{AdditionalType, Id, PlayContextId, PlayableId, SearchResult, TrackId},
     AuthCodeSpotify,
 };
+
+use super::song;
 
 pub async fn switch_playback_to_device<'e>(
     device_id: &str,
@@ -283,19 +285,10 @@ pub async fn play_song<'e>(
         }
     };
     if let Err(e) = client
-        .add_item_to_queue(rspotify::model::PlayableId::Track(song_id), None)
+        .start_uris_playback(vec![PlayableId::Track(song_id)], None, None, None)
         .await
     {
-        return Err(Error::Spotify(format!(
-            "could not play song, could add song to queue: {}",
-            e
-        )));
-    };
-    if let Err(e) = client.next_track(None).await {
-        return Err(Error::Spotify(format!(
-            "could not play song, could not skip to next song: {}",
-            e
-        )));
+        return Err(Error::Spotify(format!("could not play song: {}", e)));
     };
     Ok(())
 }

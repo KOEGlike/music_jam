@@ -65,12 +65,11 @@ pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
             }
         }
     });
-    let jam_id = Signal::derive(move || jam_id.get().to_uppercase());
 
     view! {
         <div class="share">
             <div inner_html=qr></div>
-            {move || jam_id.get()}
+            {move || jam_id().to_uppercase()}
             <button
                 class="button"
                 on:click=move |_| {

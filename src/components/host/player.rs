@@ -17,7 +17,6 @@ use crate::model;
 pub fn Player(
     #[prop(into)] host_id: Signal<Option<String>>,
     #[prop(into)] set_song_position: Callback<f32>,
-    #[prop(into)] next_song: Callback<()>,
 ) -> impl IntoView {
     let (error_message, set_error_message) = signal(String::new());
 
@@ -229,14 +228,6 @@ pub fn Player(
 
     Effect::new(move |_| {
         set_global_song_position.run(position_percentage());
-    });
-
-    let can_go_to_next_song = Memo::new(move |_| position_percentage() > 0.995);
-
-    Effect::new(move |_| {
-        if can_go_to_next_song() && player_is_connected() {
-            next_song.run(());
-        }
     });
 
     on_cleanup(move || {

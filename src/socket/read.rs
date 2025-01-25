@@ -240,7 +240,14 @@ async fn handle_message(
                 return;
             }
 
-            match set_current_song_position(id.jam_id(), percentage, &mut *transaction).await {
+            match set_current_song_position(
+                id.jam_id(),
+                percentage,
+                credentials.clone(),
+                &mut transaction,
+            )
+            .await
+            {
                 Ok(changed_new) => {
                     changed = changed.merge_with_other(changed_new);
                 }
@@ -248,23 +255,6 @@ async fn handle_message(
                     errors.push(e);
                 }
             };
-        }
-        real_time::Request::NextSong => {
-            if  only_host(
-                &id,
-        "Only a host can set the current song, this is a bug, terminating socket connection", 
-                &sender
-            )
-                .await.is_err(){return;}
-
-            match go_to_next_song(id.jam_id(), &mut transaction, credentials.clone()).await {
-                Ok(changed_new) => {
-                    changed = changed.merge_with_other(changed_new);
-                }
-                Err(e) => {
-                    errors.push(e);
-                }
-            }
         }
     }
 

@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Request {
@@ -9,5 +9,4 @@ pub enum Request {
     RemoveVote { song_id: String },
     Search { query: String, id: String },
     Position { percentage: f32 },
-    NextSong,
 }

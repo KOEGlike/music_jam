@@ -1,4 +1,5 @@
 @use '../defaults' as *;
+@use 'button';
 
 .modal-wrapper {
 	z-index: 99;
@@ -23,5 +24,12 @@
 	align-items: center;
 	justify-content: center;
 
+	padding: 10px;
+
 	position: relative;
+
+	>button{
+		@extend .button;
+		width: 100%;
+	}
 }
