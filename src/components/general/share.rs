@@ -23,9 +23,14 @@ async fn save_to_clipboard(text: &str) {
 pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
     let (base_url, set_base_url) = signal(String::new());
 
+    let (clone_jam_id, set_jam_id) = signal(String::new());
+
     Effect::new(move |_| {
+        set_jam_id(jam_id());
         log!("share jam_id: {}", jam_id());
     });
+
+    let jam_id = clone_jam_id;
 
     if cfg!(target_arch = "wasm32") {
         match web_sys::window() {

@@ -133,101 +133,149 @@ pub fn SongList(
                         Either::Right(())
                     }
                 }}
-                <div style:display=move || if !button_state() { "flex" } else { "none" }>
-                    <For
-                        each=move || { others_songs().unwrap_or_default().into_iter() }
-
-                        key=|song| song.id.clone()
-                        children=move |song| {
-                            let id = song.id.clone();
-                            let votes = Memo::new(move |_| {
-                                others_songs
-                                    .with(|songs| {
-                                        {
-                                            songs
-                                                .as_ref()
-                                                .map(|songs| {
-                                                    songs
-                                                        .iter()
-                                                        .filter(|s| s.id == id)
-                                                        .map(|s| s.votes)
-                                                        .next()
-                                                        .unwrap_or(Vote {
-                                                            votes: 69,
-                                                            have_you_voted: None,
-                                                        })
-                                                })
-                                        }
-                                            .unwrap_or_default()
-                                    })
-                            });
-                            let name = song.name.clone();
-                            Effect::new(move |_| {
-                                log!("votes: {:#?}, song name:{}", votes(), name);
-                            });
-                            let song_action = match song_list_action {
-                                SongListAction::Vote { add_vote, remove_vote, .. } => {
-                                    SongAction::Vote {
-                                        add_vote,
-                                        remove_vote,
-                                        vote: votes.into(),
-                                    }
-                                }
-                                SongListAction::Remove(cb) => {
-                                    SongAction::Remove {
-                                        remove: cb,
-                                        vote: votes.into(),
-                                    }
-                                }
-                                SongListAction::Add(cb) => SongAction::Add(cb),
-                            };
-                            view! { <Song song=Some(song) song_type=song_action/> }
-                        }
-                    />
-
-                </div> <div style:display=move || if button_state() { "flex" } else { "none" }>
-                    <For
-                        each=move || { your_songs().unwrap_or_default().into_iter() }
-
-                        key=|song| song.id.clone()
-                        children=move |song| {
-                            if let SongListAction::Vote { remove_song, .. } = song_list_action {
-                                let id = song.id.clone();
-                                let votes = Memo::new(move |_| {
-                                    your_songs
-                                        .with(|songs| {
-                                            {
-                                                songs
-                                                    .as_ref()
-                                                    .map(|songs| {
-                                                        songs
-                                                            .iter()
-                                                            .filter(|s| s.id == id)
-                                                            .map(|s| s.votes)
-                                                            .next()
-                                                            .unwrap_or(Vote {
-                                                                votes: 69,
-                                                                have_you_voted: None,
-                                                            })
-                                                    })
+                {move || {
+                    match button_state() {
+                        false => {
+                            Either::Left(
+                                view! {
+                                    <div>
+                                        {move || {
+                                            if let Some(songs) = songs() {
+                                                if songs.is_empty() {
+                                                    return Either::Left(
+                                                        view! {
+                                                            <div class="no-songs">"No songs in this jam 😔"</div>
+                                                        },
+                                                    );
+                                                }
                                             }
-                                                .unwrap_or_default()
-                                        })
-                                });
-                                let song_action = SongAction::Remove {
-                                    remove: remove_song,
-                                    vote: votes.into(),
-                                };
-                                Either::Left(
-                                    view! { <Song song=Some(song) song_type=song_action/> },
-                                )
-                            } else {
-                                Either::Right(())
-                            }
-                        }
-                    />
+                                            Either::Right(())
+                                        }}
+                                        <For
+                                            each=move || {
+                                                others_songs().unwrap_or_default().into_iter()
+                                            }
 
-                </div>
+                                            key=|song| song.id.clone()
+                                            children=move |song| {
+                                                let id = song.id.clone();
+                                                let votes = Memo::new(move |_| {
+                                                    others_songs
+                                                        .with(|songs| {
+                                                            {
+                                                                songs
+                                                                    .as_ref()
+                                                                    .map(|songs| {
+                                                                        songs
+                                                                            .iter()
+                                                                            .filter(|s| s.id == id)
+                                                                            .map(|s| s.votes)
+                                                                            .next()
+                                                                            .unwrap_or(Vote {
+                                                                                votes: 69,
+                                                                                have_you_voted: None,
+                                                                            })
+                                                                    })
+                                                            }
+                                                                .unwrap_or_default()
+                                                        })
+                                                });
+                                                let name = song.name.clone();
+                                                Effect::new(move |_| {
+                                                    log!("votes: {:#?}, song name:{}", votes(), name);
+                                                });
+                                                let song_action = match song_list_action {
+                                                    SongListAction::Vote { add_vote, remove_vote, .. } => {
+                                                        SongAction::Vote {
+                                                            add_vote,
+                                                            remove_vote,
+                                                            vote: votes.into(),
+                                                        }
+                                                    }
+                                                    SongListAction::Remove(cb) => {
+                                                        SongAction::Remove {
+                                                            remove: cb,
+                                                            vote: votes.into(),
+                                                        }
+                                                    }
+                                                    SongListAction::Add(cb) => SongAction::Add(cb),
+                                                };
+                                                view! { <Song song=Some(song) song_type=song_action /> }
+                                            }
+                                        />
+
+                                    </div>
+                                },
+                            )
+                        }
+                        true => {
+                            Either::Right(
+
+                                view! {
+                                    <div>
+                                        {move || {
+                                            if let Some(songs) = your_songs() {
+                                                if songs.is_empty() {
+                                                    return Either::Left(
+                                                        view! {
+                                                            <div class="no-songs">
+                                                                "You didn't add any songs yet😔"<br/>" search for something to add a song"
+                                                            </div>
+                                                        },
+                                                    );
+                                                }
+                                            }
+                                            Either::Right(())
+                                        }}
+                                        <For
+                                            each=move || {
+                                                your_songs().unwrap_or_default().into_iter()
+                                            }
+
+                                            key=|song| song.id.clone()
+                                            children=move |song| {
+                                                if let SongListAction::Vote { remove_song, .. } = song_list_action {
+                                                    let id = song.id.clone();
+                                                    let votes = Memo::new(move |_| {
+                                                        your_songs
+                                                            .with(|songs| {
+                                                                {
+                                                                    songs
+                                                                        .as_ref()
+                                                                        .map(|songs| {
+                                                                            songs
+                                                                                .iter()
+                                                                                .filter(|s| s.id == id)
+                                                                                .map(|s| s.votes)
+                                                                                .next()
+                                                                                .unwrap_or(Vote {
+                                                                                    votes: 69,
+                                                                                    have_you_voted: None,
+                                                                                })
+                                                                        })
+                                                                }
+                                                                    .unwrap_or_default()
+                                                            })
+                                                    });
+                                                    let song_action = SongAction::Remove {
+                                                        remove: remove_song,
+                                                        vote: votes.into(),
+                                                    };
+                                                    Either::Left(
+                                                        view! { <Song song=Some(song) song_type=song_action /> },
+                                                    )
+                                                } else {
+                                                    Either::Right(())
+                                                }
+                                            }
+                                        />
+
+                                    </div>
+                                },
+                            )
+                        }
+                    }
+                }}
             </div>
 
         </div>

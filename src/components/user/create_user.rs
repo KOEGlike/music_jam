@@ -3,7 +3,8 @@ use gloo::{
     events::EventListener,
     storage::{LocalStorage, Storage},
 };
-use leptos::{either::Either, logging::*, prelude::*, *};
+
+use leptos::{either::*, logging::*, prelude::*, *};
 use leptos_router::{hooks::use_navigate, *};
 use std::{rc::Rc, time::Duration};
 use wasm_bindgen::{prelude::Closure, JsCast};
@@ -288,35 +289,25 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
         <div class="create-user">
             <div class="image-container">
                 <video
-                    style:display=move || {
-                        if camera_request_state.with(|s| s.is_denied())
-                            || image_url.with(|url| !url.is_empty())
-                        {
-                            "none"
-                        } else {
-                            "inline "
-                        }
-                    }
-
                     playsinline="false"
                     disablepictureinpicture
                     disableremoteplayback
                     node_ref=video_ref
+
+                    style:display=move || {
+                        if !camera_request_state.with(|s| s.is_denied())
+                            && image_url.with(|url| url.is_empty())
+                        {
+                            ""
+                        } else {
+                            "none"
+                        }
+                    }
                 >
                     "Video stream not available."
                 </video>
                 <img
                     class="photo"
-                    style:display=move || {
-                        if !camera_request_state.with(|s| s.is_denied())
-                            && image_url.with(|url| url.is_empty())
-                        {
-                            "none"
-                        } else {
-                            "inline"
-                        }
-                    }
-
                     prop:src=image_url
                     prop:alt=move || {
                         if camera_request_state.with(|s| s.is_denied()) {
@@ -325,8 +316,16 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                             "The screen capture will appear in this box."
                         }
                     }
+                    style:display=move || {
+                        if !camera_request_state.with(|s| s.is_denied())
+                            && !image_url.with(|url| url.is_empty())
+                        {
+                            ""
+                        } else {
+                            "none"
+                        }
+                    }
                 />
-
                 <input
                     type="file"
                     node_ref=input_ref
@@ -346,60 +345,25 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 on:input=move |ev| set_name(event_target_value(&ev))
             />
             <div class="buttons">
-                <label
-                    for="image-picker"
-                    style:display=move || {
-                        if image_url.with(|url| !url.is_empty())
-                            || !camera_request_state.with(|s| s.is_denied())
-                        {
-                            "none"
-                        } else {
-                            "inline "
-                        }
-                    }
-                >
+                {move || {
+                    if image_url.with(|url| url.is_empty())
+                        && camera_request_state.with(|s| s.is_denied())
+                    {
+                        return EitherOf4::A(
+                            view! {
+                                <label
+                                    for="image-picker"
+                                    style:display=move || {
+                                        if image_url.with(|url| !url.is_empty())
+                                            || !camera_request_state.with(|s| s.is_denied())
+                                        {
+                                            "none"
+                                        } else {
+                                            "inline "
+                                        }
+                                    }
+                                >
 
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="100"
-                        height="100"
-                        viewBox="0 0 100 100"
-                        fill="none"
-                    >
-                        <path
-                            d="M100 50C100 77.6142 77.6142 100 50 100C22.3858 100 0 77.6142 0 50C0 22.3858 22.3858 0 50 0C77.6142 0 100 22.3858 100 50ZM7.5 50C7.5 73.4721 26.5279 92.5 50 92.5C73.4721 92.5 92.5 73.4721 92.5 50C92.5 26.5279 73.4721 7.5 50 7.5C26.5279 7.5 7.5 26.5279 7.5 50Z"
-                            fill="white"
-                        ></path>
-                    </svg>
-                </label>
-
-                <button
-                    class="capture-button"
-                    style:display=move || {
-                        if image_url.with(|url| !url.is_empty())
-                            || camera_request_state.with(|s| s.is_denied())
-                        {
-                            "none"
-                        } else {
-                            "inline "
-                        }
-                    }
-
-                    on:click=move |_| {
-                        if image_url.with(|url| url.is_empty()) {
-                            if let Some(take) = take_picture() {
-                                take();
-                            }
-                        }
-                    }
-                >
-
-                    {move || {
-                        if let CameraRequestState::Asking = camera_request_state.get() {
-                            Either::Left(view! { <SpinnyLoading /> })
-                        } else {
-                            Either::Right(
-                                view! {
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="100"
@@ -412,77 +376,113 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                                             fill="white"
                                         ></path>
                                     </svg>
-                                },
-                            )
-                        }
-                    }}
-
-                </button>
-                <button
-                    class="clear-button"
-                    on:click=move |_| set_image_url(String::new())
-                    style:display=move || {
-                        if image_url.with(|url| url.is_empty()) { "none" } else { "inline " }
+                                </label>
+                            },
+                        );
                     }
-                >
+                    if image_url.with(|url| url.is_empty())
+                        && camera_request_state.with(|s| s.is_granted())
+                    {
+                        return EitherOf4::B(
 
-                    <svg
-                        viewBox="0 0 32 32"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        stroke="#ffffff"
-                    >
-                        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                        <g
-                            id="SVGRepo_tracerCarrier"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        ></g>
-                        <g id="SVGRepo_iconCarrier">
-                            <path
-                                stroke="#ffffff"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M8.5 23.5l15-15M23.5 23.5l-15-15"
-                            ></path>
-                        </g>
-                    </svg>
-                </button>
-                <button
-                    class="create-button"
-                    on:click=move |_| {
-                        create_user.dispatch(());
-                        if let Some(close) = close_camera() {
-                            close();
-                        }
+                            view! {
+                                <button
+                                    class="capture-button"
+                                    on:click=move |_| {
+                                        if image_url.with(|url| url.is_empty()) {
+                                            if let Some(take) = take_picture() {
+                                                take();
+                                            }
+                                        }
+                                    }
+                                >
+
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="100"
+                                        height="100"
+                                        viewBox="0 0 100 100"
+                                        fill="none"
+                                    >
+                                        <path
+                                            d="M100 50C100 77.6142 77.6142 100 50 100C22.3858 100 0 77.6142 0 50C0 22.3858 22.3858 0 50 0C77.6142 0 100 22.3858 100 50ZM7.5 50C7.5 73.4721 26.5279 92.5 50 92.5C73.4721 92.5 92.5 73.4721 92.5 50C92.5 26.5279 73.4721 7.5 50 7.5C26.5279 7.5 7.5 26.5279 7.5 50Z"
+                                            fill="white"
+                                        ></path>
+                                    </svg>
+
+                                </button>
+                            },
+                        );
                     }
+                    if !image_url.with(|url| url.is_empty()) {
+                        return EitherOf4::C(
 
-                    style:display=move || {
-                        if image_url.with(|url| url.is_empty()) { "none" } else { "inline " }
+                            view! {
+                                <button
+                                    class="clear-button"
+                                    on:click=move |_| set_image_url(String::new())
+                                >
+
+                                    <svg
+                                        viewBox="0 0 32 32"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        stroke="#ffffff"
+                                    >
+                                        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                        <g
+                                            id="SVGRepo_tracerCarrier"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        ></g>
+                                        <g id="SVGRepo_iconCarrier">
+                                            <path
+                                                stroke="#ffffff"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M8.5 23.5l15-15M23.5 23.5l-15-15"
+                                            ></path>
+                                        </g>
+                                    </svg>
+                                </button>
+                                <button
+                                    class="create-button"
+                                    on:click=move |_| {
+                                        create_user.dispatch(());
+                                        set_camera_request_state(CameraRequestState::Asking);
+                                        set_image_url(String::new());
+                                        if let Some(close) = close_camera() {
+                                            close();
+                                        }
+                                    }
+                                >
+
+                                    <svg
+                                        fill="#ffffff"
+                                        viewBox="0 0 32 32"
+                                        version="1.1"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        stroke="#ffffff"
+                                        stroke-width="0.00032"
+                                    >
+                                        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                        <g
+                                            id="SVGRepo_tracerCarrier"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        ></g>
+                                        <g id="SVGRepo_iconCarrier">
+                                            <title>checkmark2</title>
+                                            <path d="M28.998 8.531l-2.134-2.134c-0.394-0.393-1.030-0.393-1.423 0l-12.795 12.795-6.086-6.13c-0.393-0.393-1.029-0.393-1.423 0l-2.134 2.134c-0.393 0.394-0.393 1.030 0 1.423l8.924 8.984c0.393 0.393 1.030 0.393 1.423 0l15.648-15.649c0.393-0.392 0.393-1.030 0-1.423z"></path>
+                                        </g>
+                                    </svg>
+                                </button>
+                            },
+                        );
                     }
-                >
-
-                    <svg
-                        fill="#ffffff"
-                        viewBox="0 0 32 32"
-                        version="1.1"
-                        xmlns="http://www.w3.org/2000/svg"
-                        stroke="#ffffff"
-                        stroke-width="0.00032"
-                    >
-                        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                        <g
-                            id="SVGRepo_tracerCarrier"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        ></g>
-                        <g id="SVGRepo_iconCarrier">
-                            <title>checkmark2</title>
-                            <path d="M28.998 8.531l-2.134-2.134c-0.394-0.393-1.030-0.393-1.423 0l-12.795 12.795-6.086-6.13c-0.393-0.393-1.029-0.393-1.423 0l-2.134 2.134c-0.393 0.394-0.393 1.030 0 1.423l8.924 8.984c0.393 0.393 1.030 0.393 1.423 0l15.648-15.649c0.393-0.392 0.393-1.030 0-1.423z"></path>
-                        </g>
-                    </svg>
-                </button>
+                    EitherOf4::D(view! { <SpinnyLoading /> })
+                }}
             </div>
         </div>
     }

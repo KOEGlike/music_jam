@@ -100,11 +100,92 @@ main::before {
 	max-width: calc(100vw + -1 * -10vw);
 }
 
-// main > * {
-// 	scale: $scale-factor;
-// 	margin: $margin-factor;
-// 	margin-top: 0px;
-// }
+@media (min-width: 2500px) {
+	main>* {
+		scale: 1.5;
+		margin: 15%;
+		margin-top: 3%;
+		gap: 10px;
+	}
+}
+
+@media (min-width: 2000px) and (max-width: 2499px) {
+	main>* {
+		scale: 1.15;
+		margin: 5%;
+		margin-top: 0px;
+	}
+}
+
+@media (min-width: 1600px) and (max-width: 1999px) {
+	main>* {
+		scale: 1.1;
+		margin: 5%;
+		margin-top: 0px;
+	}
+}
+
+@media (max-width: 1260px),
+(max-height: 750px) {
+	main>* {
+		scale: 0.9;
+		margin: -5%;
+		margin-top: 0px;
+	}
+}
+
+@media (max-width: 1160px),
+(max-height: 710px) {
+	main>* {
+		scale: 0.8;
+		margin: -10%;
+		margin-top: 0px;
+	}
+}
+
+@media (max-width: 1060px),
+(max-height: 610px) {
+	main>* {
+		scale: 0.7;
+		margin: -20%;
+		margin-top: 0%;
+	}
+}
+
+@media (max-width: 900px),
+(max-height: 530px) {
+	main>* {
+		scale: 0.6;
+		margin: -30%;
+		margin-top: 0%;
+	}
+}
+
+@media (max-width: 790px),
+(orientation: portrait) {
+	main {
+		padding-top: 5vh;
+		justify-self: start;
+	}
+
+	main>* {
+		scale: 1;
+	}
+}
+
+@media (max-width: 390px) {
+	main>* {
+		margin-top: -10%;
+		scale: 0.9;
+	}
+}
+
+@media (max-width: 340px) {
+	main>* {
+		margin-top: -20%;
+		scale: 0.8;
+	}
+}
 
 /* width */
 *::-webkit-scrollbar {

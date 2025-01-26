@@ -1,8 +1,5 @@
-use std::collections::{HashMap, HashSet};
-
-use leptos::html::P;
-
 use crate::model::{get_current_song, types::*};
+use std::collections::{HashMap, HashSet};
 
 pub async fn add_vote<'e>(
     song_id: &str,

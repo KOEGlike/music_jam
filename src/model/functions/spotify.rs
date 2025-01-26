@@ -2,6 +2,7 @@ use std::result;
 
 use crate::model::types::*;
 use leptos::logging::*;
+use rand::{Rng, SeedableRng};
 use rspotify::{
     clients::{BaseClient, OAuthClient},
     model::{AdditionalType, Id, PlayContextId, PlayableId, SearchResult, TrackId},
@@ -140,9 +141,9 @@ pub async fn get_song_recommendation<'e>(
     let client = AuthCodeSpotify::from_token(token);
     let mut tracks = client
         .current_user_top_tracks_manual(
-            Some(rspotify::model::TimeRange::ShortTerm),
-            Some(3),
-            Some(0),
+            Some(rspotify::model::TimeRange::MediumTerm),
+            Some(20),
+            Some(rand::prelude::StdRng::from_entropy().gen_range(0..19)),
         )
         .await?;
     let track = tracks.items.remove(0);

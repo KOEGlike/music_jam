@@ -58,4 +58,8 @@
 	@extend .big-space-island;
 	height: fit-content;
 	justify-content: end;
+
+	>button>svg {
+		fill: white;
+	}
 }

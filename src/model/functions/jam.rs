@@ -338,6 +338,8 @@ pub async fn set_current_song<'e>(
     jam_id: &str,
     transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
 ) -> Result<real_time::Changed, Error> {
+
+    println!("set song: {:#?}", song);
     let song_id = cuid2::create_id(); // Generate a new song ID
 
     // Try to update the song first

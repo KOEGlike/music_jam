@@ -41,19 +41,25 @@ $gap-number: 10;
         @extend .glass;
         display: flex;
         flex-direction: row;
+        align-items: center;
         width: auto;
-        padding: $gap;
-        padding-bottom: 0px;
+        padding-left: $gap;
         gap: $gap;
         border-radius: 40px;
         overflow-x: scroll;
         overflow-y: hidden;
-        white-space: nowrap; // Ensure elements don't wrap
-        flex-shrink: 0; // Prevent shrinking
+        white-space: nowrap; 
+        flex-shrink: 0; 
         min-height: calc($icon-size + (2 * $gap));
         $space-available: calc((100% - (75px + 60px + $gap)));
 
         width: $space-available;
+
+        >.no-users {
+            display: flex;
+            direction: column;
+            justify-content: center;
+        }
     }
 }
 

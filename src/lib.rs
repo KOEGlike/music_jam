@@ -1,6 +1,7 @@
+#![recursion_limit = "512"]
 pub mod app;
-pub mod model;
 pub mod components;
+pub mod model;
 pub mod pages;
 
 #[cfg(feature = "ssr")]

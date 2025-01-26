@@ -33,6 +33,16 @@ pub fn UsersBar(
                         Either::Right(())
                     }
                 }}
+                {move || {
+                    if let Some(users) = users() {
+                        if users.is_empty() {
+                            return Either::Left(
+                                view! { <div class="no-users">"No users in this jam 😔"</div> },
+                            );
+                        }
+                    }
+                    Either::Right(())
+                }}
                 <For
                     each=move || users().unwrap_or_default()
                     key=|user| user.id.clone()

@@ -1,6 +1,5 @@
 use rspotify::Credentials;
-use serde::{Serialize, Deserialize};
-
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpotifyCredentials {
@@ -12,7 +11,7 @@ impl From<Credentials> for SpotifyCredentials {
     fn from(credentials: Credentials) -> Self {
         Self {
             id: credentials.id,
-            secret: credentials.secret.unwrap_or_default(),
+            secret: credentials.secret.unwrap(),
         }
     }
 }
