@@ -3565,7 +3565,7 @@ dependencies = [
 [[package]]
 name = "rust_spotify_web_playback_sdk"
 version = "0.2.6"
-source = "git+https://github.com/KOEGlike/rust_spotify_web_playback_sdk.git#77345109efaf86321ec78c15a4a3b2b27f49d67c"
+source = "git+https://github.com/KOEGlike/rust_spotify_web_playback_sdk.git#d4174036f0926fbd8da38ca7d01caa9a452c5918"
 dependencies = [
  "js-sys",
  "nestify",
