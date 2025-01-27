@@ -22,9 +22,9 @@ The users can submit songs to a queue and like those songs, the song with the mo
 
 ## Gallery
 
-![screenshot of host page](images/host.png)
-![screenshot of user page](images/user.png)
-![screenshot of create user page](images/create-user.png)
+![screenshot of host page](https://github.com/KOEGlike/music_jam/blob/main/images%2Fhost.png)
+![screenshot of user page](https://github.com/KOEGlike/music_jam/blob/main/images%2Fuser.png)
+![screenshot of create user page](https://github.com/KOEGlike/music_jam/blob/main/images%2Fcreate-user.png)
 
 ###
 
