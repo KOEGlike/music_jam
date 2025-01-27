@@ -26,8 +26,6 @@ The users can submit songs to a queue and like those songs, the song with the mo
 ![screenshot of user page](images/user.png)
 ![screenshot of create user page](images/create-user.png)
 
-###
-
 ## Running the app locally
 
 There are two ways to run the app, in a docker container, or on you machine directly.
