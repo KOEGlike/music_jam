@@ -249,7 +249,15 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 if name.is_empty() {
                     return Err(ServerFnError::ServerError("Name is empty".into()));
                 }
-                create_user(jam_id, name, pfp_url).await
+                let res=create_user(jam_id, name, pfp_url).await;
+                if res.is_ok() {
+                    set_camera_request_state(CameraRequestState::Asking);
+                    set_image_url(String::new());
+                    if let Some(close) = close_camera() {
+                        close();
+                    }
+                }
+                res
             }
         }
     });
@@ -450,11 +458,6 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                                     class="create-button"
                                     on:click=move |_| {
                                         create_user.dispatch(());
-                                        set_camera_request_state(CameraRequestState::Asking);
-                                        set_image_url(String::new());
-                                        if let Some(close) = close_camera() {
-                                            close();
-                                        }
                                     }
                                 >
 
