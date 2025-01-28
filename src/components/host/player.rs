@@ -168,11 +168,20 @@ pub fn Player(
         })
     };
 
+    let (position_percentage, set_position_percentage) = signal(0.0);
     let position_update = move || {
         spawn_local(async move {
             if is_loaded.get_untracked() {
                 if let Ok(Some(state)) = sp::get_current_state().await {
-                    set_song_position(state.position);
+                    if !(state.position == 0 && song_position.get_untracked() == 0) {
+                        set_song_position(state.position);
+                        let percentage = song_position.get_untracked() as f32
+                            / current_song
+                                .with_untracked(|s| s.as_ref().map(|s| s.duration).unwrap_or(1))
+                                as f32;
+                        set_global_song_position.run(percentage);
+                        set_position_percentage(percentage);
+                    }
                 }
             }
         })
@@ -183,18 +192,9 @@ pub fn Player(
                 move || {
                     position_update();
                 },
-                100,
+                10,
             );
         }
-    });
-
-    let position_percentage = Signal::derive(move || {
-        song_position() as f32
-            / current_song.with(|s| s.as_ref().map(|s| s.duration).unwrap_or(1)) as f32
-    });
-
-    Effect::new(move |_| {
-        set_global_song_position.run(position_percentage());
     });
 
     on_cleanup(move || {

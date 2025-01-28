@@ -237,6 +237,12 @@ pub async fn set_current_song_position(
         ));
     }
 
+    if percentage == 0.0 {
+        let changed = go_to_next_song(jam_id, transaction, credentials).await?;
+        println!("new song");
+        return Ok(changed.position());
+    }
+
     let res = sqlx::query!(
         "UPDATE jams SET song_position = $1 WHERE id = $2",
         percentage,
@@ -252,11 +258,6 @@ pub async fn set_current_song_position(
         )));
     }
 
-    if percentage >= 0.999 {
-        let changed = go_to_next_song(jam_id, transaction, credentials).await?;
-        println!("new song");
-        return Ok(changed.position());
-    }
     Ok(real_time::Changed::new().position())
 }
 
@@ -339,7 +340,6 @@ pub async fn set_current_song<'e>(
     jam_id: &str,
     transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
 ) -> Result<real_time::Changed, Error> {
-
     println!("set song: {:#?}", song);
     let song_id = cuid2::create_id(); // Generate a new song ID
 
