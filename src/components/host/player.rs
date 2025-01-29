@@ -25,11 +25,9 @@ pub fn Player(
     let (player_is_connected, set_player_is_connected) = signal(false);
 
     let (current_song, set_current_song) = signal(None::<model::Song>);
-    let (song_position, set_song_position) = signal(0);
     let (playing, set_playing) = signal(false);
 
     let on_update = move |state_change: sp::StateChange| {
-        set_song_position(state_change.position);
         set_playing(!state_change.paused);
         let mut current_song = state_change.track_window.current_track;
         set_current_song(Some(model::Song {
@@ -168,17 +166,18 @@ pub fn Player(
         })
     };
 
+    let calculate_percentage = move |current_time: i32| {
+        current_time as f32
+            / current_song.with_untracked(|s| s.as_ref().map(|s| s.duration).unwrap_or(1)) as f32
+    };
+
     let (position_percentage, set_position_percentage) = signal(0.0);
     let position_update = move || {
         spawn_local(async move {
             if is_loaded.get_untracked() {
                 if let Ok(Some(state)) = sp::get_current_state().await {
-                    if !(state.position == 0 && song_position.get_untracked() == 0) {
-                        set_song_position(state.position);
-                        let percentage = song_position.get_untracked() as f32
-                            / current_song
-                                .with_untracked(|s| s.as_ref().map(|s| s.duration).unwrap_or(1))
-                                as f32;
+                    let percentage = calculate_percentage(state.position);
+                    if !(position_percentage() > 0.999 && percentage > 0.999) {
                         set_global_song_position.run(percentage);
                         set_position_percentage(percentage);
                     }

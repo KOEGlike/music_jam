@@ -20,6 +20,7 @@
         "imageops",
         "itertools",
         "Lanczos",
+        "leptos",
         "linecap",
         "linejoin",
         "Msgpack",
