@@ -242,21 +242,27 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
     let create_user = Action::new({
         let jam_id = (*jam_id).clone();
         move |_: &()| {
-            let name = name.get();
-            let pfp_url = image_url.get();
             let jam_id = (*jam_id).to_string();
             async move {
-                if name.is_empty() {
+                if name.with(|n| n.is_empty()) {
                     return Err(ServerFnError::ServerError("Name is empty".into()));
                 }
-                let res=create_user(jam_id, name, pfp_url).await;
+                let state = camera_request_state.get();
+                let pfp_url = image_url.get();
+                set_camera_request_state(CameraRequestState::Asking);
+                set_image_url(String::new());
+                let res = create_user(jam_id, name(), pfp_url.clone()).await;
+
                 if res.is_ok() {
-                    set_camera_request_state(CameraRequestState::Asking);
-                    set_image_url(String::new());
                     if let Some(close) = close_camera() {
                         close();
                     }
                 }
+                if res.is_err() {
+                    set_camera_request_state(state);
+                    set_image_url(pfp_url);
+                }
+
                 res
             }
         }
@@ -303,7 +309,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                     node_ref=video_ref
 
                     style:display=move || {
-                        if !camera_request_state.with(|s| s.is_denied())
+                        if camera_request_state.with(|s| s.is_granted())
                             && image_url.with(|url| url.is_empty())
                         {
                             ""
@@ -318,15 +324,15 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                     class="photo"
                     prop:src=image_url
                     prop:alt=move || {
-                        if camera_request_state.with(|s| s.is_denied()) {
+                        if !camera_request_state.with(|s| s.is_denied()) {
                             "Click the circle to select an image"
                         } else {
                             "The screen capture will appear in this box."
                         }
                     }
                     style:display=move || {
-                        if !camera_request_state.with(|s| s.is_denied())
-                            && !image_url.with(|url| url.is_empty())
+                        if !camera_request_state.with(|s| s.is_granted())
+                            || !image_url.with(|url| url.is_empty())
                         {
                             ""
                         } else {

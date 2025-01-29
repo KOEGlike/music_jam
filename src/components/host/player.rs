@@ -177,7 +177,7 @@ pub fn Player(
             if is_loaded.get_untracked() {
                 if let Ok(Some(state)) = sp::get_current_state().await {
                     let percentage = calculate_percentage(state.position);
-                    if !(position_percentage() > 0.999 && percentage > 0.999) {
+                    if !(position_percentage() > 0.99 && percentage > 0.99) {
                         set_global_song_position.run(percentage);
                         set_position_percentage(percentage);
                     }
@@ -191,7 +191,7 @@ pub fn Player(
                 move || {
                     position_update();
                 },
-                10,
+                5,
             );
         }
     });

@@ -237,7 +237,7 @@ pub async fn set_current_song_position(
         ));
     }
 
-    if percentage > 0.999 {
+    if percentage > 0.99 {
         let changed = go_to_next_song(jam_id, transaction, credentials).await?;
         println!("new song");
         return Ok(changed.position());
