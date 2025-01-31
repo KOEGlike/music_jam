@@ -191,7 +191,7 @@ pub fn Player(
                 move || {
                     position_update();
                 },
-                5,
+                10,
             );
         }
     });

@@ -1,0 +1,22 @@
+@use '../defaults' as *;
+@use './islands' as *;
+@use './button' as *;
+@use './text_input' as *;
+
+
+.join-island {
+	@extend .big-space-island;
+	height: fit-content;
+	justify-content: end;
+
+    >.jam-id-input{
+        @extend .input-with-label;   
+    }
+
+	>.join-button{
+        @extend .button;
+        >svg {
+            fill: white;
+        }
+    }
+}

@@ -240,41 +240,41 @@ main::before {
 }
 
 .glass-element:active,
-.glass-element:focus {
+input.glass-element:focus {
 	background-color: rgba(map-get($colors, "glass"), map-get($opacities, "selected"));
 	outline: none;
 }
 
-.glass-element-err {
+.glass-element:user-invalid {
 	@extend .glass-element;
 	border-color: rgba(map-get($colors, "err"), map-get($opacities, "border"));
 	background-color: rgba(map-get($colors, "err"), map-get($opacities, "bg"));
 }
 
 @media (any-hover: hover) {
-	.glass-element-err:hover {
+	.glass-element:user-invalid:hover {
 		background-color: rgba(map-get($colors, "err"), map-get($opacities, "hover"));
 	}
 }
 
-.glass-element-err:active,
-.glass-element-err:focus {
+.glass-element:user-invalid:active,
+input.glass-element:user-invalid:focus {
 	background-color: rgba(map-get($colors, "err"), map-get($opacities, "selected"));
 }
 
-.glass-element-ok {
+/* .glass-element:user-valid {
 	@extend .glass-element;
 	border-color: rgba(map-get($colors, "ok"), map-get($opacities, "border"));
 	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "bg"));
 }
 
 @media (any-hover: hover) {
-	.glass-element-ok:hover {
+	.glass-element:user-valid:hover {
 		background-color: rgba(map-get($colors, "ok"), map-get($opacities, "hover"));
 	}
 }
 
-.glass-element-ok:active,
-.glass-element-ok:focus {
+.glass-element:user-valid:active,
+input.glass-element:user-valid:focus {
 	background-color: rgba(map-get($colors, "ok"), map-get($opacities, "selected"));
-}
+} */

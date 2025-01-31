@@ -355,7 +355,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 type="text"
                 class="text-input"
                 placeholder="Name"
-                class:glass-element-err=move || name.with(String::is_empty)
+                pattern="^(?!\\s*$).+"
                 on:input=move |ev| set_name(event_target_value(&ev))
             />
             <div class="buttons">

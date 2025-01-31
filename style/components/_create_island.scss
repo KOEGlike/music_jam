@@ -1,0 +1,53 @@
+@use '../defaults' as *;
+@use './islands' as *;
+@use './button' as *;
+@use './text_input' as *;
+
+.create-island {
+	@extend .big-space-island;
+	height: fit-content;
+	justify-content: end;
+
+    >.jam-name{
+        @extend .input-with-label;
+        >input{
+            @extend .text-input;
+        };
+    }
+
+    >.create-button{
+        @extend .button;
+    }
+
+    >.number-of-songs{
+        @extend .input-with-label;
+
+        >input {
+            @extend .text-input;
+        }
+        >input::placeholder {
+            font-size: 23px;
+            line-height: normal;
+        }
+        
+    }
+
+    >.connect-spotify {
+        @extend .button;
+        font-size: 20px;
+        padding: 15px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-around;
+    
+        >div {
+            display: inline-block;
+            width: 100px;
+        }
+        >svg{
+            fill:rgba(map-get($colors, 'spotify'), 0.6);
+            border: rgba(map-get($colors, 'spotify'), 0.9);
+        }
+    }
+}

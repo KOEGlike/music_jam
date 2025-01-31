@@ -128,39 +128,35 @@ pub fn CreateIsland() -> impl IntoView {
                 "Close"
             </button>
         </Modal>
-        <div class="big-space-island" id="create-island">
+        <div class="create-island">
             {move || {
                 if host_id.with(Option::is_some) {
                     Either::Left(
                         view! {
-                            <div class="input-with-label">
-                                <div class="input-with-label">
-                                    <label for="create-jam-name">"Jam Name"</label>
-                                    <input
-                                        type="text"
-                                        prop:value=name
-                                        on:input=move |ev| set_name(event_target_value(&ev))
-                                        placeholder="ex. My Jam"
-                                        class="text-input"
-                                        id="create-jam-name"
-                                        class:glass-element-err=move || name.with(String::is_empty)
-                                    />
-                                </div>
-                                <div class="input-with-label">
-                                    <label for="create-jam-max-songs">"Max Songs"</label>
-                                    <input
-                                        type="number"
-                                        prop:value=max_song_count
-                                        on:input=move |ev| set_max_song_count(
-                                            event_target_value(&ev).parse().unwrap_or(0),
-                                        )
+                            <div class="jam-name">
+                                <label for="create-jam-name">"Jam Name"</label>
+                                <input
+                                    type="text"
+                                    prop:value=name
+                                    on:input=move |ev| set_name(event_target_value(&ev))
+                                    placeholder="ex. My Jam"
+                                    id="create-jam-name"
+                                    pattern="^(?!\\s*$).+"
+                                />
+                            </div>
+                            <div class="number-of-songs">
+                                <label for="create-jam-max-songs">"Max Songs"</label>
+                                <input
+                                    type="number"
+                                    prop:value=max_song_count
+                                    on:input=move |ev| set_max_song_count(
+                                        event_target_value(&ev).parse().unwrap_or(0),
+                                    )
 
-                                        placeholder="ex. 10"
-                                        class="text-input"
-                                        id="create-jam-max-songs"
-                                        min=1
-                                    />
-                                </div>
+                                    placeholder="ex. 10"
+                                    id="create-jam-max-songs"
+                                    pattern="^[2-9]\\d*$"
+                                />
                             </div>
 
                             <button
@@ -168,7 +164,7 @@ pub fn CreateIsland() -> impl IntoView {
                                     create.dispatch(());
                                 }
 
-                                class="button"
+                                class="create-button"
                             >
                                 "Create"
                             </button>
@@ -177,7 +173,7 @@ pub fn CreateIsland() -> impl IntoView {
                 } else {
                     Either::Right(
                         view! {
-                            <div id="to-create-jam">
+                            <div class="to-create-jam">
                                 "You need to connect your Spotify account to create a jam"
                             </div>
                             <button on:click=move |_| redirect_to_oauth() class="connect-spotify">

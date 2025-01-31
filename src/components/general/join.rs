@@ -1,8 +1,8 @@
 use crate::components::modal::*;
 use crate::components::user::SpinnyLoading;
+use leptos::either::Either;
 use leptos::{either::EitherOf3, prelude::*, task::spawn_local};
 use leptos_router::{hooks::use_navigate, NavigateOptions};
-use leptos::either::Either;
 
 #[server]
 async fn does_jam_exist(jam_code: String) -> Result<bool, ServerFnError> {
@@ -51,7 +51,7 @@ pub fn JoinIsland() -> impl IntoView {
     };
 
     view! {
-        <div id="join-island">
+        <div class="join-island">
             <Modal visible=Signal::derive(move || {
                 matches!(state.get(), State::Error(_))
             })>
@@ -68,7 +68,7 @@ pub fn JoinIsland() -> impl IntoView {
 
             </Modal>
 
-            <div class="input-with-label">
+            <div class="jam-id-input">
                 <label for="join-text-input">"Jam Code"</label>
                 <input
                     type="text"
@@ -78,13 +78,13 @@ pub fn JoinIsland() -> impl IntoView {
                     placeholder="ex. 786908"
                     class="text-input"
                     id="join-text-input"
-                    class:glass-element-err=move || jam_code.with(String::is_empty)
+                    pattern="{6}"
                 />
             </div>
-            <button on:click=on_click class="button">
-                {move||match state() {
-                    State::Loading => Either::Left(view!{<SpinnyLoading/>}),
-                    _ => Either::Right(view!{"Join"})
+            <button on:click=on_click class="join-button">
+                {move || match state() {
+                    State::Loading => Either::Left(view! { <SpinnyLoading /> }),
+                    _ => Either::Right(view! { "Join" }),
                 }}
             </button>
         </div>
