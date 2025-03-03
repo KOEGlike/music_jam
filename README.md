@@ -30,9 +30,9 @@ The users can submit songs to a queue and like those songs, the song with the mo
 
 There are two ways to run the app, in a docker container, or on you machine directly.
 
-I would recommend the containered version if you are not planning on developing the app, because it's a lot easier to do, and there are no advantages as a user to not run in a container.
+I would recommend the containered version if you are not planning on developing the app, because it's a lot easier to do, and there are no advantages as a user to run it in directly on your maschine.
 
-It's recommended to install docker for both options, since it's way easier to run the db in a container than on you local machine.
+It's recommended to install docker for both options, since it's way easier to run the db it in a container than on you local machine.
 
 ### For both options you need to do these steps
 
