@@ -18,6 +18,7 @@ COPY . .
 
 ENV SQLX_OFFLINE=true
 ENV LETPOS_WASM_OPT_VERSION=versoin_119
+ENV RUST_BACKTRACE=full
 # RUN cargo sqlx prepare
 
 # Build the app
