@@ -5,7 +5,7 @@ FROM rustlang/rust:nightly-bookworm AS builder
 RUN wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
 
 # Install cargo-leptos
-RUN cargo install cargo-leptos
+RUN cargo install --locked cargo-leptos
 
 # Add the WASM target
 RUN rustup target add wasm32-unknown-unknown
