@@ -4,7 +4,7 @@ use leptos::prelude::*;
 #[component]
 pub fn HomePage() -> impl IntoView{
     view! {
-        <div id="home-page">
+        <div class="home-page">
             <JoinIsland/>
             <CreateIsland/>
         </div>

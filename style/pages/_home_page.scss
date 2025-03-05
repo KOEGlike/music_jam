@@ -1,7 +1,7 @@
 @use '../defaults' as *;
 @use '../components/components' as *;
 
-#home-page {
+.home-page {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
@@ -11,7 +11,7 @@
 
 @media (max-width: 790px),
 (orientation: portrait) {
-	#home-page {
+	.home-page {
 		flex-direction: column;
 		row-gap: 100px;
 		justify-content: start;
@@ -20,7 +20,7 @@
 }
 
 @media (min-width: 790px) and (orientation: landscape) {
-	#home-page {
+	.home-page {
 		justify-content: center;
 	}
 }
