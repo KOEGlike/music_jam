@@ -66,14 +66,14 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             let canvas = match canvas_ref.get_untracked() {
                 Some(canvas) => canvas,
                 None => {
-                    set_error_message("canvas not found".into());
+                    set_error_message.set("canvas not found".into());
                     return;
                 }
             };
             let video = match video_ref.get_untracked() {
                 Some(video) => video,
                 None => {
-                    set_error_message("video not found".into());
+                    set_error_message.set("video not found".into());
                     return;
                 }
             };
@@ -81,7 +81,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             let window = match web_sys::window() {
                 Some(window) => window,
                 None => {
-                    set_error_message("window not found".into());
+                    set_error_message.set("window not found".into());
                     return;
                 }
             };
@@ -89,7 +89,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             let camera = match window.navigator().media_devices() {
                 Ok(media_devices) => media_devices,
                 Err(e) => {
-                    set_error_message(format!("Error getting media devices: {:?}", e));
+                    set_error_message.set(format!("Error getting media devices: {:?}", e));
                     return;
                 }
             };
@@ -97,18 +97,18 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             let context = match canvas.get_context("2d") {
                 Ok(Some(context)) => context,
                 Ok(None) => {
-                    set_error_message("2d context not found".into());
+                    set_error_message.set("2d context not found".into());
                     return;
                 }
                 Err(e) => {
-                    set_error_message(format!("error getting 2d context: {:?}", e));
+                    set_error_message.set(format!("error getting 2d context: {:?}", e));
                     return;
                 }
             };
             let context = match context.dyn_into::<web_sys::CanvasRenderingContext2d>() {
                 Ok(context) => context,
                 Err(e) => {
-                    set_error_message(format!("error casting 2d context: {:?}", e));
+                    set_error_message.set(format!("error casting 2d context: {:?}", e));
                     return;
                 }
             };
@@ -120,16 +120,16 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             let camera = match camera.get_user_media_with_constraints(&camera_constraints) {
                 Ok(camera) => camera,
                 Err(e) => {
-                    set_error_message(format!("Error getting camera promise: {:?}", e));
+                    set_error_message.set(format!("Error getting camera promise: {:?}", e));
                     return;
                 }
             };
-            set_camera_request_state(CameraRequestState::Asking);
+            set_camera_request_state.set(CameraRequestState::Asking);
             let camera = match JsFuture::from(camera).await {
                 Ok(camera) => camera,
                 Err(e) => {
-                    set_camera_request_state(CameraRequestState::Denied);
-                    set_error_message(
+                    set_camera_request_state.set(CameraRequestState::Denied);
+                    set_error_message.set(
                         "Camera not found or not allowed by user, click the circle to add a photo"
                             .into(),
                     );
@@ -137,11 +137,11 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                     return;
                 }
             };
-            set_camera_request_state(CameraRequestState::Granted);
+            set_camera_request_state.set(CameraRequestState::Granted);
             let camera = match camera.dyn_into::<MediaStream>() {
                 Ok(camera) => camera,
                 Err(e) => {
-                    set_error_message(format!("Error mapping camera to object: {:?}", e));
+                    set_error_message.set(format!("Error mapping camera to object: {:?}", e));
                     return;
                 }
             };
@@ -150,14 +150,14 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             let promise = match video.play() {
                 Ok(promise) => promise,
                 Err(e) => {
-                    set_error_message(format!("Error playing video: {:?}", e));
+                    set_error_message.set(format!("Error playing video: {:?}", e));
                     return;
                 }
             };
             match JsFuture::from(promise).await {
                 Ok(_) => (),
                 Err(e) => {
-                    set_error_message(format!("Error resolving play promise: {:?}", e));
+                    set_error_message.set(format!("Error resolving play promise: {:?}", e));
                     return;
                 }
             };
@@ -175,24 +175,24 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                         video.video_width() as f64,
                         video.video_height() as f64,
                     ) {
-                        set_error_message(format!("Error drawing image: {:?}", e));
+                        set_error_message.set(format!("Error drawing image: {:?}", e));
                     }
 
                     let data_url = match canvas.to_data_url_with_type("image/webp") {
                         Ok(data_url) => data_url,
                         Err(e) => {
-                            set_error_message(format!("Error getting data url: {:?}", e));
+                            set_error_message.set(format!("Error getting data url: {:?}", e));
                             return;
                         }
                     };
-                    set_image_url(data_url.clone());
+                    set_image_url.set(data_url.clone());
                 })
             };
 
             let close_camera = Box::new(move || {
                 log!("Closing camera");
                 if let Err(e) = video.pause() {
-                    set_error_message(format!("Error pausing video: {:?}", e));
+                    set_error_message.set(format!("Error pausing video: {:?}", e));
                 };
                 video.set_src("");
                 video.set_src_object(None);
@@ -200,7 +200,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                     let track = match track.dyn_into::<web_sys::MediaStreamTrack>() {
                         Ok(track) => track,
                         Err(e) => {
-                            set_error_message(format!("Error casting track: {:?}", e));
+                            set_error_message.set(format!("Error casting track: {:?}", e));
                             return;
                         }
                     };
@@ -208,8 +208,8 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 });
             });
 
-            set_take_picture(Some(capture));
-            set_close_camera(Some(close_camera));
+            set_take_picture.set(Some(capture));
+            set_close_camera.set(Some(close_camera));
         })
     };
 
@@ -249,18 +249,18 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 }
                 let state = camera_request_state.get();
                 let pfp_url = image_url.get();
-                set_camera_request_state(CameraRequestState::Asking);
-                set_image_url(String::new());
-                let res = create_user(jam_id, name(), pfp_url.clone()).await;
+                set_camera_request_state.set(CameraRequestState::Asking);
+                set_image_url.set(String::new());
+                let res = create_user(jam_id, name.get(), pfp_url.clone()).await;
 
                 if res.is_ok() {
-                    if let Some(close) = close_camera() {
+                    if let Some(close) = close_camera.get() {
                         close();
                     }
                 }
                 if res.is_err() {
-                    set_camera_request_state(state);
-                    set_image_url(pfp_url);
+                    set_camera_request_state.set(state);
+                    set_image_url.set(pfp_url);
                 }
 
                 res
@@ -274,15 +274,13 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 Ok(id) => {
                     let jam_id: &str = &jam_id;
                     if let Err(e) = LocalStorage::set(jam_id, id) {
-                        set_error_message(format!(
-                            "Error setting user id in local storage: {:?}",
-                            e
-                        ));
+                        set_error_message
+                            .set(format!("Error setting user id in local storage: {:?}", e));
                     }
                     let navigate = use_navigate();
                     navigate(&format!("/jam/{}", jam_id), NavigateOptions::default());
                 }
-                Err(e) => set_error_message(format!("Error creating user: {:?}", e)),
+                Err(e) => set_error_message.set(format!("Error creating user: {:?}", e)),
             }
         };
     });
@@ -298,7 +296,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
             error_message.with(|e| !e.is_empty())
         })>
             {error_message}
-            <button on:click=move |_| set_error_message(String::new())>"Close"</button>
+            <button on:click=move |_| set_error_message.set(String::new())>"Close"</button>
         </Modal>
         <div class="create-user">
             <div class="image-container">
@@ -356,7 +354,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                 class="text-input"
                 placeholder="Name"
                 pattern="^(?!\\s*$).+"
-                on:input=move |ev| set_name(event_target_value(&ev))
+                on:input=move |ev| set_name.set(event_target_value(&ev))
             />
             <div class="buttons">
                 {move || {
@@ -404,7 +402,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                                     class="capture-button"
                                     on:click=move |_| {
                                         if image_url.with(|url| url.is_empty()) {
-                                            if let Some(take) = take_picture() {
+                                            if let Some(take) = take_picture.get() {
                                                 take();
                                             }
                                         }
@@ -434,7 +432,7 @@ pub fn CreateUser(jam_id: String) -> impl IntoView {
                             view! {
                                 <button
                                     class="clear-button"
-                                    on:click=move |_| set_image_url(String::new())
+                                    on:click=move |_| set_image_url.set(String::new())
                                 >
 
                                     <svg
@@ -571,7 +569,7 @@ fn file_picker(
             let files = match input.files() {
                 Some(files) => files,
                 None => {
-                    set_error_message("no files found".into());
+                    set_error_message.set("no files found".into());
                     return;
                 }
             };
@@ -579,19 +577,19 @@ fn file_picker(
                 let file_reader = match FileReader::new() {
                     Ok(file_reader) => file_reader,
                     Err(e) => {
-                        set_error_message(format!("error creating file reader: {:?}", e));
+                        set_error_message.set(format!("error creating file reader: {:?}", e));
                         return;
                     }
                 };
                 let file = match files.item(0) {
                     Some(file) => file,
                     None => {
-                        set_error_message("no file found".into());
+                        set_error_message.set("no file found".into());
                         return;
                     }
                 };
                 if let Err(e) = file_reader.read_as_data_url(&file) {
-                    set_error_message(format!("error reading file as data url: {:?}", e));
+                    set_error_message.set(format!("error reading file as data url: {:?}", e));
                     return;
                 };
                 let cb = {
@@ -600,28 +598,26 @@ fn file_picker(
                         let result = match file_reader.result() {
                             Ok(result) => result,
                             Err(e) => {
-                                set_error_message(format!(
-                                    "error getting file reader result: {:?}",
-                                    e
-                                ));
+                                set_error_message
+                                    .set(format!("error getting file reader result: {:?}", e));
                                 return;
                             }
                         };
                         let url = match result.as_string() {
                             Some(url) => url,
                             None => {
-                                set_error_message("no url found".into());
+                                set_error_message.set("no url found".into());
                                 return;
                             }
                         };
                         log!("file url:{}", url);
-                        image_url(url);
+                        image_url.set(url);
                     }) as Box<dyn FnMut()>)
                 };
                 file_reader.set_onload(Some(cb.as_ref().unchecked_ref()));
                 cb.forget();
             } else {
-                image_url(String::new());
+                image_url.set(String::new());
             }
         }
     });

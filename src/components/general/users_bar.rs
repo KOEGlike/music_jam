@@ -34,7 +34,7 @@ pub fn UsersBar(
                     }
                 }}
                 {move || {
-                    if let Some(users) = users() {
+                    if let Some(users) = users.get() {
                         if users.is_empty() {
                             return Either::Left(
                                 view! { <div class="no-users">"No users in this jam 😔"</div> },
@@ -44,7 +44,7 @@ pub fn UsersBar(
                     Either::Right(())
                 }}
                 <For
-                    each=move || users().unwrap_or_default()
+                    each=move || users.get().unwrap_or_default()
                     key=|user| user.id.clone()
                     children=move |user| {
                         let user_id = Rc::new(user.id);

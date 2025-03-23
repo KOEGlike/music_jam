@@ -20,24 +20,24 @@ pub fn Player(
         });
     });
 
-    let song_length = move || current_song().map(|s| s.duration).unwrap_or_default();
+    let song_length = move || current_song.get().map(|s| s.duration).unwrap_or_default();
     let (title_overflow, set_title_overflow) = signal(false);
     let (artist_overflow, set_artist_overflow) = signal(false);
 
     Effect::new(move |_| {
         current_song.track();
-        set_artist_overflow(will_element_overflow("artist", Some("info")));
+        set_artist_overflow.set(will_element_overflow("artist", Some("info")));
     });
 
     Effect::new(move |_| {
         current_song.track();
-        set_title_overflow(will_element_overflow("title", Some("info")));
+        set_title_overflow.set(will_element_overflow("title", Some("info")));
     });
 
     view! {
         <div class="player">
             <img
-                prop:src=move || current_song().map(|s| s.image_url).unwrap_or_default()
+                prop:src=move || current_song.get().map(|s| s.image_url).unwrap_or_default()
                 title="the album cover of the current song"
                 alt="img not found, wait for a few seconds"
                 onerror="this.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';"
@@ -57,11 +57,11 @@ pub fn Player(
                     id="title"
                     class:scroll-player=move || {
                         current_song.track();
-                        title_overflow()
+                        title_overflow.get()
                     }
                 >
 
-                    {move || { current_song().map(|s| s.name.clone()).unwrap_or_default() }}
+                    {move || { current_song.get().map(|s| s.name.clone()).unwrap_or_default() }}
 
                 </div>
                 <div
@@ -69,11 +69,13 @@ pub fn Player(
                     id="artist"
                     class:scroll-player=move || {
                         current_song.track();
-                        artist_overflow()
+                        artist_overflow.get()
                     }
                 >
 
-                    {move || { current_song().map(|s| s.artists.join(", ")).unwrap_or_default() }}
+                    {move || {
+                        current_song.get().map(|s| s.artists.join(", ")).unwrap_or_default()
+                    }}
 
                 </div>
             </div>
@@ -82,12 +84,12 @@ pub fn Player(
                 <div class="bar">
                     <div
                         class="position"
-                        style:width=move || format!("{}%", position() * 100.0)
+                        style:width=move || format!("{}%", position.get() * 100.0)
                     ></div>
                 </div>
                 <div class="times">
                     <div>
-                        {move || millis_to_min_sec((position() * song_length() as f32) as u32)}
+                        {move || millis_to_min_sec((position.get() * song_length() as f32) as u32)}
                     </div>
                     <div>{move || millis_to_min_sec(song_length())}</div>
                 </div>

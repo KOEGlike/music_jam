@@ -75,11 +75,11 @@ pub fn CreateIsland() -> impl IntoView {
     let (show_dialog, set_show_dialog) = signal(false);
 
     Effect::new(move |_| match LocalStorage::get::<String>("host_id") {
-        Ok(id) => set_host_id(Some(id)),
+        Ok(id) => set_host_id.set(Some(id)),
         Err(StorageError::KeyNotFound(_)) => (),
         Err(e) => {
-            set_error_message(format!("Error getting host id from local storage: {}", e));
-            set_show_dialog(true);
+            set_error_message.set(format!("Error getting host id from local storage: {}", e));
+            set_show_dialog.set(true);
         }
     });
 
@@ -94,7 +94,7 @@ pub fn CreateIsland() -> impl IntoView {
 
     let create = Action::new(move |_: &()| {
         let name = name.get_untracked();
-        let max_song_count = max_song_count();
+        let max_song_count = max_song_count.get();
         async move {
             match host_id.get_untracked() {
                 Some(host_id) => {
@@ -108,15 +108,16 @@ pub fn CreateIsland() -> impl IntoView {
                                 );
                             }
                             Err(e) => {
-                                set_error_message(format!("Error creating jam: {}", e));
-                                set_show_dialog(true);
+                                set_error_message.set(format!("Error creating jam: {}", e));
+                                set_show_dialog.set(true);
                             }
                         }
                     }
                 }
                 None => {
-                    set_error_message("this is a bug, how did this button get pressed".to_string());
-                    set_show_dialog(true);
+                    set_error_message
+                        .set("this is a bug, how did this button get pressed".to_string());
+                    set_show_dialog.set(true);
                 }
             };
         }
@@ -124,7 +125,7 @@ pub fn CreateIsland() -> impl IntoView {
 
     view! {
         <Modal visible=show_dialog>
-            {error_message} <button on:click=move |_| set_show_dialog(false) class="button">
+            {error_message} <button on:click=move |_| set_show_dialog.set(false) class="button">
                 "Close"
             </button>
         </Modal>
@@ -138,7 +139,7 @@ pub fn CreateIsland() -> impl IntoView {
                                 <input
                                     type="text"
                                     prop:value=name
-                                    on:input=move |ev| set_name(event_target_value(&ev))
+                                    on:input=move |ev| set_name.set(event_target_value(&ev))
                                     placeholder="ex. My Jam"
                                     id="create-jam-name"
                                     pattern="^(?!\\s*$).+"
@@ -149,9 +150,10 @@ pub fn CreateIsland() -> impl IntoView {
                                 <input
                                     type="number"
                                     prop:value=max_song_count
-                                    on:input=move |ev| set_max_song_count(
-                                        event_target_value(&ev).parse().unwrap_or(0),
-                                    )
+                                    on:input=move |ev| {
+                                        set_max_song_count
+                                            .set(event_target_value(&ev).parse().unwrap_or(0))
+                                    }
 
                                     placeholder="ex. 10"
                                     id="create-jam-max-songs"

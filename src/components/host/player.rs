@@ -28,9 +28,9 @@ pub fn Player(
     let (playing, set_playing) = signal(false);
 
     let on_update = move |state_change: sp::StateChange| {
-        set_playing(!state_change.paused);
+        set_playing.set(!state_change.paused);
         let mut current_song = state_change.track_window.current_track;
-        set_current_song(Some(model::Song {
+        set_current_song.set(Some(model::Song {
             id: None,
             spotify_id: current_song.id,
             user_id: None,
@@ -51,11 +51,11 @@ pub fn Player(
             if let Some(host_id) = host_id.try_get_untracked() {
                 if let Some(host_id) = host_id {
                     if let Err(e) = change_playback_device(device_id, host_id).await {
-                        set_error_message(format!("Error switching device: {:?}", e));
+                        set_error_message.set(format!("Error switching device: {:?}", e));
                     }
                 } else {
                     use leptos_router::NavigateOptions;
-                    set_error_message("host id is empty, act".into());
+                    set_error_message.set("host id is empty, act".into());
                     use_navigate()("/", NavigateOptions::default());
                 }
             }
@@ -66,10 +66,10 @@ pub fn Player(
         spawn_local(async move {
             match sp::connect().await {
                 Ok(_) => {
-                    set_player_is_connected(true);
+                    set_player_is_connected.set(true);
                 }
                 Err(e) => {
-                    set_error_message(format!("error while connecting to spotify:{:?}", e));
+                    set_error_message.set(format!("error while connecting to spotify:{:?}", e));
                 }
             }
         })
@@ -96,7 +96,7 @@ pub fn Player(
                 };
                 match &token {
                     Err(e) => {
-                        set_error_message(format!("Error getting token: {:?}", e));
+                        set_error_message.set(format!("Error getting token: {:?}", e));
                         error!("Error getting token: {:?}", e);
                         sleep(Duration::from_secs(2)).await;
                     }
@@ -135,12 +135,12 @@ pub fn Player(
                 },
                 move || {
                     if let Err(e) = sp::add_listener!("player_state_changed", on_update) {
-                        set_error_message(format!("Error adding listener: {:?}", e));
+                        set_error_message.set(format!("Error adding listener: {:?}", e));
                     }
                     if let Err(e) = sp::add_listener!("ready", move |player: sp::Player| {
                         switch_device(player.device_id);
                     }) {
-                        set_error_message(format!("Error adding listener: {:?}", e));
+                        set_error_message.set(format!("Error adding listener: {:?}", e));
                     }
                     log!("player ready");
                     connect();
@@ -152,16 +152,16 @@ pub fn Player(
         });
     });
 
-    let is_loaded = Memo::new(move |_| player_is_connected() && host_id.with(Option::is_some));
+    let is_loaded = Memo::new(move |_| player_is_connected.get() && host_id.with(Option::is_some));
 
     Effect::new(move |_| {
-        log!("player is connected:{}", is_loaded());
+        log!("player is connected:{}", is_loaded.get());
     });
 
     let toggle_play = move || {
         spawn_local(async move {
             if let Err(e) = sp::toggle_play().await {
-                set_error_message(format!("Error toggling play: {:?}", e));
+                set_error_message.set(format!("Error toggling play: {:?}", e));
             }
         })
     };
@@ -177,16 +177,16 @@ pub fn Player(
             if is_loaded.get_untracked() {
                 if let Ok(Some(state)) = sp::get_current_state().await {
                     let percentage = calculate_percentage(state.position);
-                    if !(position_percentage() > 0.99 && percentage > 0.99) {
+                    if !(position_percentage.get() > 0.99 && percentage > 0.99) {
                         set_global_song_position.run(percentage);
-                        set_position_percentage(percentage);
+                        set_position_percentage.set(percentage);
                     }
                 }
             }
         })
     };
     Effect::new(move |_| {
-        if is_loaded() {
+        if is_loaded.get() {
             leptos_use::use_interval_fn(
                 move || {
                     position_update();
@@ -210,7 +210,7 @@ pub fn Player(
         })>
             {error_message}
             <button on:click=move |_| {
-                set_error_message("".into());
+                set_error_message.set("".into());
             }>"close"</button>
         </Modal>
         <general::Player current_song position=position_percentage>
@@ -220,13 +220,13 @@ pub fn Player(
                 }
 
                 class="play-pause"
-                title=move || match playing() {
+                title=move || match playing.get() {
                     true => "pause",
                     false => "play",
                 }
             >
 
-                {move || match playing() {
+                {move || match playing.get() {
                     true => {
                         Either::Left(
                             view! {

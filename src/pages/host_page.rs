@@ -28,26 +28,32 @@ pub fn HostPage() -> impl IntoView {
             let navigator = use_navigate();
             navigator("/", NavigateOptions::default());
         }
-        set_host_id(host_id);
+        set_host_id.set(host_id);
     });
 
-    let initial_update = Resource::new(host_id, move |host_id| async move {
-        if let Some(host_id) = host_id {
-            get_initial_update(host_id).await
-        } else {
-            Err(ServerFnError::Request("host_id is empty".to_string()))
-        }
-    });
+    let initial_update = Resource::new(
+        move || host_id.get(),
+        move |host_id| async move {
+            if let Some(host_id) = host_id {
+                get_initial_update(host_id).await
+            } else {
+                Err(ServerFnError::Request("host_id is empty".to_string()))
+            }
+        },
+    );
 
     let jam_id = move || use_params_map().with(|params| params.get("id"));
     let jam_id = Signal::derive(jam_id);
 
-    let jam = Resource::new(jam_id, move |jam_id| async move {
-        match jam_id {
-            Some(jam_id) => get_jam(jam_id).await,
-            None => Err(ServerFnError::Request("jam_id is empty".to_string())),
-        }
-    });
+    let jam = Resource::new(
+        move || jam_id.get(),
+        move |jam_id| async move {
+            match jam_id {
+                Some(jam_id) => get_jam(jam_id).await,
+                None => Err(ServerFnError::Request("jam_id is empty".to_string())),
+            }
+        },
+    );
 
     Effect::new(move |_| {
         log!("jam: {:#?}", jam.get());
@@ -90,10 +96,10 @@ pub fn HostPage() -> impl IntoView {
     };
     let set_song_position = Callback::new(set_song_position);
 
-    Effect::new(move |_| log!("host_id:{:?}", host_id()));
+    Effect::new(move |_| log!("host_id:{:?}", host_id.get()));
 
     Effect::new(move |_| {
-        let host_id = match host_id() {
+        let host_id = match host_id.get() {
             Some(host_id) => host_id,
             None => return,
         };
@@ -114,7 +120,7 @@ pub fn HostPage() -> impl IntoView {
         });
 
         let send_request = Callback::new(move |request| send(&request));
-        set_send_request(send_request);
+        set_send_request.set(send_request);
 
         let delete_jam = Action::new(move |_: &()| {
             let host_id = host_id.clone();
@@ -123,7 +129,7 @@ pub fn HostPage() -> impl IntoView {
         let close = Callback::new(move |_: ()| {
             delete_jam.dispatch(());
         });
-        set_close(close);
+        set_close.set(close);
 
         Effect::new(move |_| {
             if let Some(update) = message.get().or_else(move || match initial_update.get() {
@@ -135,16 +141,16 @@ pub fn HostPage() -> impl IntoView {
                 None => None,
             }) {
                 if let Some(users) = update.users {
-                    set_users(Some(users));
+                    set_users.set(Some(users));
                 }
                 if let Some(songs) = update.songs {
-                    set_songs(Some(songs));
+                    set_songs.set(Some(songs));
                 }
                 if let Some(votes) = update.votes {
-                    set_votes(votes);
+                    set_votes.set(votes);
                 }
                 if !update.errors.is_empty() {
-                    set_error_message(format!("Errors: {:#?}", update.errors));
+                    set_error_message.set(format!("Errors: {:#?}", update.errors));
                 }
                 if update.ended.is_some() {
                     close_ws();
@@ -173,7 +179,7 @@ pub fn HostPage() -> impl IntoView {
         })>
             {error_message}
             <button on:click=move |_| {
-                set_error_message(String::new());
+                set_error_message.set(String::new());
             }>"Close"</button>
         </Modal>
         <Title text=move || {

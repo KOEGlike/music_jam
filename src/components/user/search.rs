@@ -12,13 +12,13 @@ pub fn Search(
 ) -> impl IntoView {
     let (current_result, set_current_result) = signal::<Vec<Song>>(Vec::new());
     let add_song = Callback::new(move |id| {
-        set_current_result(vec![]);
+        set_current_result.set(vec![]);
         add_song.run(id);
     });
 
     Effect::new(move |_| {
-        if let Some(search_result) = search_result() {
-            set_current_result(search_result.songs.clone());
+        if let Some(search_result) = search_result.get() {
+            set_current_result.set(search_result.songs.clone());
         }
     });
 
@@ -38,7 +38,7 @@ pub fn Search(
 
                 <button class:loaded=loaded>
                     {move || {
-                        if loaded() {
+                        if loaded.get() {
                             Either::Left(
                                 view! {
                                     <svg
@@ -95,11 +95,11 @@ pub fn Search(
             </div>
             <div class="search-result">
                 <For
-                    each=move || current_result().into_iter()
+                    each=move || current_result.get().into_iter()
                     key=|song| song.spotify_id.clone()
                     children=move |song| {
                         view! {
-                            <Song song=Some(song.clone()) song_type=SongAction::Add(add_song)/>
+                            <Song song=Some(song.clone()) song_type=SongAction::Add(add_song) />
                         }
                     }
                 />

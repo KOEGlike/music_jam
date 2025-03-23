@@ -50,7 +50,7 @@ pub fn CreateHostPage() -> impl IntoView {
             create_host_action.dispatch((code, state));
             create_host_action.pending();
         } else {
-            set_feedback("Error creating host: missing code or state".to_string());
+            set_feedback.set("Error creating host: missing code or state".to_string());
         }
     });
 
@@ -58,10 +58,10 @@ pub fn CreateHostPage() -> impl IntoView {
         if let Some(res) = create_host_action.value().get() {
             match res {
                 Ok(_) => {
-                    set_feedback("Host created successfully!".to_string());
+                    set_feedback.set("Host created successfully!".to_string());
                 }
                 Err(err) => {
-                    set_feedback(format!("Error creating host: {:#?}", err));
+                    set_feedback.set(format!("Error creating host: {:#?}", err));
                 }
             }
             let timer = gloo::timers::callback::Timeout::new(2000, || {

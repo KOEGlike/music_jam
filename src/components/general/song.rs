@@ -67,7 +67,7 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                 title=song.name
                 class:voted=move || {
                     if let SongAction::Vote { vote, .. } = song_type {
-                        vote().have_you_voted.unwrap_or(false)
+                        vote.get().have_you_voted.unwrap_or(false)
                     } else {
                         false
                     }
@@ -80,7 +80,7 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                     move |_| {
                         match song_type {
                             SongAction::Vote { add_vote, remove_vote, vote } => {
-                                if let Some(vote) = vote().have_you_voted {
+                                if let Some(vote) = vote.get().have_you_voted {
                                     if vote {
                                         log!("Removing vote");
                                         remove_vote.run(song_id.clone())
@@ -171,7 +171,9 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                 <div class="action">
                     {match song_type {
                         SongAction::Vote { vote, .. } => {
-                            EitherOf3::A(view! { <div class="votes">{move || vote().votes}</div> })
+                            EitherOf3::A(
+                                view! { <div class="votes">{move || vote.get().votes}</div> },
+                            )
                         }
                         SongAction::Add(_) => {
                             EitherOf3::B(
@@ -185,7 +187,7 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
                             )
                         }
                         SongAction::Remove { vote, .. } => {
-                            EitherOf3::C(view! { {move || vote().votes} })
+                            EitherOf3::C(view! { {move || vote.get().votes} })
                         }
                     }}
 

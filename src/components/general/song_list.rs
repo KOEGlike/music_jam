@@ -34,8 +34,8 @@ pub fn SongList(
 ) -> impl IntoView {
     let (button_state, set_button_state) = signal(false);
     let songs = move || {
-        if let Some(songs) = songs() {
-            let votes = votes();
+        if let Some(songs) = songs.get() {
+            let votes = votes.get();
             if songs.len() != votes.len() {
                 return Some(songs);
             }
@@ -65,7 +65,7 @@ pub fn SongList(
     let songs = Signal::derive(songs);
 
     let your_songs = Signal::derive(move || {
-        songs().map(|songs| {
+        songs.get().map(|songs| {
             songs
                 .into_iter()
                 .filter(|song| song.user_id.is_some())
@@ -73,7 +73,7 @@ pub fn SongList(
         })
     });
     let others_songs = Signal::derive(move || {
-        songs().map(|songs| {
+        songs.get().map(|songs| {
             songs
                 .into_iter()
                 .filter(|song| song.user_id.is_none())
@@ -89,21 +89,21 @@ pub fn SongList(
                         <div class="header">
                             <button
                                 class="vote"
-                                on:click=move |_| set_button_state(false)
-                                class:active=move || !button_state()
+                                on:click=move |_| set_button_state.set(false)
+                                class:active=move || !button_state.get()
                             >
                                 "Vote"
                             </button>
                             <button
                                 class="add"
-                                on:click=move |_| set_button_state(true)
+                                on:click=move |_| set_button_state.set(true)
                                 class:active=button_state
                             >
                                 {move || {
                                     format!(
                                         "Your ({} / {})",
-                                        your_songs().unwrap_or_default().len(),
-                                        max_song_count(),
+                                        your_songs.get().unwrap_or_default().len(),
+                                        max_song_count.get(),
                                     )
                                 }}
 
@@ -134,13 +134,13 @@ pub fn SongList(
                     }
                 }}
                 {move || {
-                    match button_state() {
+                    match button_state.get() {
                         false => {
                             Either::Left(
                                 view! {
                                     <div>
                                         {move || {
-                                            if let Some(songs) = songs() {
+                                            if let Some(songs) = songs.get() {
                                                 if songs.is_empty() {
                                                     return Either::Left(
                                                         view! {
@@ -153,7 +153,7 @@ pub fn SongList(
                                         }}
                                         <For
                                             each=move || {
-                                                others_songs().unwrap_or_default().into_iter()
+                                                others_songs.get().unwrap_or_default().into_iter()
                                             }
 
                                             key=|song| song.id.clone()
@@ -182,7 +182,7 @@ pub fn SongList(
                                                 });
                                                 let name = song.name.clone();
                                                 Effect::new(move |_| {
-                                                    log!("votes: {:#?}, song name:{}", votes(), name);
+                                                    log!("votes: {:#?}, song name:{}", votes.get(), name);
                                                 });
                                                 let song_action = match song_list_action {
                                                     SongListAction::Vote { add_vote, remove_vote, .. } => {
@@ -214,12 +214,13 @@ pub fn SongList(
                                 view! {
                                     <div>
                                         {move || {
-                                            if let Some(songs) = your_songs() {
+                                            if let Some(songs) = your_songs.get() {
                                                 if songs.is_empty() {
                                                     return Either::Left(
                                                         view! {
                                                             <div class="no-songs">
-                                                                "You didn't add any songs yet😔"<br/>" search for something to add a song"
+                                                                "You didn't add any songs yet😔"<br />
+                                                                " search for something to add a song"
                                                             </div>
                                                         },
                                                     );
@@ -229,7 +230,7 @@ pub fn SongList(
                                         }}
                                         <For
                                             each=move || {
-                                                your_songs().unwrap_or_default().into_iter()
+                                                your_songs.get().unwrap_or_default().into_iter()
                                             }
 
                                             key=|song| song.id.clone()

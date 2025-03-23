@@ -1,5 +1,5 @@
 # Get started with a build env with Rust nightly
-FROM rustlang/rust:nightly-bookworm AS builder
+FROM rustlang/rust:stable-bookworm AS builder
 
 # cargo extensions like cargo-leptos
 RUN wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz

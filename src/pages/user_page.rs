@@ -18,12 +18,12 @@ pub fn UserPage() -> impl IntoView {
     let jam_id = Signal::derive(jam_id);
     let (jam_id_new, set_jam_id) = signal(String::new());
     Effect::new(move |_| {
-        let jam_id = jam_id();
+        let jam_id = jam_id.get();
         if let Some(jam_id) = jam_id {
-            set_jam_id(jam_id);
+            set_jam_id.set(jam_id);
         }
     });
-    Effect::new(move |_| log!("jam_id:{:?}", jam_id()));
+    Effect::new(move |_| log!("jam_id:{:?}", jam_id.get()));
     let jam_id = jam_id_new;
 
     let jam = Action::new(move |_: &()| async move {
@@ -47,12 +47,12 @@ pub fn UserPage() -> impl IntoView {
             navigator("/", NavigateOptions::default());
             return;
         }
-        let user_id: String = LocalStorage::get(jam_id()).unwrap_or_default();
+        let user_id: String = LocalStorage::get(jam_id.get()).unwrap_or_default();
         if user_id.is_empty() {
             navigator("/", NavigateOptions::default());
             return;
         }
-        set_user_id(user_id);
+        set_user_id.set(user_id);
     });
 
     let initial_update = LocalResource::new(move || {
@@ -85,7 +85,8 @@ pub fn UserPage() -> impl IntoView {
     let search = Callback::new(search);
 
     let add_song = move |song_id: String| {
-        let your_song_count = songs()
+        let your_song_count = songs
+            .get()
             .as_ref()
             .map(|songs: &Vec<Song>| {
                 songs
@@ -167,14 +168,14 @@ pub fn UserPage() -> impl IntoView {
 
         Effect::new(move |_| {
             log!("ready_state: {:?}", ready_state.get());
-            set_ready_state(ready_state.get());
+            set_ready_state.set(ready_state.get());
         });
 
         let send_request = move |request: real_time::Request| {
             send(&request);
         };
         let send_request = Callback::new(send_request);
-        set_send_request(send_request);
+        set_send_request.set(send_request);
 
         let close_ws = Callback::new(move |_: ()| close_ws());
 
@@ -191,13 +192,13 @@ pub fn UserPage() -> impl IntoView {
             }) {
                 if let Some(result) = update.search {
                     //log!("Got search result: {:#?}", result);
-                    set_search_result(Some(result));
+                    set_search_result.set(Some(result));
                 }
                 if let Some(songs) = update.songs {
-                    set_songs(Some(songs));
+                    set_songs.set(Some(songs));
                 }
                 if let Some(votes) = update.votes {
-                    set_votes(votes);
+                    set_votes.set(votes);
                 }
                 if let Some(users) = update.users {
                     if !users
@@ -214,14 +215,14 @@ pub fn UserPage() -> impl IntoView {
                         let navigator = use_navigate();
                         navigator("/", NavigateOptions::default());
                     } else {
-                        set_users(Some(users));
+                        set_users.set(Some(users));
                     }
                 }
                 if let Some(percentage) = update.position {
-                    set_position(percentage);
+                    set_position.set(percentage);
                 }
                 if let Some(song) = update.current_song {
-                    set_current_song(song);
+                    set_current_song.set(song);
                 }
                 if update.ended.is_some() {
                     close_ws.run(());
@@ -243,11 +244,11 @@ pub fn UserPage() -> impl IntoView {
             navigator("/", NavigateOptions::default());
         };
         let leave = Callback::new(leave);
-        set_close(leave);
+        set_close.set(leave);
     });
 
     let close = Callback::new(move |_| {
-        close().run(());
+        close.get().run(());
     });
 
     view! {
@@ -257,9 +258,9 @@ pub fn UserPage() -> impl IntoView {
                 .map(|jam| jam.map(|jam| jam.name.clone()))
                 .unwrap_or(Ok(String::from("User")))
                 .unwrap_or_default()
-        }/>
+        } />
         <div class="user-page">
-            <UsersBar users close/>
+            <UsersBar users close />
             <div class="center">
                 <Search
                     search_result
@@ -285,7 +286,7 @@ pub fn UserPage() -> impl IntoView {
                     })
                 />
 
-                <Player position current_song/>
+                <Player position current_song />
             </div>
         </div>
     }

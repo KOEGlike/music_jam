@@ -26,8 +26,8 @@ pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
     let (clone_jam_id, set_jam_id) = signal(String::new());
 
     Effect::new(move |_| {
-        set_jam_id(jam_id());
-        log!("share jam_id: {}", jam_id());
+        set_jam_id.set(jam_id.get());
+        log!("share jam_id: {}", jam_id.get());
     });
 
     let jam_id = clone_jam_id;
@@ -38,7 +38,7 @@ pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
                 let location = window.location();
                 match location.origin() {
                     Ok(base_url) => {
-                        set_base_url(base_url);
+                        set_base_url.set(base_url);
                     }
                     Err(e) => {
                         error!("error getting base url: {:?}", e);
@@ -74,7 +74,7 @@ pub fn Share(#[prop(into)] jam_id: Signal<String>) -> impl IntoView {
     view! {
         <div class="share">
             <div inner_html=qr></div>
-            {move || jam_id().to_uppercase()}
+            {move || jam_id.get().to_uppercase()}
             <button
                 class="button"
                 on:click=move |_| {

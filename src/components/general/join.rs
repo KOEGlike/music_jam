@@ -24,20 +24,20 @@ pub fn JoinIsland() -> impl IntoView {
     let (state, set_state) = signal(State::None);
 
     let on_click = move |_| {
-        set_state(State::Loading);
+        set_state.set(State::Loading);
         spawn_local(async move {
             let res = does_jam_exist(jam_code.get_untracked()).await;
 
             match res {
-                Err(e) => set_state(State::Error(format!(
+                Err(e) => set_state.set(State::Error(format!(
                     "Error checking if jam exists: {:#?}",
                     e
                 ))),
                 Ok(false) => {
-                    set_state(State::Error(String::from("Jam does not exist")));
+                    set_state.set(State::Error(String::from("Jam does not exist")));
                 }
                 Ok(true) => {
-                    set_state(State::None);
+                    set_state.set(State::None);
                     if !jam_code.with_untracked(String::is_empty) {
                         let navigate = use_navigate();
                         navigate(
@@ -63,7 +63,7 @@ pub fn JoinIsland() -> impl IntoView {
                     }
                 }}
                 <button on:click=move |_| {
-                    set_state(State::None);
+                    set_state.set(State::None);
                 }>"Close"</button>
 
             </Modal>
@@ -74,7 +74,7 @@ pub fn JoinIsland() -> impl IntoView {
                     type="text"
                     maxlength=6
                     prop:value=jam_code
-                    on:input=move |ev| set_jam_code(event_target_value(&ev))
+                    on:input=move |ev| set_jam_code.set(event_target_value(&ev))
                     placeholder="ex. 786908"
                     class="text-input"
                     id="join-text-input"
@@ -82,7 +82,7 @@ pub fn JoinIsland() -> impl IntoView {
                 />
             </div>
             <button on:click=on_click class="join-button">
-                {move || match state() {
+                {move || match state.get() {
                     State::Loading => Either::Left(view! { <SpinnyLoading /> }),
                     _ => Either::Right(view! { "Join" }),
                 }}

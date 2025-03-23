@@ -45,11 +45,11 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
     let (is_loading, set_is_loading) = signal(false);
     Effect::new(move |_| {
-        set_is_loading(false);
+        set_is_loading.set(false);
     });
     view! {
         <Router>
-            <main style:display=move || if is_loading() { "none" } else { "inline-block" }>
+            <main style:display=move || if is_loading.get() { "none" } else { "inline-block" }>
                 <Routes fallback=|| "Page not found.".into_view()>
                     <Route path=path!("/") view=pages::HomePage />
                     <Route path=path!("/create-host") view=pages::CreateHostPage />
@@ -66,7 +66,7 @@ pub fn App() -> impl IntoView {
             </main>
             <div
                 class="loading-indicator"
-                style:display=move || if is_loading() { "inline-block" } else { "none" }
+                style:display=move || if is_loading.get() { "inline-block" } else { "none" }
             >
                 <p>"Loading..."</p>
             </div>
@@ -176,7 +176,7 @@ pub fn UserBartTest() -> impl IntoView {
 
     view! {
         <UsersBar close users kick_user />
-        <button on:click=move |_| { set_users(None) }>"loading"</button>
+        <button on:click=move |_| { set_users.set(None) }>"loading"</button>
     }
 }
 
@@ -228,7 +228,7 @@ fn SearchTest() -> impl IntoView {
         songs: songs.clone(),
     }));
     let search = move |id: (String, String)| {
-        set_search_result(Some(SearchResult {
+        set_search_result.set(Some(SearchResult {
             songs: songs.clone(),
             search_id: id.1,
         }));
@@ -297,7 +297,7 @@ fn SDKTest() -> impl IntoView {
                 let res =
                     sp::add_listener!("player_state_changed", move |state: sp::StateChange| {
                         log!("state changed, {}", state.track_window.current_track.name);
-                        set_current_song_name(state.track_window.current_track.name);
+                        set_current_song_name.set(state.track_window.current_track.name);
                     });
                 connect();
 
