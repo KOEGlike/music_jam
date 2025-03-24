@@ -1,6 +1,5 @@
 use crate::model::types::*;
 use axum::extract::FromRef;
-use std::error::Error as StdError;
 
 #[derive(FromRef, Clone, Debug)]
 pub struct AppState {
@@ -19,7 +18,6 @@ impl AppState {
         db_url: String,
         site_url: String,
     ) -> Result<Self, Error> {
-        
         let reqwest_client = reqwest::Client::new();
         println!("Connecting to database...",);
 

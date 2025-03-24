@@ -1,7 +1,6 @@
 use crate::model::functions::get_access_token;
 use crate::model::types::*;
 use itertools::Itertools;
-use leptos::logging::*;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use rspotify::model::TrackId;

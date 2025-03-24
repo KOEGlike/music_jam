@@ -1,11 +1,9 @@
-use std::result;
-
 use crate::model::types::*;
 use leptos::logging::*;
 use rand::{Rng, SeedableRng};
 use rspotify::{
     clients::{BaseClient, OAuthClient},
-    model::{AdditionalType, Id, PlayContextId, PlayableId, SearchResult, TrackId},
+    model::{Id, PlayableId, SearchResult, TrackId},
     AuthCodeSpotify,
 };
 
