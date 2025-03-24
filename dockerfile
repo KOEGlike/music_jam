@@ -1,8 +1,18 @@
 # Get started with a build env with Rust nightly
 FROM rust:bookworm AS builder
 
+# Install cargo-binstall, which makes it easier to install other
+# cargo extensions like cargo-leptos
+RUN wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
+RUN tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
+RUN cp cargo-binstall /usr/local/cargo/bin
+
+# Install required tools
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends clang
+
 # Install cargo-leptos
-RUN cargo install --locked cargo-leptos
+RUN cargo binstall cargo-leptos -y
 
 # Add the WASM target
 RUN rustup target add wasm32-unknown-unknown
