@@ -1,7 +1,7 @@
 [package]
 name = "music_jam"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [env]
 LEPTOS_SASS_VERSION = "1.71.0"
