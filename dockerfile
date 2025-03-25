@@ -15,7 +15,7 @@ RUN apt-get update -y \
 RUN cargo binstall cargo-leptos -y
 
 #update the rust toolchain
-RUN ustup install 1.85.1
+RUN rustup install 1.85.1
 
 # Add the WASM target
 RUN rustup target add wasm32-unknown-unknown
