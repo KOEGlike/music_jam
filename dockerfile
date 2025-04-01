@@ -1,69 +1,26 @@
-# Get started with a build env with Rust nightly
-FROM rust:bookworm AS builder
+FROM alpine:edge AS builder
+WORKDIR /build
 
-# Install cargo-binstall, which makes it easier to install other
-# cargo extensions like cargo-leptos
-RUN wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-RUN tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
-RUN cp cargo-binstall /usr/local/cargo/bin
+RUN apk update && \
+    apk upgrade && \
+    apk add pkgconfig libressl-dev mold musl-dev npm curl pigz brotli rustup gcc clang --no-cache
 
-# Install required tools
-RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends clang
+ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Install cargo-leptos
-RUN cargo binstall cargo-leptos -y
+COPY rust-toolchain.toml .
 
-#update the rust toolchain
-RUN rustup install 1.85.1
-
-# Add the WASM target
-RUN rustup target add wasm32-unknown-unknown
+RUN rustup-init -y --profile minimal --default-toolchain none && \
+    source $HOME/.cargo/env && \
+    rustup show
 
 
-# Make an /app dir, which everything will eventually live in
-RUN mkdir -p /app
-WORKDIR /app
+RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/leptos-rs/cargo-leptos/releases/download/v0.2.26/cargo-leptos-x86_64-unknown-linux-musl.tar.gz | tar -xz && \
+    mv ./cargo-leptos-x86_64-unknown-linux-musl/* ./
+
 COPY . .
 
-ENV SQLX_OFFLINE=true
-ENV RUST_BACKTRACE=full
-# RUN cargo sqlx prepare
 
-# Build the app
-RUN cargo leptos build --release -vv
+RUN sed -i '/\[package.metadata.leptos\]/,/^\[/ s/bin-target-triple="x86_64-unknown-linux-gnu"/bin-target-triple="x86_64-unknown-linux-musl"/' Cargo.toml
 
-
-FROM debian:bookworm-slim AS runtime
-WORKDIR /app
-RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && apt-get autoremove -y \
-  && apt-get clean -y \
-  && rm -rf /var/lib/apt/lists/*
-
-
-# Copy the server binary to the /app directory
-COPY --from=builder /app/target/release/music_jam /app/
-
-# /target/site contains our JS/WASM/CSS, etc.
-COPY --from=builder /app/target/site /app/site
-
-# Copy Cargo.toml if it’s needed at runtime
-COPY --from=builder /app/Cargo.toml /app/
-
-
-# Copy the migrations directory if it’s needed at runtime
-COPY --from=builder /app/db/migrations /app/db/migrations
-
-# Set any required env variables and
-ENV RUST_LOG="info"
-ENV RUST_BACKTRACE="full"
-ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
-ENV LEPTOS_SITE_ROOT="site"
-
-EXPOSE 8080
-
-VOLUME pfp-images [ "/app/site/uploads" ]
-# Run the server
-CMD ["/app/music_jam"]
+ENV LEPTOS_WASM_OPT_VERSION=version_121
+RUN ./cargo-leptos build -P --release -vv
