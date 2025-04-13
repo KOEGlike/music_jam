@@ -1,5 +1,6 @@
 services:
   jam-db:
+    restart: always
     container_name: jam-db
     image: postgres:latest
     shm_size: 500mb
@@ -23,6 +24,7 @@ services:
     # networks:
     #   - app-network
   app:
+    restart: always
     container_name: app
     image: ghcr.io/koeglike/music_jam:main
     build:
