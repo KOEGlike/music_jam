@@ -44,7 +44,8 @@ RUN sed -i '/\[package.metadata.leptos\]/,/^\[/ s/bin-target-triple="x86_64-unkn
 
 # Build the Leptos app
 ENV LEPTOS_WASM_OPT_VERSION=version_121
-RUN ./cargo-leptos build -P --release -vv
+RUN cargo-leptos --version
+RUN cargo-leptos build -P --release -vv
 
 # Stage 2: Final runtime image
 FROM scratch AS final
