@@ -26,9 +26,9 @@ RUN rustup-init -y --profile minimal --default-toolchain none && \
 # Download the correct cargo-leptos binary based on architecture
 RUN set -ex && \
     if [ "$TARGETARCH" = "amd64" ]; then \
-        ARCH_TAG="x86_64-unknown-linux-musl"; \
+        ARCH_TAG="x86_64-unknown-linux-gnu"; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
-        ARCH_TAG="aarch64-unknown-linux-musl"; \
+        ARCH_TAG="aarch64-unknown-linux-gnu"; \
     else \
         echo "Unsupported architecture: $TARGETARCH"; exit 1; \
     fi && \
