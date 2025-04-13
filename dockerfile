@@ -26,13 +26,13 @@ RUN rustup-init -y --profile minimal --default-toolchain none && \
 # Download the correct cargo-leptos binary based on architecture
 RUN set -ex && \
     if [ "$TARGETARCH" = "amd64" ]; then \
-        ARCH_TAG="x86_64-unknown-linux-gnu"; \
+        ARCH_TAG="x86_64-unknown-linux-musl"; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
-        ARCH_TAG="aarch64-unknown-linux-gnu"; \
+        ARCH_TAG="aarch64-unknown-linux-musl"; \
     else \
         echo "Unsupported architecture: $TARGETARCH"; exit 1; \
     fi && \
-    curl -L "https://github.com/leptos-rs/cargo-leptos/releases/download/v0.2.26/cargo-leptos-${ARCH_TAG}.tar.gz" \
+    curl -L "https://github.com/leptos-rs/cargo-leptos/releases/download/v0.2.32/cargo-leptos-${ARCH_TAG}.tar.gz" \
         | tar -xz && \
     mv ./cargo-leptos-${ARCH_TAG}/* /usr/local/bin/
 
