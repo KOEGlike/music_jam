@@ -51,7 +51,7 @@ RUN cargo-leptos build -P --release -vv
 FROM scratch AS final
 
 # Copy the built binary from the builder stage
-COPY --from=builder /build/target/${TARGETARCH}/release/your-binary /app
+COPY --from=builder /build/target/${TARGETARCH}/release/music_jam /app
 
 # Set entrypoint to the binary
 ENTRYPOINT ["/app"]
