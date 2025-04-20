@@ -1,6 +1,6 @@
 #[cfg(any(unix, windows))]
 [toolchain]
-channel="nightly-2025-02-19"
+channel="nightly"
 # targets=["wasm32-unknown-unknown", "x86_64-linux-gnu-gcc"]
 targets=["wasm32-unknown-unknown"]
 components=["rust-src"]

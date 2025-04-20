@@ -1,6 +1,8 @@
 {
     "cSpell.words": [
+        "autoremove",
         "bindgen",
+        "binstall",
         "birthdate",
         "browserlist",
         "browserquery",
@@ -30,6 +32,7 @@
         "reqwest",
         "rlib",
         "rspotify",
+        "RUSTUP",
         "serde",
         "sqlx",
         "stylesheet",
