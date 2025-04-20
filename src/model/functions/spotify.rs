@@ -1,5 +1,4 @@
 use crate::model::types::*;
-use leptos::logging::*;
 use rand::{Rng, SeedableRng};
 use rspotify::{
     AuthCodeSpotify,
@@ -7,7 +6,6 @@ use rspotify::{
     model::{Id, PlayableId, SearchResult, TrackId},
 };
 
-use super::song;
 
 pub async fn switch_playback_to_device<'e>(
     device_id: &str,

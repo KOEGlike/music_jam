@@ -1,9 +1,8 @@
 use crate::model::functions::get_access_token;
 use crate::model::types::*;
 use itertools::Itertools;
-use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
-use rand::{SeedableRng, prelude};
+use rand::SeedableRng;
 use rspotify::model::TrackId;
 use std::collections::HashMap;
 
