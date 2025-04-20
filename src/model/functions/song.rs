@@ -1,8 +1,9 @@
 use crate::model::functions::get_access_token;
 use crate::model::types::*;
 use itertools::Itertools;
+use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
-use rand::thread_rng;
+use rand::{SeedableRng, prelude};
 use rspotify::model::TrackId;
 use std::collections::HashMap;
 
@@ -47,6 +48,9 @@ pub async fn get_top_song<'e>(
     transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     jam_id: String,
 ) -> Result<Option<Song>, Error> {
+    use rand::prelude::StdRng;
+
+    let mut rng = StdRng::from_os_rng();
     let id = Id {
         id: IdType::General,
         jam_id,
@@ -58,7 +62,7 @@ pub async fn get_top_song<'e>(
     }
 
     let mut songs = songs.into_iter().max_set_by_key(|s| s.votes.votes);
-    songs.shuffle(&mut thread_rng());
+    songs.shuffle(&mut rng);
     Ok(songs.into_iter().next())
 }
 
@@ -172,8 +176,8 @@ pub async fn add_song<'e>(
     transaction: &mut sqlx::Transaction<'e, sqlx::Postgres>,
     credentials: SpotifyCredentials,
 ) -> Result<real_time::Changed, Error> {
-    use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
+    use rspotify::prelude::*;
     println!("adding song, with id: {}", spotify_song_id);
 
     let does_song_exist = sqlx::query!("SELECT EXISTS(SELECT 1 FROM songs WHERE spotify_id=$1 AND user_id IN (SELECT id FROM users WHERE jam_id=$2) AND user_id <> $2)", spotify_song_id, jam_id)

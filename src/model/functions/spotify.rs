@@ -2,9 +2,9 @@ use crate::model::types::*;
 use leptos::logging::*;
 use rand::{Rng, SeedableRng};
 use rspotify::{
+    AuthCodeSpotify,
     clients::{BaseClient, OAuthClient},
     model::{Id, PlayableId, SearchResult, TrackId},
-    AuthCodeSpotify,
 };
 
 use super::song;
@@ -141,7 +141,7 @@ pub async fn get_song_recommendation<'e>(
         .current_user_top_tracks_manual(
             Some(rspotify::model::TimeRange::MediumTerm),
             Some(20),
-            Some(rand::prelude::StdRng::from_entropy().gen_range(0..19)),
+            Some(rand::prelude::StdRng::from_os_rng().random_range(0..20)),
         )
         .await?;
     let track = tracks.items.remove(0);
@@ -154,8 +154,8 @@ pub async fn search<'e>(
     jam_id: &str,
     credentials: SpotifyCredentials,
 ) -> Result<Vec<Song>, Error> {
-    use rspotify::prelude::*;
     use rspotify::AuthCodeSpotify;
+    use rspotify::prelude::*;
 
     if query.is_empty() {
         return Ok(vec![]);
@@ -280,7 +280,7 @@ pub async fn play_song<'e>(
             return Err(Error::Spotify(format!(
                 "could not play song, song id is not correct: {}",
                 e
-            )))
+            )));
         }
     };
     if let Err(e) = client

@@ -75,7 +75,7 @@ pub fn HostPage() -> impl IntoView {
         warn!("wanted to send a message to ws, but the ws is not ready yet");
     }));
     let (close, set_close) = signal(Callback::new(|_: ()| {
-        warn!("wanted to close ws, but the ws is not ready yet");
+        warn!("wanted to close ws, but the ws is not ready yet ");
     }));
 
     let remove_song = move |id| {
@@ -189,7 +189,7 @@ pub fn HostPage() -> impl IntoView {
                 .unwrap_or_default()
         } />
         <div class="host-page">
-            <UsersBar close=close users kick_user />
+            <UsersBar close users kick_user />
             <div class="center">
                 <Player host_id set_song_position />
                 <SongList
