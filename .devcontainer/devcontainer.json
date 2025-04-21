@@ -1,0 +1,17 @@
+{
+    //"build": { "dockerfile": "dockerfile" },
+    "dockerComposeFile": "./compose.yml",
+  
+    "service": "dev-container",
+
+    "customizations": {
+      "vscode": {
+        "extensions": ["rust-lang.rust-analyzer", "usernamehw.errorlens", "fill-labs.dependi", "tamasfe.even-better-toml"]
+      }
+    },
+
+    "workspaceFolder": "/workspace",
+  
+    "forwardPorts": [3000]
+  }
+  

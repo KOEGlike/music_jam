@@ -1,0 +1,47 @@
+services:
+  # Copy the jam-db service definition from ../compose.yml
+  jam-db:
+    restart: always
+    container_name: jam-db-dev # Use a different container name to avoid conflicts if running both setups
+    image: postgres:latest
+    shm_size: 500mb
+    ports:
+      - 5433:5432 # Use a different host port (e.g., 5433) if you might run the main compose.yml simultaneously
+    env_file:
+      - ../.env # Adjust path relative to this file
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+      - POSTGRES_USER=jammer
+      - POSTGRES_DB=jam-db
+    volumes:
+      - jam-db-dev:/var/lib/postgresql/data # Use a different volume name
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jammer -d jam-db -p 5432 -h localhost"] 
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+  dev-container:
+    build:
+      context: .
+      dockerfile: dockerfile
+    # Update DATABASE_URL to point to the correct service name and credentials
+    environment:
+      - DATABASE_URL=postgresql://jammer:${POSTGRES_PASSWORD}@jam-db:5432/jam-db # Use jam-db service name
+    depends_on:
+      jam-db: # Ensure this matches the service name above
+        condition: service_healthy # Add condition for dependency
+        restart: true
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    volumes:
+      # Mounts the project folder to '/workspace'. Mount from the parent directory.
+      - ../:/workspace:cached 
+    command: sleep infinity
+
+volumes:
+  jam-db-dev: # Define the named volume used by jam-db-dev

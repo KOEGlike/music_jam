@@ -1,7 +1,7 @@
 FROM debian:bookworm AS builder
 
 RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends clang pkg-config libssl-dev curl ca-certificates
+  && apt-get install -y --no-install-recommends clang pkg-config libssl-dev curl ca-certificates mold
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly\
   && rm -rf /var/lib/apt/lists/* 
