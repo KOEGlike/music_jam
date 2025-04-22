@@ -76,8 +76,6 @@ pub fn Player(
     };
 
     let get_token = {
-        let host_id = host_id.clone();
-        let set_error_message = set_error_message.clone();
         async move || {
             use gloo::timers::future::sleep;
 

@@ -197,7 +197,7 @@ pub fn Song(#[prop(optional_no_strip)] song: Option<Song>, song_type: SongAction
         .into_view()
     };
 
-    let loading = move || view! {}.into_view();
+    let loading = move || ().into_view();
 
     view! {
         {move || match song.clone() {

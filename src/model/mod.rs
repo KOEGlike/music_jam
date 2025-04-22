@@ -5,3 +5,5 @@ pub use types::*;
 pub mod functions;
 #[cfg(feature = "ssr")]
 pub use functions::*;
+
+pub mod ws_client_wrapper;

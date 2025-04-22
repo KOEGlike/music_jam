@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use super::host_page::get_jam;
-use crate::components::{user::Search, Player, SongList, SongListAction, UsersBar};
+use crate::components::{Player, SongList, SongListAction, UsersBar, user::Search};
 use crate::model::{self, *};
 use crate::pages::host_page::get_initial_update;
 use codee::binary::MsgpackSerdeCodec;
@@ -10,54 +10,65 @@ use itertools::Itertools;
 use leptos::{logging::*, prelude::*};
 use leptos_meta::Title;
 use leptos_router::{hooks::*, *};
-use leptos_use::{core::ConnectionReadyState, use_websocket, UseWebSocketReturn};
+use leptos_use::{UseWebSocketReturn, core::ConnectionReadyState, use_websocket};
 
 #[component]
 pub fn UserPage() -> impl IntoView {
     let jam_id = move || use_params_map().with(|params| params.get("id"));
-    let jam_id = Signal::derive(jam_id);
-    let (jam_id_new, set_jam_id) = signal(String::new());
-    Effect::new(move |_| {
-        let jam_id = jam_id.get();
-        if let Some(jam_id) = jam_id {
-            set_jam_id.set(jam_id);
+    let jam_id = Signal::derive(move || {
+        if let Some(jam_id) = jam_id() {
+            Some(jam_id)
+        } else {
+            let navigator = use_navigate();
+            navigator("/", NavigateOptions::default());
+            None
         }
     });
     Effect::new(move |_| log!("jam_id:{:?}", jam_id.get()));
-    let jam_id = jam_id_new;
 
-    let jam = Action::new(move |_: &()| async move {
-        let jam_id = jam_id.get_untracked();
-        get_jam(jam_id).await
+    let jam = Resource::new(jam_id, move |id| async move {
+        if let Some(id) = id {
+            get_jam(id).await
+        } else {
+            Err(ServerFnError::Request("jam_id is empty".to_string()))
+        }
     });
 
-    Effect::new(move |_| jam.dispatch(()));
     Effect::new(move |_| {
-        if let Some(jam_val) = jam.value().get() {
+        if let Some(jam_val) = jam.get() {
             if jam_val.is_err() {
-                jam.dispatch(());
+                error!("Refetching jam, Error getting jam: {:#?}", jam_val);
+                jam.refetch();
             }
         }
     });
 
-    let (user_id, set_user_id) = signal(String::new());
+    let (user_id, set_user_id) = signal::<Option<String>>(None);
     Effect::new(move |_| {
         let navigator = use_navigate();
-        if jam_id.with(String::is_empty) {
+        let jam_id = jam_id.read();
+        if let Some(jam_id) = *jam_id {
+            let user_id =
+                LocalStorage::get(jam_id).map_or(
+                    None,
+                    |id: String| if id.is_empty() { None } else { Some(id) },
+                );
+            if let Some(user_id) = user_id {
+                set_user_id.set(Some(user_id));
+            } else {
+                navigator("/", NavigateOptions::default());
+            }
+        } else {
             navigator("/", NavigateOptions::default());
-            return;
         }
-        let user_id: String = LocalStorage::get(jam_id.get()).unwrap_or_default();
-        if user_id.is_empty() {
-            navigator("/", NavigateOptions::default());
-            return;
-        }
-        set_user_id.set(user_id);
     });
 
-    let initial_update = LocalResource::new(move || {
-        let user_id = user_id.get();
-        async move { get_initial_update(user_id).await }
+    let initial_update = Resource::new(user_id, move |id| async move {
+        if let Some(id) = id {
+            get_initial_update(id).await
+        } else {
+            Err(ServerFnError::Request("user_id is empty".to_string()))
+        }
     });
 
     let (search_result, set_search_result) = signal(None);
@@ -92,8 +103,10 @@ pub fn UserPage() -> impl IntoView {
                 songs
                     .iter()
                     .filter(|song| {
-                        if let Some(id) = &song.user_id {
-                            user_id.with_untracked(|user_id| *id == *user_id)
+                        if let Some(id) = &song.user_id
+                            && let Some(user_id) = user_id.get_untracked()
+                        {
+                            *id == user_id
                         } else {
                             false
                         }
@@ -103,7 +116,6 @@ pub fn UserPage() -> impl IntoView {
             .unwrap_or(0);
 
         if jam
-            .value()
             .get()
             .map(|jam| jam.map(|jam| jam.max_song_count))
             .unwrap_or(Ok(0))

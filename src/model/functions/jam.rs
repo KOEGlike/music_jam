@@ -58,7 +58,7 @@ pub async fn create_host<'e>(
             return Err(Error::Spotify(format!(
                 "error while acquiring temp spotify token: {:#?}",
                 e
-            )))
+            )));
         }
     };
 
@@ -91,7 +91,7 @@ pub async fn create_host<'e>(
             return Err(Error::Decode(format!(
                 "error while getting text from spotify response: {:#?}",
                 e
-            )))
+            )));
         }
     };
 
@@ -101,7 +101,7 @@ pub async fn create_host<'e>(
             return Err(Error::Decode(format!(
                 "error while deserializing spotify response spotify token: {:#?}",
                 e
-            )))
+            )));
         }
     };
 
@@ -274,7 +274,7 @@ pub async fn get_current_song_position<'e>(
             return Err(Error::DoesNotExist(format!(
                 "jam with id {} does not exist, could not get song position",
                 jam_id
-            )))
+            )));
         }
         Err(e) => return Err(e.into()),
     };
@@ -306,7 +306,7 @@ pub async fn get_current_song<'e>(
             return Err(Error::DoesNotExist(format!(
                 "song with user id {} does not exist, could not get current song",
                 jam_id
-            )))
+            )));
         }
         Err(e) => return Err(e.into()),
     };
@@ -422,7 +422,7 @@ pub async fn get_next_song<'e>(
     Ok(never_gonna)
 }
 
-pub async fn go_to_next_song<'e>(
+pub async fn go_to_next_song(
     jam_id: &str,
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     credentials: SpotifyCredentials,

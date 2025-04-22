@@ -1,4 +1,6 @@
 #![recursion_limit = "300"]
+#![feature(let_chains)]
+
 pub mod app;
 pub mod components;
 pub mod model;
