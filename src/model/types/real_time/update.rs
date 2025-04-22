@@ -85,7 +85,7 @@ impl Update {
     ) -> Self {
         match functions::get_votes(transaction, id).await {
             Ok(votes) => self.votes(votes),
-            Err(e) => self.error(e.into()),
+            Err(e) => self.error(e),
         }
     }
 
@@ -137,7 +137,7 @@ impl Update {
     ) -> Self {
         match crate::model::functions::get_current_song(jam_id, executor).await {
             Ok(song) => self.current_song(song),
-            Err(e) => self.error(e.into()),
+            Err(e) => self.error(e),
         }
     }
 

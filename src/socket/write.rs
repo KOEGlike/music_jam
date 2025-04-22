@@ -1,4 +1,4 @@
-use super::{handle_error, Id};
+use super::{Id, handle_error};
 use crate::model::*;
 use axum::extract::ws;
 use sqlx::postgres::PgListener;
@@ -82,7 +82,7 @@ pub async fn write(sender: mpsc::Sender<ws::Message>, id: Id, app_state: AppStat
     }
 }
 
-async fn create_listener<'e>(pool: &sqlx::PgPool, id: &Id) -> Result<PgListener, Error> {
+async fn create_listener(pool: &sqlx::PgPool, id: &Id) -> Result<PgListener, Error> {
     let mut listener = match PgListener::connect_with(pool).await {
         Ok(listener) => listener,
         Err(e) => {

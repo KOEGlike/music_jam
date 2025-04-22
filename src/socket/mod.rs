@@ -1,8 +1,8 @@
 use crate::model::*;
 use axum::{
     extract::{
-        ws::{self, WebSocket, WebSocketUpgrade},
         Query, State,
+        ws::{self, WebSocket, WebSocketUpgrade},
     },
     response::Response,
 };
@@ -96,7 +96,7 @@ async fn handle_socket(socket: WebSocket, app_state: AppState, id: String) {
     }
 }
 
-async fn occasional_notify<'e>(
+async fn occasional_notify(
     pool: sqlx::PgPool,
     jam_id: String,
     spotify_credentials: SpotifyCredentials,
