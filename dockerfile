@@ -1,15 +1,14 @@
 FROM debian:bookworm AS builder
 
 RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends clang pkg-config libssl-dev curl ca-certificates mold
+  && apt-get install -y --no-install-recommends clang pkg-config libssl-dev curl ca-certificates git
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly\
   && rm -rf /var/lib/apt/lists/* 
 
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN cargo install cargo-binstall --locked
-RUN cargo-binstall cargo-leptos -y --version "0.2.28"
+RUN cargo install cargo-leptos -y --version "0.2.28"
 
 ENV CARGO_HOME=/root/.cargo
 ENV RUSTUP_HOME=/root/.rustup
