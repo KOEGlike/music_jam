@@ -1,7 +1,7 @@
 use super::handle_error;
 use crate::model::*;
 use axum::extract::ws::{self, WebSocket};
-use futures_util::{stream::SplitStream, StreamExt};
+use futures_util::{StreamExt, stream::SplitStream};
 use real_time::SearchResult;
 use tokio::sync::mpsc;
 

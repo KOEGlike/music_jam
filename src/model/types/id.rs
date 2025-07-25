@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 pub type JamId = String;
 
 #[derive(Debug, Clone)]
@@ -36,11 +38,11 @@ impl Id {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum IdType {
     Host(String),
     User(String),
-    General
+    General,
 }
 
 impl IdType {
@@ -48,7 +50,7 @@ impl IdType {
         match self {
             IdType::Host(id) => Some(id),
             IdType::User(id) => Some(id),
-            IdType::General => None
+            IdType::General => None,
         }
     }
 

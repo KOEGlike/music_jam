@@ -1,5 +1,5 @@
-use serde::{Serialize, Deserialize};
 use super::super::Song;
+use serde::{Deserialize, Serialize};
 use std::vec::Vec;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
