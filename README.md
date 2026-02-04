@@ -22,9 +22,9 @@ The users can submit songs to a queue and like those songs, the song with the mo
 
 ## Gallery
 
-![screenshot of host page](https://cloud-dllxdx6je-hack-club-bot.vercel.app/11000006513.png)
-![screenshot of user page](https://cloud-dllxdx6je-hack-club-bot.vercel.app/21000006514.png)
-![screenshot of create user page](https://cloud-dllxdx6je-hack-club-bot.vercel.app/01000006512.png)
+![screenshot of host page](https://cdn.hackclub.com/rescue?url=https://cloud-dllxdx6je-hack-club-bot.vercel.app/11000006513.png)
+![screenshot of user page](https://cdn.hackclub.com/rescue?url=https://cloud-dllxdx6je-hack-club-bot.vercel.app/21000006514.png)
+![screenshot of create user page](https://cdn.hackclub.com/rescue?url=https://cloud-dllxdx6je-hack-club-bot.vercel.app/01000006512.png)
 
 ## Running the app locally
 
